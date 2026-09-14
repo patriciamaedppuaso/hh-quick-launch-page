@@ -66,7 +66,7 @@ body {
 }
 
 #root {
-  padding: 28px 20px 56px;
+  padding: 14px 20px 56px;
 }
 
 .wrap {
@@ -76,12 +76,25 @@ body {
 
 /* top bar */
 .topbar {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  background: var(--bg);
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
   margin-bottom: 22px;
+  padding: 14px 0 0;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, padding-bottom 0.15s ease, margin-bottom 0.15s ease;
+}
+.topbar--divided {
+  padding-bottom: 14px;
+  margin-bottom: 8px;
+  border-bottom-color: var(--border);
+  box-shadow: 0 6px 16px -12px rgba(29, 53, 64, 0.25);
 }
 
 .brand {

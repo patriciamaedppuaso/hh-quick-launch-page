@@ -144,7 +144,7 @@ export default function App() {
 
   return (
     <div className="wrap">
-      <Header role={role} theme={theme} onThemeChange={setTheme} />
+      <Header role={role} theme={theme} onThemeChange={setTheme} divided={!!activeApp} />
       {activeApp ? (
         renderActiveApp(activeApp)
       ) : (
