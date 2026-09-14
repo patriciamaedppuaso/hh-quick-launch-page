@@ -11,13 +11,13 @@ interface Props {
   apps: AppTile[];
   onAdd: (app: AppTile) => void;
   onReorder: (apps: AppTile[]) => void;
+  onOpenItems: (appId: string) => void;
   role: Role;
   view: ViewMode;
   onViewChange: (view: ViewMode) => void;
 }
 
-export function AppGrid({ apps, onAdd, onReorder, role, view, onViewChange }: Props) {
-  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+export function AppGrid({ apps, onAdd, onReorder, onOpenItems, role, view, onViewChange }: Props) {
   const [addingNew, setAddingNew] = useState(false);
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
@@ -25,10 +25,6 @@ export function AppGrid({ apps, onAdd, onReorder, role, view, onViewChange }: Pr
 
   const canReorder = role === "admin" && !isMobile;
   const useIconTiles = view === "grid" && isMobile;
-
-  function toggleExpanded(id: string) {
-    setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
-  }
 
   function handleAdd(app: AppTile) {
     onAdd(app);
@@ -91,26 +87,11 @@ export function AppGrid({ apps, onAdd, onReorder, role, view, onViewChange }: Pr
             }}
           >
             {view === "list" ? (
-              <AppRow
-                app={app}
-                expanded={!!expanded[app.id]}
-                onToggleExpanded={() => toggleExpanded(app.id)}
-                showHandle={canReorder}
-              />
+              <AppRow app={app} onOpenItems={() => onOpenItems(app.id)} showHandle={canReorder} />
             ) : useIconTiles ? (
-              <AppRow
-                app={app}
-                expanded={!!expanded[app.id]}
-                onToggleExpanded={() => toggleExpanded(app.id)}
-                layout="tile"
-              />
+              <AppRow app={app} onOpenItems={() => onOpenItems(app.id)} layout="tile" />
             ) : (
-              <AppCard
-                app={app}
-                expanded={!!expanded[app.id]}
-                onToggleExpanded={() => toggleExpanded(app.id)}
-                showHandle={canReorder}
-              />
+              <AppCard app={app} onOpenItems={() => onOpenItems(app.id)} showHandle={canReorder} />
             )}
           </div>
         ))}

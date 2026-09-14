@@ -23,7 +23,11 @@ export type IconName =
   | "pin"
   | "list"
   | "grid"
-  | "grip";
+  | "grip"
+  | "search"
+  | "arrow-left"
+  | "edit"
+  | "trash";
 
 export interface Tint {
   bg: string;

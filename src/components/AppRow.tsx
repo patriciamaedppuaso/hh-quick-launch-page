@@ -5,22 +5,21 @@ import { openTarget } from "../utils";
 
 interface Props {
   app: AppTile;
-  expanded: boolean;
-  onToggleExpanded: () => void;
+  onOpenItems: () => void;
   showHandle?: boolean;
   layout?: "row" | "tile";
 }
 
 const FALLBACK_TINT = { bg: "#EDF7F6", fg: "#479CA4" };
 
-export function AppRow({ app, expanded, onToggleExpanded, showHandle, layout = "row" }: Props) {
+export function AppRow({ app, onOpenItems, showHandle, layout = "row" }: Props) {
   const isList = app.type === "list";
   const tint = app.tint ?? FALLBACK_TINT;
   const isTile = layout === "tile";
 
   function handleClick() {
     if (isList) {
-      onToggleExpanded();
+      onOpenItems();
     } else {
       openTarget(app.url, app.isFile, app.fileName);
     }
@@ -46,30 +45,6 @@ export function AppRow({ app, expanded, onToggleExpanded, showHandle, layout = "
           </span>
         )}
       </button>
-
-      {isList && expanded && (
-        <div className="list-items list-items-row">
-          {app.items.map((item) => (
-            <div className="list-item" key={item.id}>
-              <span className="list-item-text">
-                <span className="list-item-name">{item.name}</span>
-                {item.description && <span className="list-item-desc">{item.description}</span>}
-              </span>
-              {item.url ? (
-                <button
-                  type="button"
-                  className="list-item-open"
-                  onClick={() => openTarget(item.url, item.isFile, item.fileName)}
-                >
-                  {item.isFile ? "Download" : "Open"}
-                </button>
-              ) : (
-                <span className="list-item-note">No link</span>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
     </div>
   );
 }

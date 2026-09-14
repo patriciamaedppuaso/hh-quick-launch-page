@@ -5,14 +5,13 @@ import { AppLogo } from "./AppLogo";
 
 interface Props {
   app: AppTile;
-  expanded: boolean;
-  onToggleExpanded: () => void;
+  onOpenItems: () => void;
   showHandle?: boolean;
 }
 
 const FALLBACK_TINT = { bg: "#EDF7F6", fg: "#479CA4" };
 
-export function AppCard({ app, expanded, onToggleExpanded, showHandle }: Props) {
+export function AppCard({ app, onOpenItems, showHandle }: Props) {
   const isList = app.type === "list";
   const tint = app.tint ?? FALLBACK_TINT;
   const caption = isList
@@ -40,39 +39,15 @@ export function AppCard({ app, expanded, onToggleExpanded, showHandle }: Props) 
         {app.description && <div className="card-desc">{app.description}</div>}
       </div>
 
-      {isList && expanded && (
-        <div className="list-items">
-          {app.items.map((item) => (
-            <div className="list-item" key={item.id}>
-              <span className="list-item-text">
-                <span className="list-item-name">{item.name}</span>
-                {item.description && <span className="list-item-desc">{item.description}</span>}
-              </span>
-              {item.url ? (
-                <button
-                  type="button"
-                  className="list-item-open"
-                  onClick={() => openTarget(item.url, item.isFile, item.fileName)}
-                >
-                  {item.isFile ? "Download" : "Open"}
-                </button>
-              ) : (
-                <span className="list-item-note">No link</span>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-
       <div className="card-bottom">
         <span className="card-caption">{caption}</span>
         {isList ? (
           <button
             type="button"
             className="view-btn"
-            onClick={onToggleExpanded}
-            aria-label={`${expanded ? "Hide" : "View"} ${app.name}`}
-            title={expanded ? "Hide" : "View"}
+            onClick={onOpenItems}
+            aria-label={`View ${app.name}`}
+            title="View"
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M9 6l6 6-6 6" />
