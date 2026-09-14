@@ -19,7 +19,12 @@ export function AppCard({ app, onOpenItems, showHandle }: Props) {
     : (app.subtitle ?? domainOf(app.url));
 
   return (
-    <div className="card">
+    <div
+      className="card"
+      style={{
+        background: `linear-gradient(160deg, color-mix(in srgb, ${tint.fg} 16%, var(--card-bg)) 0%, var(--card-bg) 55%)`,
+      }}
+    >
       <div className="card-top">
         <div className="badge" style={{ background: tint.bg, color: tint.fg }}>
           <AppLogo app={app} />

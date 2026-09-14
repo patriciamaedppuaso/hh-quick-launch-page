@@ -71,7 +71,7 @@ export function ItemsPage({ app, role, onBack, onUpdateItems }: Props) {
       </button>
 
       <div className="items-page-head">
-        <div className="badge items-page-badge" style={{ background: tint.bg, color: tint.fg }}>
+        <div className="badge items-page-badge" style={{ background: "var(--card-bg)", color: tint.fg }}>
           {app.icon ? <Icon name={app.icon} /> : <span className="badge-letter">{app.initial || initialOf(app.name)}</span>}
         </div>
         <div>
@@ -109,13 +109,13 @@ export function ItemsPage({ app, role, onBack, onUpdateItems }: Props) {
         )}
       </div>
 
-      <div className="items-list">
-        {filtered.length === 0 ? (
-          <p className="items-empty">
-            {app.items.length === 0 ? "No items yet." : "No items match your search."}
-          </p>
-        ) : (
-          filtered.map((item) => (
+      {filtered.length === 0 ? (
+        <p className="items-empty">
+          {app.items.length === 0 ? "No items yet." : "No items match your search."}
+        </p>
+      ) : (
+        <div className="items-list">
+          {filtered.map((item) => (
             <div className="items-row" key={item.id}>
               <div className="items-row-text">
                 <span className="items-row-name">{item.name}</span>
@@ -135,7 +135,9 @@ export function ItemsPage({ app, role, onBack, onUpdateItems }: Props) {
                   <span className="list-item-note">No link</span>
                 )}
                 {canManage && (
-                  <>
+                  <div
+                    className={`items-row-manage${confirmDeleteId === item.id ? " items-row-manage--active" : ""}`}
+                  >
                     <button
                       type="button"
                       className="icon-btn-sm"
@@ -163,13 +165,13 @@ export function ItemsPage({ app, role, onBack, onUpdateItems }: Props) {
                         <Icon name="trash" />
                       </button>
                     )}
-                  </>
+                  </div>
                 )}
               </div>
             </div>
-          ))
-        )}
-      </div>
+          ))}
+        </div>
+      )}
 
       <Modal open={addingItem} onClose={() => setAddingItem(false)} title="Add item">
         <ItemForm onSave={handleAddSave} onCancel={() => setAddingItem(false)} />

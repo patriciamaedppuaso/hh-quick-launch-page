@@ -50,7 +50,10 @@ export function AppGrid({ apps, onAdd, onReorder, onOpenItems, role, view, onVie
     <section>
       <div className="section-head">
         <div>
-          <h2>Everyday tools</h2>
+          <h2>
+            <span className="accent-bar" aria-hidden="true" />
+            Everyday tools
+          </h2>
           <p className="section-sub">
             Your most-used apps and resources
             {canReorder && " · Drag a tile to reorder"}
