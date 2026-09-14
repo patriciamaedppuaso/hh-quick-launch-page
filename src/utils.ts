@@ -37,3 +37,34 @@ export function brandLogoSources(url: string): string[] {
     return [];
   }
 }
+
+export function openTarget(url: string, isFile?: boolean, fileName?: string): void {
+  if (!url) return;
+  if (isFile) {
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = fileName || "download";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    return;
+  }
+  window.open(url, "_blank", "noopener,noreferrer");
+}
+
+export const MAX_UPLOAD_BYTES = 4 * 1024 * 1024;
+
+export function readFileAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
+}
+
+export function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}

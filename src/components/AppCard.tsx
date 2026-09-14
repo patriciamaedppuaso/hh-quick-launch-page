@@ -1,5 +1,5 @@
 import type { AppTile } from "../types";
-import { domainOf } from "../utils";
+import { domainOf, openTarget } from "../utils";
 import { Icon } from "../icons";
 import { AppLogo } from "./AppLogo";
 
@@ -44,14 +44,17 @@ export function AppCard({ app, expanded, onToggleExpanded, showHandle }: Props) 
         <div className="list-items">
           {app.items.map((item) => (
             <div className="list-item" key={item.id}>
-              <span className="list-item-name">{item.name}</span>
+              <span className="list-item-text">
+                <span className="list-item-name">{item.name}</span>
+                {item.description && <span className="list-item-desc">{item.description}</span>}
+              </span>
               {item.url ? (
                 <button
                   type="button"
                   className="list-item-open"
-                  onClick={() => window.open(item.url, "_blank", "noopener,noreferrer")}
+                  onClick={() => openTarget(item.url, item.isFile, item.fileName)}
                 >
-                  Open
+                  {item.isFile ? "Download" : "Open"}
                 </button>
               ) : (
                 <span className="list-item-note">No link</span>
@@ -79,7 +82,7 @@ export function AppCard({ app, expanded, onToggleExpanded, showHandle }: Props) 
           <button
             type="button"
             className="open-btn"
-            onClick={() => window.open(app.url, "_blank", "noopener,noreferrer")}
+            onClick={() => openTarget(app.url, app.isFile, app.fileName)}
             aria-label={`Open ${app.name}`}
             title="Open"
           >

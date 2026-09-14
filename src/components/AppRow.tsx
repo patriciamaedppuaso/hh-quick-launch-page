@@ -1,6 +1,7 @@
 import type { AppTile } from "../types";
 import { Icon } from "../icons";
 import { AppLogo } from "./AppLogo";
+import { openTarget } from "../utils";
 
 interface Props {
   app: AppTile;
@@ -21,7 +22,7 @@ export function AppRow({ app, expanded, onToggleExpanded, showHandle, layout = "
     if (isList) {
       onToggleExpanded();
     } else {
-      window.open(app.url, "_blank", "noopener,noreferrer");
+      openTarget(app.url, app.isFile, app.fileName);
     }
   }
 
@@ -50,14 +51,17 @@ export function AppRow({ app, expanded, onToggleExpanded, showHandle, layout = "
         <div className="list-items list-items-row">
           {app.items.map((item) => (
             <div className="list-item" key={item.id}>
-              <span className="list-item-name">{item.name}</span>
+              <span className="list-item-text">
+                <span className="list-item-name">{item.name}</span>
+                {item.description && <span className="list-item-desc">{item.description}</span>}
+              </span>
               {item.url ? (
                 <button
                   type="button"
                   className="list-item-open"
-                  onClick={() => window.open(item.url, "_blank", "noopener,noreferrer")}
+                  onClick={() => openTarget(item.url, item.isFile, item.fileName)}
                 >
-                  Open
+                  {item.isFile ? "Download" : "Open"}
                 </button>
               ) : (
                 <span className="list-item-note">No link</span>

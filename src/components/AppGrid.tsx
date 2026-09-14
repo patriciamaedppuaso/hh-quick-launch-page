@@ -4,6 +4,7 @@ import { AppCard } from "./AppCard";
 import { AppRow } from "./AppRow";
 import { AddAppForm } from "./AddAppForm";
 import { ViewToggle } from "./ViewToggle";
+import { Modal } from "./Modal";
 import { useIsMobile } from "../hooks/useIsMobile";
 
 interface Props {
@@ -115,9 +116,7 @@ export function AppGrid({ apps, onAdd, onReorder, role, view, onViewChange }: Pr
         ))}
 
         {role === "admin" &&
-          (addingNew ? (
-            <AddAppForm onSave={handleAdd} onCancel={() => setAddingNew(false)} />
-          ) : view === "list" ? (
+          (view === "list" ? (
             <button type="button" className="add-row" onClick={() => setAddingNew(true)}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                 <path d="M12 5v14" />
@@ -144,6 +143,10 @@ export function AppGrid({ apps, onAdd, onReorder, role, view, onViewChange }: Pr
             </button>
           ))}
       </div>
+
+      <Modal open={addingNew} onClose={() => setAddingNew(false)} title="Add an app">
+        <AddAppForm onSave={handleAdd} onCancel={() => setAddingNew(false)} />
+      </Modal>
     </section>
   );
 }

@@ -34,6 +34,9 @@ export interface ListItem {
   id: string;
   name: string;
   url: string;
+  description?: string;
+  isFile?: boolean;
+  fileName?: string;
 }
 
 interface AppBase {
@@ -52,6 +55,8 @@ export interface LinkApp extends AppBase {
   subtitle?: string;
   useBrandLogo?: boolean;
   logoDomain?: string;
+  isFile?: boolean;
+  fileName?: string;
 }
 
 export interface ListApp extends AppBase {
