@@ -24,3 +24,16 @@ export function normalizeUrl(url: string): string {
 export function newId(prefix: string): string {
   return `${prefix}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
 }
+
+export function brandLogoSources(url: string): string[] {
+  try {
+    const domain = new URL(normalizeUrl(url)).hostname;
+    if (!domain) return [];
+    return [
+      `https://logo.clearbit.com/${domain}?size=128`,
+      `https://www.google.com/s2/favicons?sz=128&domain=${domain}`,
+    ];
+  } catch {
+    return [];
+  }
+}

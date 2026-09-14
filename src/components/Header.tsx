@@ -1,39 +1,31 @@
-import { useEffect, useState } from "react";
+import type { Role, Theme } from "../types";
+import { ThemeToggle } from "./ThemeToggle";
+import { UserMenu } from "./UserMenu";
 
-function formatTime(date: Date): string {
-  const hours = date.getHours();
-  const mins = String(date.getMinutes()).padStart(2, "0");
-  const period = hours >= 12 ? "PM" : "AM";
-  const hour12 = hours % 12 || 12;
-  return `${hour12}:${mins} ${period}`;
+interface Props {
+  role: Role;
+  theme: Theme;
+  onThemeChange: (theme: Theme) => void;
 }
 
-function greetingFor(hours: number): string {
-  if (hours < 12) return "Good morning.";
-  if (hours < 17) return "Good afternoon.";
-  return "Good evening.";
-}
-
-export function Header() {
-  const [now, setNow] = useState(() => new Date());
-
-  useEffect(() => {
-    const id = setInterval(() => setNow(new Date()), 15000);
-    return () => clearInterval(id);
-  }, []);
-
+export function Header({ role, theme, onThemeChange }: Props) {
   return (
-    <header>
-      <div>
-        <p className="eyebrow">Start of work</p>
-        <h1>{greetingFor(now.getHours())}</h1>
-      </div>
-      <div className="clock">
-        <div className="time">{formatTime(now)}</div>
-        <div className="date">
-          {now.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}
+    <div className="topbar">
+      <div className="brand">
+        <div className="brand-logo">
+          H&amp;H
+          <span className="brand-dot" />
+        </div>
+        <div>
+          <div className="brand-name">Quick Launch</div>
+          <div className="brand-sub">H&amp;H Medical Supply</div>
         </div>
       </div>
-    </header>
+
+      <div className="topbar-actions">
+        <ThemeToggle theme={theme} onChange={onThemeChange} />
+        <UserMenu role={role} />
+      </div>
+    </div>
   );
 }

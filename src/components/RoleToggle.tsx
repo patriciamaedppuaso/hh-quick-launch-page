@@ -8,7 +8,6 @@ interface Props {
 export function RoleToggle({ role, onChange }: Props) {
   return (
     <div className="role-bar">
-      <span className="role-label">Viewing as</span>
       <div className="role-toggle">
         <button
           type="button"
@@ -22,9 +21,12 @@ export function RoleToggle({ role, onChange }: Props) {
           className={`role-btn${role === "employee" ? " active" : ""}`}
           onClick={() => onChange("employee")}
         >
-          Employee
+          Staff
         </button>
       </div>
+      <span className="role-desc">
+        {role === "admin" ? "Admin view · Manage apps and access" : "Staff view · Quick access to your tools"}
+      </span>
     </div>
   );
 }

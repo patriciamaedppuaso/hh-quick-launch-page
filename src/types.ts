@@ -1,25 +1,63 @@
 export type Role = "admin" | "employee";
 
+export type Theme = "light" | "dark" | "system";
+
+export type ViewMode = "list" | "grid";
+
+export type IconName =
+  | "clock"
+  | "briefcase"
+  | "message"
+  | "dollar"
+  | "cloud"
+  | "file"
+  | "phone"
+  | "check-square"
+  | "megaphone"
+  | "book"
+  | "users"
+  | "user-plus"
+  | "sun"
+  | "moon"
+  | "monitor"
+  | "pin"
+  | "list"
+  | "grid"
+  | "grip";
+
+export interface Tint {
+  bg: string;
+  fg: string;
+}
+
 export interface ListItem {
   id: string;
   name: string;
   url: string;
 }
 
-export interface LinkApp {
+interface AppBase {
   id: string;
-  type: "link";
   name: string;
-  url: string;
   initial: string;
+  category?: string;
+  description?: string;
+  icon?: IconName;
+  tint?: Tint;
 }
 
-export interface ListApp {
-  id: string;
+export interface LinkApp extends AppBase {
+  type: "link";
+  url: string;
+  subtitle?: string;
+  useBrandLogo?: boolean;
+  logoDomain?: string;
+}
+
+export interface ListApp extends AppBase {
   type: "list";
-  name: string;
   items: ListItem[];
-  initial: string;
+  unitLabel?: string;
 }
 
 export type AppTile = LinkApp | ListApp;

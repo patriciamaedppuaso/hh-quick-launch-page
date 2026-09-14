@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { AppTile, ListItem } from "../types";
-import { initialOf, newId, normalizeUrl } from "../utils";
+import { brandLogoSources, initialOf, newId, normalizeUrl } from "../utils";
 
 interface Props {
   onSave: (app: AppTile) => void;
@@ -16,6 +16,13 @@ export function AddAppForm({ onSave, onCancel }: Props) {
   const [type, setType] = useState<"link" | "list">("link");
   const [url, setUrl] = useState("");
   const [items, setItems] = useState<ListItem[]>([freshItem()]);
+  const [logoStep, setLogoStep] = useState(0);
+
+  useEffect(() => {
+    setLogoStep(0);
+  }, [url]);
+
+  const logoSources = url.trim() ? brandLogoSources(url) : [];
 
   function updateItem(id: string, field: "name" | "url", value: string) {
     setItems((prev) => prev.map((it) => (it.id === id ? { ...it, [field]: value } : it)));
@@ -42,6 +49,7 @@ export function AddAppForm({ onSave, onCancel }: Props) {
         name: trimmedName,
         url: normalizeUrl(trimmedUrl),
         initial: initialOf(trimmedName),
+        useBrandLogo: true,
       });
       return;
     }
@@ -100,13 +108,21 @@ export function AddAppForm({ onSave, onCancel }: Props) {
       {type === "link" ? (
         <div className="form-row">
           <label htmlFor="fUrl">Link</label>
-          <input
-            id="fUrl"
-            type="text"
-            placeholder="e.g. discord.com/app"
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-          />
+          <div className="url-field">
+            <input
+              id="fUrl"
+              type="text"
+              placeholder="e.g. discord.com/app"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+            />
+            {url.trim() && logoStep < logoSources.length && (
+              <span className="logo-preview" title="Detected logo">
+                <img src={logoSources[logoStep]} alt="" onError={() => setLogoStep((s) => s + 1)} />
+              </span>
+            )}
+          </div>
+          <p className="field-hint">We'll automatically use this site's logo as the icon.</p>
         </div>
       ) : (
         <div className="form-row">
