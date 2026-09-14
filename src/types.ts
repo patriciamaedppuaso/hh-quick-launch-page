@@ -27,7 +27,8 @@ export type IconName =
   | "search"
   | "arrow-left"
   | "edit"
-  | "trash";
+  | "trash"
+  | "mail";
 
 export interface Tint {
   bg: string;
@@ -43,6 +44,49 @@ export interface ListItem {
   fileName?: string;
 }
 
+export type BuiltinKind = "contacts" | "leads" | "announcements" | "tasks";
+
+export interface ContactRecord {
+  id: string;
+  name: string;
+  role?: string;
+  phone?: string;
+  email?: string;
+  notes?: string;
+}
+
+export type LeadStatus = "new" | "contacted" | "qualified" | "won" | "lost";
+
+export interface LeadRecord {
+  id: string;
+  name: string;
+  company?: string;
+  status: LeadStatus;
+  value?: number;
+  followUp?: string;
+  notes?: string;
+}
+
+export interface AnnouncementRecord {
+  id: string;
+  title: string;
+  message: string;
+  date: string;
+  author?: string;
+}
+
+export type TaskStatus = "todo" | "in-progress" | "done";
+export type TaskPriority = "low" | "medium" | "high";
+
+export interface TaskRecord {
+  id: string;
+  title: string;
+  status: TaskStatus;
+  dueDate?: string;
+  assignee?: string;
+  priority?: TaskPriority;
+}
+
 interface AppBase {
   id: string;
   name: string;
@@ -51,6 +95,11 @@ interface AppBase {
   description?: string;
   icon?: IconName;
   tint?: Tint;
+  builtin?: BuiltinKind;
+  contacts?: ContactRecord[];
+  leads?: LeadRecord[];
+  announcements?: AnnouncementRecord[];
+  tasks?: TaskRecord[];
 }
 
 export interface LinkApp extends AppBase {

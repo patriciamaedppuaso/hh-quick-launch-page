@@ -6,6 +6,10 @@ import { Greeting } from "./components/Greeting";
 import { RoleToggle } from "./components/RoleToggle";
 import { AppGrid } from "./components/AppGrid";
 import { ItemsPage } from "./components/ItemsPage";
+import { ContactsPage } from "./components/ContactsPage";
+import { LeadsPage } from "./components/LeadsPage";
+import { AnnouncementsPage } from "./components/AnnouncementsPage";
+import { TasksPage } from "./components/TasksPage";
 import { Footer } from "./components/Footer";
 
 function parseHashAppId(): string | null {
@@ -61,20 +65,55 @@ export default function App() {
     window.location.hash = "";
   }
 
+  function updateApp(appId: string, patch: Partial<AppTile>) {
+    setApps((prev) => prev.map((a) => (a.id === appId ? ({ ...a, ...patch } as AppTile) : a)));
+  }
+
+  function renderActiveApp(app: ListApp) {
+    switch (app.builtin) {
+      case "contacts":
+        return (
+          <ContactsPage
+            app={app}
+            role={role}
+            onBack={closeItems}
+            onUpdate={(contacts) => updateApp(app.id, { contacts })}
+          />
+        );
+      case "leads":
+        return (
+          <LeadsPage app={app} role={role} onBack={closeItems} onUpdate={(leads) => updateApp(app.id, { leads })} />
+        );
+      case "announcements":
+        return (
+          <AnnouncementsPage
+            app={app}
+            role={role}
+            onBack={closeItems}
+            onUpdate={(announcements) => updateApp(app.id, { announcements })}
+          />
+        );
+      case "tasks":
+        return (
+          <TasksPage app={app} role={role} onBack={closeItems} onUpdate={(tasks) => updateApp(app.id, { tasks })} />
+        );
+      default:
+        return (
+          <ItemsPage
+            app={app}
+            role={role}
+            onBack={closeItems}
+            onUpdateItems={(items) => updateApp(app.id, { items })}
+          />
+        );
+    }
+  }
+
   return (
     <div className="wrap">
       <Header role={role} theme={theme} onThemeChange={setTheme} />
       {activeApp ? (
-        <ItemsPage
-          app={activeApp}
-          role={role}
-          onBack={closeItems}
-          onUpdateItems={(items) =>
-            setApps((prev) =>
-              prev.map((a) => (a.id === activeApp.id && a.type === "list" ? { ...a, items } : a)),
-            )
-          }
-        />
+        renderActiveApp(activeApp)
       ) : (
         <>
           <Greeting />

@@ -1,6 +1,6 @@
 import type { AppTile, Role, Theme, ViewMode } from "./types";
 
-const LIST_KEY = "clock-in:apps:v3";
+const LIST_KEY = "clock-in:apps:v4";
 const ROLE_KEY = "clock-in:role:v1";
 const THEME_KEY = "clock-in:theme:v1";
 const VIEW_KEY = "clock-in:view:v1";
@@ -105,14 +105,20 @@ export const DEFAULT_APPS: AppTile[] = [
   {
     id: "task",
     name: "Task",
-    type: "link",
-    url: "https://example-tasks.com",
+    type: "list",
     initial: "T",
     category: "Productivity",
     description: "Track work and assignments",
-    subtitle: "Task board",
+    unitLabel: "tasks",
     icon: "check-square",
     tint: { bg: "#FCF0DC", fg: "#E8A33D" },
+    builtin: "tasks",
+    items: [],
+    tasks: [
+      { id: "task-1", title: "Restock shipping supplies", status: "todo", priority: "medium" },
+      { id: "task-2", title: "Follow up on vendor invoice", status: "in-progress", priority: "high" },
+      { id: "task-3", title: "Update store opening checklist", status: "done", priority: "low" },
+    ],
   },
   {
     id: "announcements",
@@ -121,12 +127,26 @@ export const DEFAULT_APPS: AppTile[] = [
     initial: "A",
     category: "Updates",
     description: "Company news and updates",
-    unitLabel: "updates",
+    unitLabel: "posts",
     icon: "megaphone",
     tint: { bg: "#FBEAE6", fg: "#E8836F" },
-    items: [
-      { id: "ann-1", name: "This week's announcements", url: "" },
-      { id: "ann-2", name: "Policy updates", url: "" },
+    builtin: "announcements",
+    items: [],
+    announcements: [
+      {
+        id: "ann-1",
+        title: "New shipment tracking added",
+        message: "You can now track outbound shipments directly from the CRM. Reach out if you need a walkthrough.",
+        date: "2026-09-10",
+        author: "Admin",
+      },
+      {
+        id: "ann-2",
+        title: "Holiday hours reminder",
+        message: "The office will close early on the 24th. Please plan deliveries and pickups accordingly.",
+        date: "2026-09-05",
+        author: "Admin",
+      },
     ],
   },
   {
@@ -152,13 +172,21 @@ export const DEFAULT_APPS: AppTile[] = [
     initial: "Co",
     category: "Directory",
     description: "Staff, vendor, and emergency numbers",
-    unitLabel: "directories",
+    unitLabel: "contacts",
     icon: "users",
     tint: { bg: "#FAEBF2", fg: "#C77DAE" },
-    items: [
-      { id: "contacts-1", name: "Staff directory", url: "" },
-      { id: "contacts-2", name: "Vendor contacts", url: "" },
-      { id: "contacts-3", name: "Emergency contacts", url: "" },
+    builtin: "contacts",
+    items: [],
+    contacts: [
+      { id: "contact-1", name: "Front Desk", role: "Staff", phone: "(555) 010-2200" },
+      {
+        id: "contact-2",
+        name: "MedSupply Vendor",
+        role: "Vendor",
+        phone: "(555) 010-8890",
+        email: "orders@medsupplyco.com",
+      },
+      { id: "contact-3", name: "Building Emergency", role: "Emergency", phone: "(555) 010-9111" },
     ],
   },
   {
@@ -168,13 +196,21 @@ export const DEFAULT_APPS: AppTile[] = [
     initial: "L",
     category: "Sales",
     description: "Prospects and follow-up activity",
-    unitLabel: "active lists",
+    unitLabel: "leads",
     icon: "user-plus",
     tint: { bg: "#FBEAED", fg: "#E8748A" },
-    items: [
-      { id: "leads-1", name: "New leads this week", url: "" },
-      { id: "leads-2", name: "Follow-up needed", url: "" },
-      { id: "leads-3", name: "Cold leads archive", url: "" },
+    builtin: "leads",
+    items: [],
+    leads: [
+      { id: "lead-1", name: "Dr. Patricia Nguyen", company: "Nguyen Family Clinic", status: "new" },
+      {
+        id: "lead-2",
+        name: "Marcus Webb",
+        company: "Webb Physical Therapy",
+        status: "contacted",
+        followUp: "2026-09-18",
+      },
+      { id: "lead-3", name: "Riverside Urgent Care", status: "qualified", value: 4200 },
     ],
   },
 ];

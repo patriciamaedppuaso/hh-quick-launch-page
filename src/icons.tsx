@@ -139,6 +139,12 @@ const PATHS: Record<IconName, ReactNode> = {
       <path d="M10 11v6M14 11v6" />
     </>
   ),
+  mail: (
+    <>
+      <rect x="3" y="5" width="18" height="14" rx="2" />
+      <path d="M3.5 6.5 12 13l8.5-6.5" />
+    </>
+  ),
 };
 
 export function Icon({ name, className }: Props) {

@@ -1,5 +1,5 @@
 import type { AppTile } from "../types";
-import { domainOf, openTarget } from "../utils";
+import { builtinCount, domainOf, openTarget } from "../utils";
 import { Icon } from "../icons";
 import { AppLogo } from "./AppLogo";
 
@@ -14,8 +14,9 @@ const FALLBACK_TINT = { bg: "#EDF7F6", fg: "#479CA4" };
 export function AppCard({ app, onOpenItems, showHandle }: Props) {
   const isList = app.type === "list";
   const tint = app.tint ?? FALLBACK_TINT;
+  const count = isList ? (builtinCount(app) ?? app.items.length) : 0;
   const caption = isList
-    ? `${app.items.length} ${app.unitLabel ?? (app.items.length === 1 ? "item" : "items")}`
+    ? `${count} ${app.unitLabel ?? (count === 1 ? "item" : "items")}`
     : (app.subtitle ?? domainOf(app.url));
 
   return (

@@ -1,3 +1,5 @@
+import type { AppTile } from "./types";
+
 export function domainOf(url: string): string {
   try {
     const u = new URL(url);
@@ -67,4 +69,41 @@ export function formatFileSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+export function todayIso(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+export function formatDate(iso?: string): string {
+  if (!iso) return "";
+  const d = new Date(`${iso}T00:00:00`);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+}
+
+export function isOverdue(iso?: string): boolean {
+  if (!iso) return false;
+  const d = new Date(`${iso}T23:59:59`);
+  return d.getTime() < Date.now();
+}
+
+export function formatCurrency(value?: number): string {
+  if (value == null) return "";
+  return `$${value.toLocaleString()}`;
+}
+
+export function builtinCount(app: AppTile): number | undefined {
+  switch (app.builtin) {
+    case "contacts":
+      return app.contacts?.length ?? 0;
+    case "leads":
+      return app.leads?.length ?? 0;
+    case "announcements":
+      return app.announcements?.length ?? 0;
+    case "tasks":
+      return app.tasks?.length ?? 0;
+    default:
+      return undefined;
+  }
 }
