@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { LeadRecord, LeadStatus } from "../types";
-import { newId } from "../utils";
+import { newId, todayIso } from "../utils";
 
 interface Props {
   initial?: LeadRecord;
@@ -36,6 +36,7 @@ export function LeadForm({ initial, onSave, onCancel }: Props) {
       value: parsedValue !== undefined && !Number.isNaN(parsedValue) ? parsedValue : undefined,
       followUp: followUp || undefined,
       notes: notes.trim() || undefined,
+      createdAt: initial?.createdAt ?? todayIso(),
     });
   }
 

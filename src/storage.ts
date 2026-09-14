@@ -1,9 +1,10 @@
 import type { AppTile, Role, Theme, ViewMode } from "./types";
 
-const LIST_KEY = "clock-in:apps:v4";
+const LIST_KEY = "clock-in:apps:v5";
 const ROLE_KEY = "clock-in:role:v1";
 const THEME_KEY = "clock-in:theme:v1";
 const VIEW_KEY = "clock-in:view:v1";
+const READ_ANNOUNCEMENTS_KEY = "clock-in:read-announcements:v1";
 
 export const DEFAULT_APPS: AppTile[] = [
   {
@@ -83,8 +84,8 @@ export const DEFAULT_APPS: AppTile[] = [
     items: [
       { id: "cwq-1", name: "Standard sales contract", url: "" },
       { id: "cwq-2", name: "NDA template", url: "" },
-      { id: "cwq-3", name: "Vendor agreement", url: "" },
-      { id: "cwq-4", name: "Warranty template", url: "" },
+      { id: "cwq-3", name: "Vendor agreement", url: "", expiresOn: "2026-09-20" },
+      { id: "cwq-4", name: "Warranty template", url: "", expiresOn: "2026-10-05" },
       { id: "cwq-5", name: "Quote template", url: "" },
     ],
   },
@@ -115,8 +116,14 @@ export const DEFAULT_APPS: AppTile[] = [
     builtin: "tasks",
     items: [],
     tasks: [
-      { id: "task-1", title: "Restock shipping supplies", status: "todo", priority: "medium" },
-      { id: "task-2", title: "Follow up on vendor invoice", status: "in-progress", priority: "high" },
+      { id: "task-1", title: "Restock shipping supplies", status: "todo", priority: "medium", assignee: "Myka" },
+      {
+        id: "task-2",
+        title: "Follow up on vendor invoice",
+        status: "in-progress",
+        priority: "high",
+        dueDate: "2026-09-10",
+      },
       { id: "task-3", title: "Update store opening checklist", status: "done", priority: "low" },
     ],
   },
@@ -202,15 +209,22 @@ export const DEFAULT_APPS: AppTile[] = [
     builtin: "leads",
     items: [],
     leads: [
-      { id: "lead-1", name: "Dr. Patricia Nguyen", company: "Nguyen Family Clinic", status: "new" },
+      {
+        id: "lead-1",
+        name: "Dr. Patricia Nguyen",
+        company: "Nguyen Family Clinic",
+        status: "new",
+        createdAt: "2026-09-14",
+      },
       {
         id: "lead-2",
         name: "Marcus Webb",
         company: "Webb Physical Therapy",
         status: "contacted",
         followUp: "2026-09-18",
+        createdAt: "2026-09-11",
       },
-      { id: "lead-3", name: "Riverside Urgent Care", status: "qualified", value: 4200 },
+      { id: "lead-3", name: "Riverside Urgent Care", status: "qualified", value: 4200, createdAt: "2026-08-20" },
     ],
   },
 ];
@@ -281,6 +295,30 @@ export function loadView(): ViewMode {
 export function saveView(view: ViewMode): void {
   try {
     localStorage.setItem(VIEW_KEY, view);
+  } catch {
+    // localStorage unavailable — silently skip persistence
+  }
+}
+
+export type ReadAnnouncements = Record<Role, string[]>;
+
+export function loadReadAnnouncements(): ReadAnnouncements {
+  try {
+    const raw = localStorage.getItem(READ_ANNOUNCEMENTS_KEY);
+    if (!raw) return { admin: [], employee: [] };
+    const parsed = JSON.parse(raw);
+    return {
+      admin: Array.isArray(parsed.admin) ? parsed.admin : [],
+      employee: Array.isArray(parsed.employee) ? parsed.employee : [],
+    };
+  } catch {
+    return { admin: [], employee: [] };
+  }
+}
+
+export function saveReadAnnouncements(data: ReadAnnouncements): void {
+  try {
+    localStorage.setItem(READ_ANNOUNCEMENTS_KEY, JSON.stringify(data));
   } catch {
     // localStorage unavailable — silently skip persistence
   }

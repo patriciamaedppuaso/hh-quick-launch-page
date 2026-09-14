@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import type { ListApp, ListItem, Role } from "../types";
 import { Icon } from "../icons";
-import { initialOf, openTarget } from "../utils";
+import { formatDate, initialOf, isOverdue, openTarget } from "../utils";
 import { Modal } from "./Modal";
 import { ItemForm } from "./ItemForm";
 
@@ -119,7 +119,13 @@ export function ItemsPage({ app, role, onBack, onUpdateItems }: Props) {
             <div className="items-row" key={item.id}>
               <div className="items-row-text">
                 <span className="items-row-name">{item.name}</span>
-                {item.description && <span className="items-row-desc">{item.description}</span>}
+                {(item.description || item.expiresOn) && (
+                  <span className={`items-row-desc${isOverdue(item.expiresOn) ? " task-overdue" : ""}`}>
+                    {[item.description, item.expiresOn && `Expires ${formatDate(item.expiresOn)}`]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </span>
+                )}
               </div>
               <span className="items-row-kind">{item.isFile ? "File" : item.url ? "Link" : "—"}</span>
               <div className="items-row-actions">

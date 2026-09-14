@@ -1,8 +1,22 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { AppTile, ListApp, Role, Theme, ViewMode } from "./types";
-import { loadApps, loadRole, loadTheme, loadView, saveApps, saveRole, saveTheme, saveView } from "./storage";
+import {
+  loadApps,
+  loadReadAnnouncements,
+  loadRole,
+  loadTheme,
+  loadView,
+  saveApps,
+  saveReadAnnouncements,
+  saveRole,
+  saveTheme,
+  saveView,
+} from "./storage";
+import type { ReadAnnouncements } from "./storage";
+import { computeMetrics } from "./metrics";
 import { Header } from "./components/Header";
 import { Greeting } from "./components/Greeting";
+import { MetricsRow } from "./components/MetricsRow";
 import { RoleToggle } from "./components/RoleToggle";
 import { AppGrid } from "./components/AppGrid";
 import { ItemsPage } from "./components/ItemsPage";
@@ -23,6 +37,7 @@ export default function App() {
   const [theme, setTheme] = useState<Theme>(() => loadTheme());
   const [view, setView] = useState<ViewMode>(() => loadView());
   const [openAppId, setOpenAppId] = useState<string | null>(() => parseHashAppId());
+  const [readAnnouncements, setReadAnnouncements] = useState<ReadAnnouncements>(() => loadReadAnnouncements());
 
   useEffect(() => {
     saveApps(apps);
@@ -46,6 +61,10 @@ export default function App() {
   }, [view]);
 
   useEffect(() => {
+    saveReadAnnouncements(readAnnouncements);
+  }, [readAnnouncements]);
+
+  useEffect(() => {
     function handleHashChange() {
       setOpenAppId(parseHashAppId());
     }
@@ -57,6 +76,11 @@ export default function App() {
     ? apps.find((a): a is ListApp => a.id === openAppId && a.type === "list")
     : undefined;
 
+  const metrics = useMemo(
+    () => computeMetrics(apps, role, readAnnouncements[role] ?? []),
+    [apps, role, readAnnouncements],
+  );
+
   function openItems(appId: string) {
     window.location.hash = `items/${appId}`;
   }
@@ -67,6 +91,13 @@ export default function App() {
 
   function updateApp(appId: string, patch: Partial<AppTile>) {
     setApps((prev) => prev.map((a) => (a.id === appId ? ({ ...a, ...patch } as AppTile) : a)));
+  }
+
+  function markAnnouncementsRead(ids: string[]) {
+    setReadAnnouncements((prev) => ({
+      ...prev,
+      [role]: Array.from(new Set([...(prev[role] ?? []), ...ids])),
+    }));
   }
 
   function renderActiveApp(app: ListApp) {
@@ -91,6 +122,8 @@ export default function App() {
             role={role}
             onBack={closeItems}
             onUpdate={(announcements) => updateApp(app.id, { announcements })}
+            readIds={readAnnouncements[role] ?? []}
+            onMarkRead={markAnnouncementsRead}
           />
         );
       case "tasks":
@@ -117,6 +150,7 @@ export default function App() {
       ) : (
         <>
           <Greeting />
+          <MetricsRow metrics={metrics} onOpen={openItems} />
           <RoleToggle role={role} onChange={setRole} />
           <AppGrid
             apps={apps}

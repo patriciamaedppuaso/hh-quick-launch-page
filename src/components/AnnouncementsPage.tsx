@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { AnnouncementRecord, AppTile, Role } from "../types";
 import { Icon } from "../icons";
 import { formatDate, initialOf } from "../utils";
@@ -10,16 +10,25 @@ interface Props {
   role: Role;
   onBack: () => void;
   onUpdate: (records: AnnouncementRecord[]) => void;
+  readIds: string[];
+  onMarkRead: (ids: string[]) => void;
 }
 
 const FALLBACK_TINT = { bg: "#EDF7F6", fg: "#479CA4" };
 
-export function AnnouncementsPage({ app, role, onBack, onUpdate }: Props) {
+export function AnnouncementsPage({ app, role, onBack, onUpdate, readIds, onMarkRead }: Props) {
   const records = app.announcements ?? [];
   const [query, setQuery] = useState("");
   const [editing, setEditing] = useState<AnnouncementRecord | null>(null);
   const [adding, setAdding] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const unreadIds = records.filter((r) => !readIds.includes(r.id)).map((r) => r.id);
+    if (unreadIds.length > 0) onMarkRead(unreadIds);
+    // only re-run when the set of announcements changes, not on every readIds/onMarkRead update
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [records]);
 
   const canManage = role === "admin";
   const tint = app.tint ?? FALLBACK_TINT;
@@ -91,7 +100,10 @@ export function AnnouncementsPage({ app, role, onBack, onUpdate }: Props) {
             <div className="items-row announcement-row" key={a.id}>
               <div className="announcement-row-main">
                 <div className="announcement-row-top">
-                  <span className="items-row-name">{a.title}</span>
+                  <span className="items-row-name">
+                    {!readIds.includes(a.id) && <span className="unread-dot" aria-label="Unread" />}
+                    {a.title}
+                  </span>
                   <span className="items-row-kind">{formatDate(a.date)}</span>
                 </div>
                 <p className="announcement-message">{a.message}</p>

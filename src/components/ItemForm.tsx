@@ -14,6 +14,7 @@ type Source = "link" | "file";
 export function ItemForm({ initial, onSave, onCancel }: Props) {
   const [name, setName] = useState(initial?.name ?? "");
   const [description, setDescription] = useState(initial?.description ?? "");
+  const [expiresOn, setExpiresOn] = useState(initial?.expiresOn ?? "");
   const [source, setSource] = useState<Source>(initial?.isFile ? "file" : "link");
   const [url, setUrl] = useState(initial?.isFile ? "" : (initial?.url ?? ""));
   const [fileName, setFileName] = useState(initial?.isFile ? (initial?.fileName ?? "") : "");
@@ -52,6 +53,7 @@ export function ItemForm({ initial, onSave, onCancel }: Props) {
         url: fileDataUrl,
         isFile: true,
         fileName,
+        expiresOn: expiresOn || undefined,
       });
       return;
     }
@@ -61,6 +63,7 @@ export function ItemForm({ initial, onSave, onCancel }: Props) {
       name: trimmedName,
       description: trimmedDesc || undefined,
       url: url.trim() ? normalizeUrl(url.trim()) : "",
+      expiresOn: expiresOn || undefined,
     });
   }
 
@@ -86,6 +89,11 @@ export function ItemForm({ initial, onSave, onCancel }: Props) {
           value={description}
           onChange={(e) => setDescription(e.target.value)}
         />
+      </div>
+
+      <div className="form-row">
+        <label htmlFor="iExpires">Expires on (optional)</label>
+        <input id="iExpires" type="date" value={expiresOn} onChange={(e) => setExpiresOn(e.target.value)} />
       </div>
 
       <div className="form-row">

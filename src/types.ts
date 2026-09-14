@@ -42,6 +42,7 @@ export interface ListItem {
   description?: string;
   isFile?: boolean;
   fileName?: string;
+  expiresOn?: string;
 }
 
 export type BuiltinKind = "contacts" | "leads" | "announcements" | "tasks";
@@ -65,6 +66,7 @@ export interface LeadRecord {
   value?: number;
   followUp?: string;
   notes?: string;
+  createdAt?: string;
 }
 
 export interface AnnouncementRecord {

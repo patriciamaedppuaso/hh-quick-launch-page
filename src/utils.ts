@@ -1,5 +1,7 @@
 import type { AppTile } from "./types";
 
+export const CURRENT_USER_NAME = "Myka";
+
 export function domainOf(url: string): string {
   try {
     const u = new URL(url);
