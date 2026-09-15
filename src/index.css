@@ -1780,6 +1780,31 @@ body {
   box-shadow: var(--shadow);
 }
 
+.assignee-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.assignee-option {
+  border: 1px solid var(--border);
+  background: var(--surface-soft);
+  color: var(--text-secondary);
+  font-family: "Public Sans", sans-serif;
+  font-weight: 600;
+  font-size: 12.5px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.assignee-option:hover {
+  color: var(--text);
+}
+.assignee-option.active {
+  background: var(--teal);
+  border-color: var(--teal);
+  color: #fff;
+}
+
 .item-editor {
   display: flex;
   flex-direction: column;
@@ -2353,6 +2378,81 @@ body {
   padding: 4px 10px;
   flex-shrink: 0;
   white-space: nowrap;
+}
+
+/* task row: assignees, due date, status select */
+.task-row-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.assignee-chips {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.assignee-chip {
+  min-width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  background: var(--surface-soft);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-size: 10px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 6px;
+  flex-shrink: 0;
+}
+
+.due-pill {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: var(--surface-soft);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 4px 10px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.due-pill--overdue {
+  color: var(--danger);
+  background: var(--danger-soft);
+  border-color: transparent;
+}
+
+.task-status-select {
+  font-family: "Public Sans", sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 999px;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  background: var(--surface-soft);
+  color: var(--text-secondary);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.task-status-select:disabled {
+  cursor: default;
+  opacity: 0.7;
+}
+.task-status-select--in-progress {
+  color: color-mix(in srgb, var(--gold) 70%, var(--text));
+  background: color-mix(in srgb, var(--gold) 16%, var(--surface-soft));
+  border-color: transparent;
+}
+.task-status-select--done {
+  color: color-mix(in srgb, var(--success) 70%, var(--text));
+  background: color-mix(in srgb, var(--success) 16%, var(--surface-soft));
+  border-color: transparent;
 }
 
 /* task checkbox */

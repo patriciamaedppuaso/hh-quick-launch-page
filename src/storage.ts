@@ -1,6 +1,6 @@
 import type { AppTile, Role, Theme, ViewMode } from "./types";
 
-const LIST_KEY = "clock-in:apps:v7";
+const LIST_KEY = "clock-in:apps:v8";
 const ROLE_KEY = "clock-in:role:v1";
 const THEME_KEY = "clock-in:theme:v1";
 const VIEW_KEY = "clock-in:view:v1";
@@ -153,15 +153,22 @@ export const DEFAULT_APPS: AppTile[] = [
     builtin: "tasks",
     items: [],
     tasks: [
-      { id: "task-1", title: "Restock shipping supplies", status: "todo", priority: "medium", assignee: "Myka" },
+      { id: "task-1", title: "Restock shipping supplies", status: "todo", priority: "medium", assignees: ["Myka"] },
       {
         id: "task-2",
         title: "Follow up on vendor invoice",
         status: "in-progress",
         priority: "high",
         dueDate: "2026-09-10",
+        assignees: ["Front Desk"],
       },
-      { id: "task-3", title: "Update store opening checklist", status: "done", priority: "low" },
+      {
+        id: "task-3",
+        title: "Update store opening checklist",
+        status: "done",
+        priority: "low",
+        assignees: ["Myka", "Warehouse Team"],
+      },
     ],
   },
   {

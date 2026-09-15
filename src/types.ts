@@ -89,7 +89,7 @@ export interface TaskRecord {
   title: string;
   status: TaskStatus;
   dueDate?: string;
-  assignee?: string;
+  assignees?: string[];
   priority?: TaskPriority;
 }
 

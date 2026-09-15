@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import type { AppTile, Role, TaskPriority, TaskRecord, TaskStatus } from "../types";
 import { Icon } from "../icons";
-import { formatDate, initialOf, isOverdue } from "../utils";
+import { CURRENT_USER_NAME, formatDate, initialOf, isOverdue } from "../utils";
 import { Modal } from "./Modal";
 import { TaskForm } from "./TaskForm";
 
@@ -23,18 +23,18 @@ const FILTERS: { value: StatusFilter; label: string }[] = [
   { value: "done", label: "Done" },
 ];
 
+const STATUS_OPTIONS: { value: TaskStatus; label: string }[] = [
+  { value: "todo", label: "To do" },
+  { value: "in-progress", label: "In progress" },
+  { value: "done", label: "Done" },
+];
+
 const PRIORITY_LABEL: Record<TaskPriority, string> = { low: "Low", medium: "Medium", high: "High" };
 const PRIORITY_COLORS: Record<TaskPriority, { bg: string; fg: string }> = {
   low: { bg: "var(--surface-soft)", fg: "var(--text-secondary)" },
   medium: { bg: "#FCF0DC", fg: "#B9772E" },
   high: { bg: "#F6E2DD", fg: "#C05A4A" },
 };
-
-function cycleStatus(status: TaskStatus): TaskStatus {
-  if (status === "todo") return "in-progress";
-  if (status === "in-progress") return "done";
-  return "todo";
-}
 
 export function TasksPage({ app, role, onBack, onUpdate }: Props) {
   const records = app.tasks ?? [];
@@ -52,12 +52,17 @@ export function TasksPage({ app, role, onBack, onUpdate }: Props) {
     return records.filter((t) => {
       if (statusFilter !== "all" && t.status !== statusFilter) return false;
       if (!q) return true;
-      return [t.title, t.assignee].some((v) => v?.toLowerCase().includes(q));
+      if (t.title.toLowerCase().includes(q)) return true;
+      return (t.assignees ?? []).some((a) => a.toLowerCase().includes(q));
     });
   }, [records, query, statusFilter]);
 
-  function toggleStatus(task: TaskRecord) {
-    onUpdate(records.map((t) => (t.id === task.id ? { ...t, status: cycleStatus(t.status) } : t)));
+  function canChangeStatus(task: TaskRecord) {
+    return canManage || (task.assignees?.includes(CURRENT_USER_NAME) ?? false);
+  }
+
+  function handleStatusChange(task: TaskRecord, status: TaskStatus) {
+    onUpdate(records.map((t) => (t.id === task.id ? { ...t, status } : t)));
   }
 
   function handleAddSave(record: TaskRecord) {
@@ -129,37 +134,53 @@ export function TasksPage({ app, role, onBack, onUpdate }: Props) {
         <div className="items-list">
           {filtered.map((task) => {
             const overdue = task.status !== "done" && isOverdue(task.dueDate);
+            const assignees = task.assignees ?? [];
             return (
               <div className="items-row" key={task.id}>
-                <button
-                  type="button"
-                  className={`task-check task-check--${task.status}`}
-                  onClick={() => canManage && toggleStatus(task)}
-                  aria-label={`Mark ${task.title} as ${cycleStatus(task.status)}`}
-                  disabled={!canManage}
-                >
-                  {task.status === "done" && <Icon name="check-square" />}
-                </button>
                 <div className="items-row-text">
                   <span className={`items-row-name${task.status === "done" ? " task-done" : ""}`}>
                     {task.title}
                   </span>
-                  {(task.assignee || task.dueDate) && (
-                    <span className={`items-row-desc${overdue ? " task-overdue" : ""}`}>
-                      {[task.assignee, task.dueDate && `Due ${formatDate(task.dueDate)}`]
-                        .filter(Boolean)
-                        .join(" · ")}
+                </div>
+
+                <div className="task-row-meta">
+                  {assignees.length > 0 && (
+                    <div className="assignee-chips">
+                      {assignees.map((name) => (
+                        <span className="assignee-chip" key={name} title={name}>
+                          {initialOf(name)}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  {task.dueDate && (
+                    <span className={`due-pill${overdue ? " due-pill--overdue" : ""}`}>
+                      Due {formatDate(task.dueDate)}
                     </span>
                   )}
-                </div>
-                {task.priority && (
-                  <span
-                    className="status-pill"
-                    style={{ background: PRIORITY_COLORS[task.priority].bg, color: PRIORITY_COLORS[task.priority].fg }}
+                  {task.priority && (
+                    <span
+                      className="status-pill"
+                      style={{ background: PRIORITY_COLORS[task.priority].bg, color: PRIORITY_COLORS[task.priority].fg }}
+                    >
+                      {PRIORITY_LABEL[task.priority]}
+                    </span>
+                  )}
+                  <select
+                    className={`task-status-select task-status-select--${task.status}`}
+                    value={task.status}
+                    disabled={!canChangeStatus(task)}
+                    onChange={(e) => handleStatusChange(task, e.target.value as TaskStatus)}
+                    aria-label={`Status for ${task.title}`}
                   >
-                    {PRIORITY_LABEL[task.priority]}
-                  </span>
-                )}
+                    {STATUS_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
                 {canManage && (
                   <div
                     className={`items-row-manage${confirmDeleteId === task.id ? " items-row-manage--active" : ""}`}

@@ -22,7 +22,7 @@ export function computeMetrics(apps: AppTile[], role: Role, readAnnouncementIds:
   const allTasks = taskApp?.tasks ?? [];
   const overdueAll = allTasks.filter((t) => t.status !== "done" && isOverdue(t.dueDate)).length;
   const overdueMine = allTasks.filter(
-    (t) => t.status !== "done" && t.assignee === CURRENT_USER_NAME && isOverdue(t.dueDate),
+    (t) => t.status !== "done" && t.assignees?.includes(CURRENT_USER_NAME) && isOverdue(t.dueDate),
   ).length;
 
   let expiringSoon = 0;
@@ -77,7 +77,9 @@ export function computeMetrics(apps: AppTile[], role: Role, readAnnouncementIds:
       if (target) target.urgent = true;
     }
   } else {
-    const yourTasks = allTasks.filter((t) => t.status !== "done" && t.assignee === CURRENT_USER_NAME).length;
+    const yourTasks = allTasks.filter(
+      (t) => t.status !== "done" && t.assignees?.includes(CURRENT_USER_NAME),
+    ).length;
     if (yourTasks > 0 && taskApp) {
       metrics.push({ key: "your-tasks", label: "Your open tasks", value: yourTasks, appId: taskApp.id });
     }

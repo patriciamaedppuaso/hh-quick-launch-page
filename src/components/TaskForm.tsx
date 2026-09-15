@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { TaskPriority, TaskRecord, TaskStatus } from "../types";
-import { newId } from "../utils";
+import { TEAM_MEMBERS, newId } from "../utils";
 
 interface Props {
   initial?: TaskRecord;
@@ -25,7 +25,11 @@ export function TaskForm({ initial, onSave, onCancel }: Props) {
   const [status, setStatus] = useState<TaskStatus>(initial?.status ?? "todo");
   const [priority, setPriority] = useState<TaskPriority>(initial?.priority ?? "medium");
   const [dueDate, setDueDate] = useState(initial?.dueDate ?? "");
-  const [assignee, setAssignee] = useState(initial?.assignee ?? "");
+  const [assignees, setAssignees] = useState<string[]>(initial?.assignees ?? []);
+
+  function toggleAssignee(name: string) {
+    setAssignees((prev) => (prev.includes(name) ? prev.filter((n) => n !== name) : [...prev, name]));
+  }
 
   function handleSave() {
     const trimmedTitle = title.trim();
@@ -36,7 +40,7 @@ export function TaskForm({ initial, onSave, onCancel }: Props) {
       status,
       priority,
       dueDate: dueDate || undefined,
-      assignee: assignee.trim() || undefined,
+      assignees: assignees.length ? assignees : undefined,
     });
   }
 
@@ -77,14 +81,19 @@ export function TaskForm({ initial, onSave, onCancel }: Props) {
         <input id="tDue" type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
       </div>
       <div className="form-row">
-        <label htmlFor="tAssignee">Assignee (optional)</label>
-        <input
-          id="tAssignee"
-          type="text"
-          placeholder="Who's on it?"
-          value={assignee}
-          onChange={(e) => setAssignee(e.target.value)}
-        />
+        <label>Assignees (optional)</label>
+        <div className="assignee-picker">
+          {TEAM_MEMBERS.map((name) => (
+            <button
+              key={name}
+              type="button"
+              className={`assignee-option${assignees.includes(name) ? " active" : ""}`}
+              onClick={() => toggleAssignee(name)}
+            >
+              {name}
+            </button>
+          ))}
+        </div>
       </div>
       <div className="form-buttons">
         <button type="button" className="btn-secondary" onClick={onCancel}>
