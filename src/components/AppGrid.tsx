@@ -2,34 +2,26 @@ import { useState } from "react";
 import type { AppTile, Role, ViewMode } from "../types";
 import { AppCard } from "./AppCard";
 import { AppRow } from "./AppRow";
-import { AddAppForm } from "./AddAppForm";
 import { ViewToggle } from "./ViewToggle";
-import { Modal } from "./Modal";
 import { useIsMobile } from "../hooks/useIsMobile";
 
 interface Props {
   apps: AppTile[];
-  onAdd: (app: AppTile) => void;
   onReorder: (apps: AppTile[]) => void;
   onOpenItems: (appId: string) => void;
+  onRequestAdd: () => void;
   role: Role;
   view: ViewMode;
   onViewChange: (view: ViewMode) => void;
 }
 
-export function AppGrid({ apps, onAdd, onReorder, onOpenItems, role, view, onViewChange }: Props) {
-  const [addingNew, setAddingNew] = useState(false);
+export function AppGrid({ apps, onReorder, onOpenItems, onRequestAdd, role, view, onViewChange }: Props) {
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
   const isMobile = useIsMobile();
 
   const canReorder = role === "admin" && !isMobile;
   const useIconTiles = view === "grid" && isMobile;
-
-  function handleAdd(app: AppTile) {
-    onAdd(app);
-    setAddingNew(false);
-  }
 
   function handleDrop(targetId: string) {
     if (draggedId && draggedId !== targetId) {
@@ -101,7 +93,7 @@ export function AppGrid({ apps, onAdd, onReorder, onOpenItems, role, view, onVie
 
         {role === "admin" &&
           (view === "list" ? (
-            <button type="button" className="add-row" onClick={() => setAddingNew(true)}>
+            <button type="button" className="add-row" onClick={onRequestAdd}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                 <path d="M12 5v14" />
                 <path d="M5 12h14" />
@@ -109,7 +101,7 @@ export function AppGrid({ apps, onAdd, onReorder, onOpenItems, role, view, onVie
               <span className="add-row-title">Add an app</span>
             </button>
           ) : useIconTiles ? (
-            <button type="button" className="add-row add-row--tile" onClick={() => setAddingNew(true)}>
+            <button type="button" className="add-row add-row--tile" onClick={onRequestAdd}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                 <path d="M12 5v14" />
                 <path d="M5 12h14" />
@@ -117,7 +109,7 @@ export function AppGrid({ apps, onAdd, onReorder, onOpenItems, role, view, onVie
               <span className="add-row-title">Add</span>
             </button>
           ) : (
-            <button type="button" className="add-card" onClick={() => setAddingNew(true)}>
+            <button type="button" className="add-card" onClick={onRequestAdd}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                 <path d="M12 5v14" />
                 <path d="M5 12h14" />
@@ -127,10 +119,6 @@ export function AppGrid({ apps, onAdd, onReorder, onOpenItems, role, view, onVie
             </button>
           ))}
       </div>
-
-      <Modal open={addingNew} onClose={() => setAddingNew(false)} title="Add an app">
-        <AddAppForm onSave={handleAdd} onCancel={() => setAddingNew(false)} />
-      </Modal>
     </section>
   );
 }

@@ -29,7 +29,9 @@ export type IconName =
   | "edit"
   | "trash"
   | "mail"
-  | "home";
+  | "home"
+  | "plus"
+  | "menu";
 
 export interface Tint {
   bg: string;

@@ -2,13 +2,11 @@ import { useEffect, useMemo, useState } from "react";
 import type { AppTile, ListApp, Role, Theme, ViewMode } from "./types";
 import {
   loadApps,
-  loadRailCollapsed,
   loadReadAnnouncements,
   loadRole,
   loadTheme,
   loadView,
   saveApps,
-  saveRailCollapsed,
   saveReadAnnouncements,
   saveRole,
   saveTheme,
@@ -16,12 +14,14 @@ import {
 } from "./storage";
 import type { ReadAnnouncements } from "./storage";
 import { computeMetrics } from "./metrics";
-import { Header } from "./components/Header";
+import { Sidebar } from "./components/Sidebar";
+import { MobileTopBar } from "./components/MobileTopBar";
 import { Greeting } from "./components/Greeting";
 import { RoleToggle } from "./components/RoleToggle";
 import { AppGrid } from "./components/AppGrid";
-import { NavRail } from "./components/NavRail";
 import { WidgetsPanel } from "./components/WidgetsPanel";
+import { Modal } from "./components/Modal";
+import { AddAppForm } from "./components/AddAppForm";
 import { ItemsPage } from "./components/ItemsPage";
 import { ContactsPage } from "./components/ContactsPage";
 import { LeadsPage } from "./components/LeadsPage";
@@ -42,7 +42,8 @@ export default function App() {
   const [view, setView] = useState<ViewMode>(() => loadView());
   const [openAppId, setOpenAppId] = useState<string | null>(() => parseHashAppId());
   const [readAnnouncements, setReadAnnouncements] = useState<ReadAnnouncements>(() => loadReadAnnouncements());
-  const [railCollapsed, setRailCollapsed] = useState<boolean>(() => loadRailCollapsed());
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [addingApp, setAddingApp] = useState(false);
 
   useEffect(() => {
     saveApps(apps);
@@ -68,10 +69,6 @@ export default function App() {
   useEffect(() => {
     saveReadAnnouncements(readAnnouncements);
   }, [readAnnouncements]);
-
-  useEffect(() => {
-    saveRailCollapsed(railCollapsed);
-  }, [railCollapsed]);
 
   useEffect(() => {
     function handleHashChange() {
@@ -107,6 +104,11 @@ export default function App() {
       ...prev,
       [role]: Array.from(new Set([...(prev[role] ?? []), ...ids])),
     }));
+  }
+
+  function handleAddApp(app: AppTile) {
+    setApps((prev) => [...prev, app]);
+    setAddingApp(false);
   }
 
   function renderActiveApp(app: ListApp) {
@@ -162,37 +164,43 @@ export default function App() {
 
   return (
     <div className="wrap">
-      <Header role={role} theme={theme} onThemeChange={setTheme} divided={!!activeApp} />
-      <div className={`app-body${railCollapsed ? " app-body--rail-collapsed" : ""}`}>
-        <NavRail
-          apps={apps}
-          activeAppId={openAppId}
-          collapsed={railCollapsed}
-          onToggleCollapsed={() => setRailCollapsed((v) => !v)}
-          onNavigate={(appId) => (appId ? openItems(appId) : closeItems())}
-        />
-        <main className="app-main">
-          {activeApp ? (
-            renderActiveApp(activeApp)
-          ) : (
-            <>
-              <Greeting />
-              <RoleToggle role={role} onChange={setRole} />
-              <AppGrid
-                apps={apps}
-                role={role}
-                view={view}
-                onViewChange={setView}
-                onAdd={(app) => setApps((prev) => [...prev, app])}
-                onReorder={setApps}
-                onOpenItems={openItems}
-              />
-            </>
-          )}
-        </main>
-        <WidgetsPanel apps={apps} metrics={metrics} onOpen={openItems} />
-      </div>
-      <Footer />
+      <MobileTopBar onOpenMenu={() => setSidebarOpen(true)} />
+      <Sidebar
+        apps={apps}
+        role={role}
+        activeAppId={openAppId}
+        theme={theme}
+        onThemeChange={setTheme}
+        onNavigate={(appId) => (appId ? openItems(appId) : closeItems())}
+        onRequestAdd={() => setAddingApp(true)}
+        mobileOpen={sidebarOpen}
+        onCloseMobile={() => setSidebarOpen(false)}
+      />
+      <main className="app-main">
+        {activeApp ? (
+          renderActiveApp(activeApp)
+        ) : (
+          <>
+            <Greeting />
+            <RoleToggle role={role} onChange={setRole} />
+            <AppGrid
+              apps={apps}
+              role={role}
+              view={view}
+              onViewChange={setView}
+              onReorder={setApps}
+              onOpenItems={openItems}
+              onRequestAdd={() => setAddingApp(true)}
+            />
+          </>
+        )}
+        <Footer />
+      </main>
+      <WidgetsPanel apps={apps} metrics={metrics} onOpen={openItems} />
+
+      <Modal open={addingApp} onClose={() => setAddingApp(false)} title="Add an app">
+        <AddAppForm onSave={handleAddApp} onCancel={() => setAddingApp(false)} />
+      </Modal>
     </div>
   );
 }

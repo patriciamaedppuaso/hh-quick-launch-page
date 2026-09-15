@@ -5,7 +5,6 @@ const ROLE_KEY = "clock-in:role:v1";
 const THEME_KEY = "clock-in:theme:v1";
 const VIEW_KEY = "clock-in:view:v1";
 const READ_ANNOUNCEMENTS_KEY = "clock-in:read-announcements:v1";
-const RAIL_KEY = "clock-in:rail-collapsed:v1";
 
 export const DEFAULT_APPS: AppTile[] = [
   {
@@ -331,18 +330,3 @@ export function saveReadAnnouncements(data: ReadAnnouncements): void {
   }
 }
 
-export function loadRailCollapsed(): boolean {
-  try {
-    return localStorage.getItem(RAIL_KEY) === "1";
-  } catch {
-    return false;
-  }
-}
-
-export function saveRailCollapsed(collapsed: boolean): void {
-  try {
-    localStorage.setItem(RAIL_KEY, collapsed ? "1" : "0");
-  } catch {
-    // localStorage unavailable — silently skip persistence
-  }
-}
