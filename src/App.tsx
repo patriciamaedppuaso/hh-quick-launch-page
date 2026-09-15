@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { AppTile, ListApp, Role, Theme, ViewMode } from "./types";
 import {
   loadApps,
@@ -48,6 +48,10 @@ export default function App() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(() => loadSidebarCollapsed());
   const [addingApp, setAddingApp] = useState(false);
 
+  const mainRef = useRef<HTMLElement>(null);
+  const hideThumbTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [scrollThumb, setScrollThumb] = useState({ top: 0, height: 0, visible: false });
+
   useEffect(() => {
     saveApps(apps);
   }, [apps]);
@@ -83,6 +87,69 @@ export default function App() {
     }
     window.addEventListener("hashchange", handleHashChange);
     return () => window.removeEventListener("hashchange", handleHashChange);
+  }, []);
+
+  function updateScrollThumb(show: boolean) {
+    const el = mainRef.current;
+    if (!el) return;
+    const { scrollTop, scrollHeight, clientHeight } = el;
+    if (scrollHeight <= clientHeight + 1) {
+      setScrollThumb({ top: 0, height: 0, visible: false });
+      return;
+    }
+    const thumbHeight = Math.max(30, (clientHeight / scrollHeight) * clientHeight);
+    const maxThumbTop = clientHeight - thumbHeight;
+    const top = (scrollTop / (scrollHeight - clientHeight)) * maxThumbTop;
+    setScrollThumb({ top, height: thumbHeight, visible: show });
+    if (hideThumbTimer.current) clearTimeout(hideThumbTimer.current);
+    if (show) {
+      hideThumbTimer.current = setTimeout(() => {
+        setScrollThumb((t) => ({ ...t, visible: false }));
+      }, 900);
+    }
+  }
+
+  function handleThumbPointerDown(e: React.PointerEvent<HTMLDivElement>) {
+    e.preventDefault();
+    const el = mainRef.current;
+    if (!el) return;
+    const startY = e.clientY;
+    const startScrollTop = el.scrollTop;
+    const trackHeight = el.clientHeight;
+    const maxScroll = el.scrollHeight - el.clientHeight;
+    const thumbHeight = Math.max(30, (trackHeight / el.scrollHeight) * trackHeight);
+    const maxThumbTop = trackHeight - thumbHeight;
+
+    function onMove(ev: PointerEvent) {
+      if (!el || maxThumbTop <= 0) return;
+      const deltaY = ev.clientY - startY;
+      const deltaScroll = (deltaY / maxThumbTop) * maxScroll;
+      el.scrollTop = Math.min(maxScroll, Math.max(0, startScrollTop + deltaScroll));
+    }
+    function onUp() {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+    }
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    updateScrollThumb(true);
+  }
+
+  useEffect(() => {
+    updateScrollThumb(false);
+    const el = mainRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(() => updateScrollThumb(false));
+    observer.observe(el);
+    window.addEventListener("resize", () => updateScrollThumb(false));
+    return () => observer.disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openAppId, apps, view, sidebarCollapsed]);
+
+  useEffect(() => {
+    return () => {
+      if (hideThumbTimer.current) clearTimeout(hideThumbTimer.current);
+    };
   }, []);
 
   const activeApp = openAppId
@@ -185,7 +252,7 @@ export default function App() {
         collapsed={sidebarCollapsed}
         onToggleCollapsed={() => setSidebarCollapsed((v) => !v)}
       />
-      <main className="app-main">
+      <main className="app-main" ref={mainRef} onScroll={() => updateScrollThumb(true)}>
         {activeApp ? (
           renderActiveApp(activeApp)
         ) : (
@@ -206,6 +273,16 @@ export default function App() {
         <Footer />
       </main>
       <WidgetsPanel apps={apps} metrics={metrics} onOpen={openItems} />
+
+      {scrollThumb.height > 0 && (
+        <div className="main-scroll-track" aria-hidden="true">
+          <div
+            className={`main-scroll-thumb${scrollThumb.visible ? " main-scroll-thumb--visible" : ""}`}
+            style={{ top: scrollThumb.top, height: scrollThumb.height }}
+            onPointerDown={handleThumbPointerDown}
+          />
+        </div>
+      )}
 
       <Modal open={addingApp} onClose={() => setAddingApp(false)} title="Add an app">
         <AddAppForm onSave={handleAddApp} onCancel={() => setAddingApp(false)} />

@@ -76,23 +76,60 @@ body {
 /* app shell: fixed sidebar + main + fixed widgets */
 .app-main {
   min-width: 0;
-  margin-left: 272px;
-  margin-right: 300px;
-  padding: 20px 24px 56px;
-  min-height: 100vh;
-}
-
-@media (max-width: 999px) {
-  .app-main {
-    margin-left: 0;
-    margin-right: 0;
-    padding: 14px 20px 56px;
-  }
+  padding: 14px 20px 56px;
 }
 
 @media (min-width: 1000px) {
+  .app-main {
+    position: fixed;
+    top: 0;
+    left: 272px;
+    right: 300px;
+    height: 100vh;
+    overflow-y: auto;
+    padding: 20px 24px 56px;
+    scrollbar-width: none;
+  }
+  .app-main::-webkit-scrollbar {
+    display: none;
+  }
   .wrap.sidebar-collapsed .app-main {
-    margin-left: 76px;
+    left: 76px;
+  }
+}
+
+/* custom overlay scrollbar for .app-main, rendered at the widgets panel's edge */
+.main-scroll-track {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 10px;
+  height: 100vh;
+  z-index: 40;
+}
+.main-scroll-thumb {
+  position: absolute;
+  right: 3px;
+  width: 4px;
+  border-radius: 999px;
+  background: var(--text-secondary);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+.main-scroll-thumb--visible {
+  opacity: 0.55;
+  pointer-events: auto;
+  cursor: grab;
+}
+.main-scroll-track:hover .main-scroll-thumb {
+  opacity: 0.55;
+  pointer-events: auto;
+}
+
+@media (max-width: 999px) {
+  .main-scroll-track {
+    display: none;
   }
 }
 
@@ -686,10 +723,14 @@ body {
   background: var(--card-bg);
   border-left: 1px solid var(--border);
   overflow-y: auto;
+  scrollbar-width: none;
   padding: 20px;
   display: flex;
   flex-direction: column;
   gap: 16px;
+}
+.widgets-panel::-webkit-scrollbar {
+  display: none;
 }
 
 .widget-block {
