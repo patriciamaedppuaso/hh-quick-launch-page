@@ -1,9 +1,10 @@
 import { useMemo, useState } from "react";
 import type { ListApp, ListItem, Role } from "../types";
 import { Icon } from "../icons";
-import { formatDate, initialOf, isOverdue, openTarget } from "../utils";
+import { formatDate, initialOf, isOverdue, isPdfFile, openTarget } from "../utils";
 import { Modal } from "./Modal";
 import { ItemForm } from "./ItemForm";
+import { FilePreviewModal } from "./FilePreviewModal";
 
 interface Props {
   app: ListApp;
@@ -35,6 +36,7 @@ export function ItemsPage({ app, role, onBack, onUpdateItems }: Props) {
   const [editingItem, setEditingItem] = useState<ListItem | null>(null);
   const [addingItem, setAddingItem] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [previewItem, setPreviewItem] = useState<ListItem | null>(null);
 
   const canManage = role === "admin";
   const tint = app.tint ?? FALLBACK_TINT;
@@ -130,13 +132,28 @@ export function ItemsPage({ app, role, onBack, onUpdateItems }: Props) {
               <span className="items-row-kind">{item.isFile ? "File" : item.url ? "Link" : "—"}</span>
               <div className="items-row-actions">
                 {item.url ? (
-                  <button
-                    type="button"
-                    className="list-item-open"
-                    onClick={() => openTarget(item.url, item.isFile, item.fileName)}
-                  >
-                    {item.isFile ? "Download" : "Open"}
-                  </button>
+                  item.isFile && isPdfFile(item.fileName, item.url) ? (
+                    <>
+                      <button type="button" className="list-item-open" onClick={() => setPreviewItem(item)}>
+                        View
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-secondary-sm"
+                        onClick={() => openTarget(item.url, item.isFile, item.fileName)}
+                      >
+                        Download
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      type="button"
+                      className="list-item-open"
+                      onClick={() => openTarget(item.url, item.isFile, item.fileName)}
+                    >
+                      {item.isFile ? "Download" : "Open"}
+                    </button>
+                  )
                 ) : (
                   <span className="list-item-note">No link</span>
                 )}
@@ -188,6 +205,15 @@ export function ItemsPage({ app, role, onBack, onUpdateItems }: Props) {
           <ItemForm initial={editingItem} onSave={handleEditSave} onCancel={() => setEditingItem(null)} />
         )}
       </Modal>
+
+      {previewItem && (
+        <FilePreviewModal
+          open={!!previewItem}
+          onClose={() => setPreviewItem(null)}
+          fileName={previewItem.fileName}
+          url={previewItem.url}
+        />
+      )}
     </div>
   );
 }

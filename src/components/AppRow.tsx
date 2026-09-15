@@ -1,7 +1,9 @@
+import { useState } from "react";
 import type { AppTile } from "../types";
 import { Icon } from "../icons";
 import { AppLogo } from "./AppLogo";
-import { openTarget } from "../utils";
+import { isPdfFile, openTarget } from "../utils";
+import { FilePreviewModal } from "./FilePreviewModal";
 
 interface Props {
   app: AppTile;
@@ -13,15 +15,22 @@ interface Props {
 const FALLBACK_TINT = { bg: "#EDF7F6", fg: "#479CA4" };
 
 export function AppRow({ app, onOpenItems, showHandle, layout = "row" }: Props) {
+  const [previewOpen, setPreviewOpen] = useState(false);
   const isList = app.type === "list";
+  const linkApp = app.type === "link" ? app : null;
   const tint = app.tint ?? FALLBACK_TINT;
   const isTile = layout === "tile";
+  const canPreview = !!linkApp?.isFile && isPdfFile(linkApp.fileName, linkApp.url);
 
   function handleClick() {
     if (isList) {
       onOpenItems();
-    } else {
-      openTarget(app.url, app.isFile, app.fileName);
+    } else if (linkApp) {
+      if (canPreview) {
+        setPreviewOpen(true);
+      } else {
+        openTarget(linkApp.url, linkApp.isFile, linkApp.fileName);
+      }
     }
   }
 
@@ -56,6 +65,15 @@ export function AppRow({ app, onOpenItems, showHandle, layout = "row" }: Props) 
           </span>
         )}
       </button>
+
+      {canPreview && linkApp && (
+        <FilePreviewModal
+          open={previewOpen}
+          onClose={() => setPreviewOpen(false)}
+          fileName={linkApp.fileName}
+          url={linkApp.url}
+        />
+      )}
     </div>
   );
 }

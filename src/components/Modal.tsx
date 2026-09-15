@@ -7,9 +7,10 @@ interface Props {
   onClose: () => void;
   title: string;
   children: ReactNode;
+  wide?: boolean;
 }
 
-export function Modal({ open, onClose, title, children }: Props) {
+export function Modal({ open, onClose, title, children, wide }: Props) {
   useEffect(() => {
     if (!open) return;
     function handleKey(e: KeyboardEvent) {
@@ -33,7 +34,12 @@ export function Modal({ open, onClose, title, children }: Props) {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="modal-panel" role="dialog" aria-modal="true" aria-label={title}>
+      <div
+        className={`modal-panel${wide ? " modal-panel--wide" : ""}`}
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+      >
         <div className="modal-header">
           <span className="modal-title">{title}</span>
           <button type="button" className="modal-close" onClick={onClose} aria-label="Close">
