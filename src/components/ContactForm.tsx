@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { ContactRecord } from "../types";
 import { newId } from "../utils";
+import { AvatarPicker } from "./AvatarPicker";
 
 interface Props {
   initial?: ContactRecord;
@@ -14,6 +15,7 @@ export function ContactForm({ initial, onSave, onCancel }: Props) {
   const [phone, setPhone] = useState(initial?.phone ?? "");
   const [email, setEmail] = useState(initial?.email ?? "");
   const [notes, setNotes] = useState(initial?.notes ?? "");
+  const [avatar, setAvatar] = useState(initial?.avatar ?? "");
 
   function handleSave() {
     const trimmedName = name.trim();
@@ -25,11 +27,16 @@ export function ContactForm({ initial, onSave, onCancel }: Props) {
       phone: phone.trim() || undefined,
       email: email.trim() || undefined,
       notes: notes.trim() || undefined,
+      avatar: avatar || undefined,
     });
   }
 
   return (
     <div className="form-card">
+      <div className="form-row">
+        <label>Photo (optional)</label>
+        <AvatarPicker name={name} avatar={avatar} onChange={setAvatar} onClear={() => setAvatar("")} />
+      </div>
       <div className="form-row">
         <label htmlFor="cName">Name</label>
         <input

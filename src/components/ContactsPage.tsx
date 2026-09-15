@@ -89,6 +89,9 @@ export function ContactsPage({ app, role, onBack, onUpdate }: Props) {
         <div className="items-list">
           {filtered.map((r) => (
             <div className="items-row" key={r.id}>
+              <span className="contact-avatar" style={{ background: tint.bg, color: tint.fg }}>
+                {r.avatar ? <img src={r.avatar} alt="" /> : initialOf(r.name)}
+              </span>
               <div className="items-row-text">
                 <span className="items-row-name">{r.name}</span>
                 {r.role && <span className="items-row-desc">{r.role}</span>}

@@ -1862,6 +1862,7 @@ body {
 }
 
 .file-picker-btn {
+  position: relative;
   display: inline-flex;
   align-self: flex-start;
   align-items: center;
@@ -1880,12 +1881,13 @@ body {
   border-color: var(--teal);
 }
 
-.file-picker-input {
+.form-card .file-picker-input {
   position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   opacity: 0;
+  cursor: pointer;
 }
 
 .file-picker-selected {
@@ -1910,6 +1912,43 @@ body {
   color: var(--text-secondary);
   flex-shrink: 0;
   margin-left: auto;
+}
+
+.avatar-picker {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.avatar-preview {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--surface-soft);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+.avatar-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.avatar-preview-fallback {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+.avatar-picker-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.avatar-picker-btn {
+  position: relative;
+  cursor: pointer;
 }
 
 .field-error {
@@ -2320,6 +2359,24 @@ body {
 }
 .items-row:hover {
   background: var(--surface-soft);
+}
+
+.contact-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+.contact-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .items-row-text {

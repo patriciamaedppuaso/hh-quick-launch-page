@@ -58,6 +58,7 @@ export interface ContactRecord {
   phone?: string;
   email?: string;
   notes?: string;
+  avatar?: string;
 }
 
 export type LeadStatus = "new" | "contacted" | "qualified" | "won" | "lost";
