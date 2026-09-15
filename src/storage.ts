@@ -5,6 +5,7 @@ const ROLE_KEY = "clock-in:role:v1";
 const THEME_KEY = "clock-in:theme:v1";
 const VIEW_KEY = "clock-in:view:v1";
 const READ_ANNOUNCEMENTS_KEY = "clock-in:read-announcements:v1";
+const SIDEBAR_COLLAPSED_KEY = "clock-in:sidebar-collapsed:v1";
 
 export const DEFAULT_APPS: AppTile[] = [
   {
@@ -325,6 +326,22 @@ export function loadReadAnnouncements(): ReadAnnouncements {
 export function saveReadAnnouncements(data: ReadAnnouncements): void {
   try {
     localStorage.setItem(READ_ANNOUNCEMENTS_KEY, JSON.stringify(data));
+  } catch {
+    // localStorage unavailable — silently skip persistence
+  }
+}
+
+export function loadSidebarCollapsed(): boolean {
+  try {
+    return localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+export function saveSidebarCollapsed(collapsed: boolean): void {
+  try {
+    localStorage.setItem(SIDEBAR_COLLAPSED_KEY, collapsed ? "1" : "0");
   } catch {
     // localStorage unavailable — silently skip persistence
   }

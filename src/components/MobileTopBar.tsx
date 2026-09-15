@@ -11,7 +11,11 @@ export function MobileTopBar({ onOpenMenu }: Props) {
         <Icon name="menu" />
       </button>
       <div className="mobile-topbar-brand">
-        <div className="brand-logo brand-logo-sm">H&amp;H</div>
+        <img
+          className="brand-logo brand-logo-sm"
+          src="/assets/images/logo/Icon.png"
+          alt="H&amp;H Medical Supply"
+        />
         <span className="mobile-topbar-title">Quick Launch</span>
       </div>
     </div>

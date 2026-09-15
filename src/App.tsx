@@ -4,11 +4,13 @@ import {
   loadApps,
   loadReadAnnouncements,
   loadRole,
+  loadSidebarCollapsed,
   loadTheme,
   loadView,
   saveApps,
   saveReadAnnouncements,
   saveRole,
+  saveSidebarCollapsed,
   saveTheme,
   saveView,
 } from "./storage";
@@ -43,6 +45,7 @@ export default function App() {
   const [openAppId, setOpenAppId] = useState<string | null>(() => parseHashAppId());
   const [readAnnouncements, setReadAnnouncements] = useState<ReadAnnouncements>(() => loadReadAnnouncements());
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(() => loadSidebarCollapsed());
   const [addingApp, setAddingApp] = useState(false);
 
   useEffect(() => {
@@ -69,6 +72,10 @@ export default function App() {
   useEffect(() => {
     saveReadAnnouncements(readAnnouncements);
   }, [readAnnouncements]);
+
+  useEffect(() => {
+    saveSidebarCollapsed(sidebarCollapsed);
+  }, [sidebarCollapsed]);
 
   useEffect(() => {
     function handleHashChange() {
@@ -163,7 +170,7 @@ export default function App() {
   }
 
   return (
-    <div className="wrap">
+    <div className={`wrap${sidebarCollapsed ? " sidebar-collapsed" : ""}`}>
       <MobileTopBar onOpenMenu={() => setSidebarOpen(true)} />
       <Sidebar
         apps={apps}
@@ -175,6 +182,8 @@ export default function App() {
         onRequestAdd={() => setAddingApp(true)}
         mobileOpen={sidebarOpen}
         onCloseMobile={() => setSidebarOpen(false)}
+        collapsed={sidebarCollapsed}
+        onToggleCollapsed={() => setSidebarCollapsed((v) => !v)}
       />
       <main className="app-main">
         {activeApp ? (
