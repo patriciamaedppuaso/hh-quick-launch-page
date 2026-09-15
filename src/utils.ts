@@ -1,4 +1,4 @@
-import type { AppTile } from "./types";
+import type { AppTile, BreakEntry, TimeEntry } from "./types";
 
 export const CURRENT_USER_NAME = "Myka";
 
@@ -121,4 +121,53 @@ export function formatTimeOfDay(iso?: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "";
   return d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+}
+
+export function formatElapsed(sinceIso: string): string {
+  const since = new Date(sinceIso).getTime();
+  if (Number.isNaN(since)) return "00:00:00";
+  const totalSeconds = Math.max(0, Math.floor((Date.now() - since) / 1000));
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  const pad = (n: number) => n.toString().padStart(2, "0");
+  return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+}
+
+export function toDateTimeLocal(iso?: string): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const pad = (n: number) => n.toString().padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+export function fromDateTimeLocal(value: string): string | undefined {
+  if (!value) return undefined;
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return undefined;
+  return d.toISOString();
+}
+
+export function breakTotalMs(breaks: BreakEntry[]): number {
+  return breaks.reduce((sum, b) => {
+    const start = new Date(b.start).getTime();
+    const end = b.end ? new Date(b.end).getTime() : Date.now();
+    return sum + Math.max(0, end - start);
+  }, 0);
+}
+
+export function workedMs(entry: TimeEntry): number {
+  const start = new Date(entry.clockIn).getTime();
+  const end = entry.clockOut ? new Date(entry.clockOut).getTime() : Date.now();
+  return Math.max(0, end - start - breakTotalMs(entry.breaks));
+}
+
+export function formatHoursMinutes(ms: number): string {
+  const totalMinutes = Math.max(0, Math.round(ms / 60000));
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  if (hours === 0) return `${minutes}m`;
+  if (minutes === 0) return `${hours}h`;
+  return `${hours}h ${minutes}m`;
 }

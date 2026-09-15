@@ -216,14 +216,7 @@ export default function App() {
           <TasksPage app={app} role={role} onBack={closeItems} onUpdate={(tasks) => updateApp(app.id, { tasks })} />
         );
       case "timeclock":
-        return (
-          <TimeClockPage
-            app={app}
-            role={role}
-            onBack={closeItems}
-            onUpdate={(clockRecords) => updateApp(app.id, { clockRecords })}
-          />
-        );
+        return <TimeClockPage app={app} role={role} onBack={closeItems} onUpdate={(patch) => updateApp(app.id, patch)} />;
       default:
         return (
           <ItemsPage

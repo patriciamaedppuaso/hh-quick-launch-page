@@ -100,6 +100,29 @@ export interface ClockRecord {
   since?: string;
 }
 
+export interface BreakEntry {
+  id: string;
+  start: string;
+  end?: string;
+}
+
+export interface TimeEditRequest {
+  clockIn?: string;
+  clockOut?: string;
+  note?: string;
+  requestedAt: string;
+}
+
+export interface TimeEntry {
+  id: string;
+  name: string;
+  date: string;
+  clockIn: string;
+  clockOut?: string;
+  breaks: BreakEntry[];
+  editRequest?: TimeEditRequest;
+}
+
 interface AppBase {
   id: string;
   name: string;
@@ -114,6 +137,7 @@ interface AppBase {
   announcements?: AnnouncementRecord[];
   tasks?: TaskRecord[];
   clockRecords?: ClockRecord[];
+  timeEntries?: TimeEntry[];
 }
 
 export interface LinkApp extends AppBase {

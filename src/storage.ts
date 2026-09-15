@@ -1,6 +1,6 @@
 import type { AppTile, Role, Theme, ViewMode } from "./types";
 
-const LIST_KEY = "clock-in:apps:v6";
+const LIST_KEY = "clock-in:apps:v7";
 const ROLE_KEY = "clock-in:role:v1";
 const THEME_KEY = "clock-in:theme:v1";
 const VIEW_KEY = "clock-in:view:v1";
@@ -25,12 +25,42 @@ export const DEFAULT_APPS: AppTile[] = [
       { id: "clock-2", name: "Front Desk", clockedIn: true, since: "2026-09-15T06:55:00" },
       { id: "clock-3", name: "Warehouse Team", clockedIn: false },
     ],
+    timeEntries: [
+      {
+        id: "te-1",
+        name: "Myka",
+        date: "2026-09-13",
+        clockIn: "2026-09-13T07:05:00",
+        clockOut: "2026-09-13T15:00:00",
+        breaks: [],
+        editRequest: {
+          clockOut: "2026-09-13T15:20:00",
+          note: "Forgot to clock out on time, stayed late to finish restocking.",
+          requestedAt: "2026-09-13T15:45:00",
+        },
+      },
+      {
+        id: "te-2",
+        name: "Myka",
+        date: "2026-09-14",
+        clockIn: "2026-09-14T07:00:00",
+        clockOut: "2026-09-14T15:30:00",
+        breaks: [{ id: "brk-1", start: "2026-09-14T11:00:00", end: "2026-09-14T11:30:00" }],
+      },
+      {
+        id: "te-3",
+        name: "Myka",
+        date: "2026-09-15",
+        clockIn: "2026-09-15T07:02:00",
+        breaks: [],
+      },
+    ],
   },
   {
     id: "crm",
     name: "CRM",
     type: "link",
-    url: "https://example-crm.com",
+    url: "https://hhmedicalsupplyportal.com",
     initial: "CR",
     category: "Operations",
     description: "Manage clients, patients, and activity",
