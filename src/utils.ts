@@ -105,7 +105,20 @@ export function builtinCount(app: AppTile): number | undefined {
       return app.announcements?.length ?? 0;
     case "tasks":
       return app.tasks?.length ?? 0;
+    case "timeclock":
+      return app.clockRecords?.length ?? 0;
     default:
       return undefined;
   }
+}
+
+export function nowIso(): string {
+  return new Date().toISOString();
+}
+
+export function formatTimeOfDay(iso?: string): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
 }

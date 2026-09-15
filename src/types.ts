@@ -28,7 +28,8 @@ export type IconName =
   | "arrow-left"
   | "edit"
   | "trash"
-  | "mail";
+  | "mail"
+  | "home";
 
 export interface Tint {
   bg: string;
@@ -43,9 +44,10 @@ export interface ListItem {
   isFile?: boolean;
   fileName?: string;
   expiresOn?: string;
+  updatedAt?: string;
 }
 
-export type BuiltinKind = "contacts" | "leads" | "announcements" | "tasks";
+export type BuiltinKind = "contacts" | "leads" | "announcements" | "tasks" | "timeclock";
 
 export interface ContactRecord {
   id: string;
@@ -89,6 +91,13 @@ export interface TaskRecord {
   priority?: TaskPriority;
 }
 
+export interface ClockRecord {
+  id: string;
+  name: string;
+  clockedIn: boolean;
+  since?: string;
+}
+
 interface AppBase {
   id: string;
   name: string;
@@ -102,6 +111,7 @@ interface AppBase {
   leads?: LeadRecord[];
   announcements?: AnnouncementRecord[];
   tasks?: TaskRecord[];
+  clockRecords?: ClockRecord[];
 }
 
 export interface LinkApp extends AppBase {

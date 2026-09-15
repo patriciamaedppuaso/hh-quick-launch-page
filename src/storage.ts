@@ -1,23 +1,30 @@
 import type { AppTile, Role, Theme, ViewMode } from "./types";
 
-const LIST_KEY = "clock-in:apps:v5";
+const LIST_KEY = "clock-in:apps:v6";
 const ROLE_KEY = "clock-in:role:v1";
 const THEME_KEY = "clock-in:theme:v1";
 const VIEW_KEY = "clock-in:view:v1";
 const READ_ANNOUNCEMENTS_KEY = "clock-in:read-announcements:v1";
+const RAIL_KEY = "clock-in:rail-collapsed:v1";
 
 export const DEFAULT_APPS: AppTile[] = [
   {
     id: "timeclock",
     name: "Time Clock",
-    type: "link",
-    url: "https://example-timeclock.com",
+    type: "list",
     initial: "TC",
     category: "Attendance",
     description: "Clock in, clock out, and view hours",
-    subtitle: "Employee portal",
+    unitLabel: "staff",
     icon: "clock",
     tint: { bg: "#FDF1DF", fg: "#C8863A" },
+    builtin: "timeclock",
+    items: [],
+    clockRecords: [
+      { id: "clock-1", name: "Myka", clockedIn: true, since: "2026-09-15T07:02:00" },
+      { id: "clock-2", name: "Front Desk", clockedIn: true, since: "2026-09-15T06:55:00" },
+      { id: "clock-3", name: "Warehouse Team", clockedIn: false },
+    ],
   },
   {
     id: "crm",
@@ -84,7 +91,7 @@ export const DEFAULT_APPS: AppTile[] = [
     items: [
       { id: "cwq-1", name: "Standard sales contract", url: "" },
       { id: "cwq-2", name: "NDA template", url: "" },
-      { id: "cwq-3", name: "Vendor agreement", url: "", expiresOn: "2026-09-20" },
+      { id: "cwq-3", name: "Vendor agreement", url: "", expiresOn: "2026-09-20", updatedAt: "2026-09-12" },
       { id: "cwq-4", name: "Warranty template", url: "", expiresOn: "2026-10-05" },
       { id: "cwq-5", name: "Quote template", url: "" },
     ],
@@ -319,6 +326,22 @@ export function loadReadAnnouncements(): ReadAnnouncements {
 export function saveReadAnnouncements(data: ReadAnnouncements): void {
   try {
     localStorage.setItem(READ_ANNOUNCEMENTS_KEY, JSON.stringify(data));
+  } catch {
+    // localStorage unavailable — silently skip persistence
+  }
+}
+
+export function loadRailCollapsed(): boolean {
+  try {
+    return localStorage.getItem(RAIL_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+export function saveRailCollapsed(collapsed: boolean): void {
+  try {
+    localStorage.setItem(RAIL_KEY, collapsed ? "1" : "0");
   } catch {
     // localStorage unavailable — silently skip persistence
   }

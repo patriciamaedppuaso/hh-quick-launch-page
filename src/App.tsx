@@ -2,11 +2,13 @@ import { useEffect, useMemo, useState } from "react";
 import type { AppTile, ListApp, Role, Theme, ViewMode } from "./types";
 import {
   loadApps,
+  loadRailCollapsed,
   loadReadAnnouncements,
   loadRole,
   loadTheme,
   loadView,
   saveApps,
+  saveRailCollapsed,
   saveReadAnnouncements,
   saveRole,
   saveTheme,
@@ -16,14 +18,16 @@ import type { ReadAnnouncements } from "./storage";
 import { computeMetrics } from "./metrics";
 import { Header } from "./components/Header";
 import { Greeting } from "./components/Greeting";
-import { MetricsRow } from "./components/MetricsRow";
 import { RoleToggle } from "./components/RoleToggle";
 import { AppGrid } from "./components/AppGrid";
+import { NavRail } from "./components/NavRail";
+import { WidgetsPanel } from "./components/WidgetsPanel";
 import { ItemsPage } from "./components/ItemsPage";
 import { ContactsPage } from "./components/ContactsPage";
 import { LeadsPage } from "./components/LeadsPage";
 import { AnnouncementsPage } from "./components/AnnouncementsPage";
 import { TasksPage } from "./components/TasksPage";
+import { TimeClockPage } from "./components/TimeClockPage";
 import { Footer } from "./components/Footer";
 
 function parseHashAppId(): string | null {
@@ -38,6 +42,7 @@ export default function App() {
   const [view, setView] = useState<ViewMode>(() => loadView());
   const [openAppId, setOpenAppId] = useState<string | null>(() => parseHashAppId());
   const [readAnnouncements, setReadAnnouncements] = useState<ReadAnnouncements>(() => loadReadAnnouncements());
+  const [railCollapsed, setRailCollapsed] = useState<boolean>(() => loadRailCollapsed());
 
   useEffect(() => {
     saveApps(apps);
@@ -63,6 +68,10 @@ export default function App() {
   useEffect(() => {
     saveReadAnnouncements(readAnnouncements);
   }, [readAnnouncements]);
+
+  useEffect(() => {
+    saveRailCollapsed(railCollapsed);
+  }, [railCollapsed]);
 
   useEffect(() => {
     function handleHashChange() {
@@ -130,6 +139,15 @@ export default function App() {
         return (
           <TasksPage app={app} role={role} onBack={closeItems} onUpdate={(tasks) => updateApp(app.id, { tasks })} />
         );
+      case "timeclock":
+        return (
+          <TimeClockPage
+            app={app}
+            role={role}
+            onBack={closeItems}
+            onUpdate={(clockRecords) => updateApp(app.id, { clockRecords })}
+          />
+        );
       default:
         return (
           <ItemsPage
@@ -145,24 +163,35 @@ export default function App() {
   return (
     <div className="wrap">
       <Header role={role} theme={theme} onThemeChange={setTheme} divided={!!activeApp} />
-      {activeApp ? (
-        renderActiveApp(activeApp)
-      ) : (
-        <>
-          <Greeting />
-          <MetricsRow metrics={metrics} onOpen={openItems} />
-          <RoleToggle role={role} onChange={setRole} />
-          <AppGrid
-            apps={apps}
-            role={role}
-            view={view}
-            onViewChange={setView}
-            onAdd={(app) => setApps((prev) => [...prev, app])}
-            onReorder={setApps}
-            onOpenItems={openItems}
-          />
-        </>
-      )}
+      <div className={`app-body${railCollapsed ? " app-body--rail-collapsed" : ""}`}>
+        <NavRail
+          apps={apps}
+          activeAppId={openAppId}
+          collapsed={railCollapsed}
+          onToggleCollapsed={() => setRailCollapsed((v) => !v)}
+          onNavigate={(appId) => (appId ? openItems(appId) : closeItems())}
+        />
+        <main className="app-main">
+          {activeApp ? (
+            renderActiveApp(activeApp)
+          ) : (
+            <>
+              <Greeting />
+              <RoleToggle role={role} onChange={setRole} />
+              <AppGrid
+                apps={apps}
+                role={role}
+                view={view}
+                onViewChange={setView}
+                onAdd={(app) => setApps((prev) => [...prev, app])}
+                onReorder={setApps}
+                onOpenItems={openItems}
+              />
+            </>
+          )}
+        </main>
+        <WidgetsPanel apps={apps} metrics={metrics} onOpen={openItems} />
+      </div>
       <Footer />
     </div>
   );

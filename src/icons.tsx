@@ -145,6 +145,12 @@ const PATHS: Record<IconName, ReactNode> = {
       <path d="M3.5 6.5 12 13l8.5-6.5" />
     </>
   ),
+  home: (
+    <>
+      <path d="M4 11.5 12 4l8 7.5" />
+      <path d="M6 10v9a1 1 0 0 0 1 1h4v-6h2v6h4a1 1 0 0 0 1-1v-9" />
+    </>
+  ),
 };
 
 export function Icon({ name, className }: Props) {

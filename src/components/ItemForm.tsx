@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { ListItem } from "../types";
-import { MAX_UPLOAD_BYTES, formatFileSize, newId, normalizeUrl, readFileAsDataUrl } from "../utils";
+import { MAX_UPLOAD_BYTES, formatFileSize, newId, normalizeUrl, readFileAsDataUrl, todayIso } from "../utils";
 import { FilePicker } from "./FilePicker";
 
 interface Props {
@@ -54,6 +54,7 @@ export function ItemForm({ initial, onSave, onCancel }: Props) {
         isFile: true,
         fileName,
         expiresOn: expiresOn || undefined,
+        updatedAt: todayIso(),
       });
       return;
     }
@@ -64,6 +65,7 @@ export function ItemForm({ initial, onSave, onCancel }: Props) {
       description: trimmedDesc || undefined,
       url: url.trim() ? normalizeUrl(url.trim()) : "",
       expiresOn: expiresOn || undefined,
+      updatedAt: todayIso(),
     });
   }
 
