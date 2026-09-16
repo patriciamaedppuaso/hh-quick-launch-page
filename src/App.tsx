@@ -16,9 +16,11 @@ import {
 } from "./storage";
 import type { ReadAnnouncements } from "./storage";
 import { computeMetrics } from "./metrics";
+import { todayIso } from "./utils";
 import { Sidebar } from "./components/Sidebar";
 import { MobileTopBar } from "./components/MobileTopBar";
 import { Greeting } from "./components/Greeting";
+import { AnnouncementBanner } from "./components/AnnouncementBanner";
 import { RoleToggle } from "./components/RoleToggle";
 import { AppGrid } from "./components/AppGrid";
 import { WidgetsPanel } from "./components/WidgetsPanel";
@@ -161,6 +163,16 @@ export default function App() {
     [apps, role, readAnnouncements],
   );
 
+  const announcementsApp = apps.find((a) => a.builtin === "announcements");
+  const todaysAnnouncement = useMemo(() => {
+    const list = announcementsApp?.announcements ?? [];
+    if (list.length === 0) return null;
+    const mostRecent = [...list].sort((a, b) => b.date.localeCompare(a.date))[0];
+    if (mostRecent.date !== todayIso()) return null;
+    if ((readAnnouncements[role] ?? []).includes(mostRecent.id)) return null;
+    return mostRecent;
+  }, [announcementsApp, readAnnouncements, role]);
+
   function openItems(appId: string) {
     window.location.hash = `items/${appId}`;
   }
@@ -251,6 +263,13 @@ export default function App() {
         ) : (
           <>
             <Greeting />
+            {todaysAnnouncement && announcementsApp && (
+              <AnnouncementBanner
+                announcement={todaysAnnouncement}
+                unread
+                onOpen={() => openItems(announcementsApp.id)}
+              />
+            )}
             <RoleToggle role={role} onChange={setRole} />
             <AppGrid
               apps={apps}

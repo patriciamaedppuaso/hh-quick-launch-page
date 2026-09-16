@@ -1,6 +1,7 @@
 import { useState } from "react";
-import type { AnnouncementRecord } from "../types";
+import type { AnnouncementAttachment, AnnouncementRecord } from "../types";
 import { newId, todayIso } from "../utils";
+import { AttachmentPicker } from "./AttachmentPicker";
 
 interface Props {
   initial?: AnnouncementRecord;
@@ -13,6 +14,7 @@ export function AnnouncementForm({ initial, onSave, onCancel }: Props) {
   const [message, setMessage] = useState(initial?.message ?? "");
   const [date, setDate] = useState(initial?.date ?? todayIso());
   const [author, setAuthor] = useState(initial?.author ?? "");
+  const [attachments, setAttachments] = useState<AnnouncementAttachment[]>(initial?.attachments ?? []);
 
   function handleSave() {
     const trimmedTitle = title.trim();
@@ -24,6 +26,7 @@ export function AnnouncementForm({ initial, onSave, onCancel }: Props) {
       message: trimmedMessage,
       date: date || todayIso(),
       author: author.trim() || undefined,
+      attachments: attachments.length ? attachments : undefined,
     });
   }
 
@@ -62,6 +65,10 @@ export function AnnouncementForm({ initial, onSave, onCancel }: Props) {
           value={author}
           onChange={(e) => setAuthor(e.target.value)}
         />
+      </div>
+      <div className="form-row">
+        <label>Attachments (optional)</label>
+        <AttachmentPicker attachments={attachments} onChange={setAttachments} />
       </div>
       <div className="form-buttons">
         <button type="button" className="btn-secondary" onClick={onCancel}>

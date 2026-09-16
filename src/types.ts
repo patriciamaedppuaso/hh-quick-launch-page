@@ -74,12 +74,20 @@ export interface LeadRecord {
   createdAt?: string;
 }
 
+export interface AnnouncementAttachment {
+  id: string;
+  name: string;
+  url: string;
+  isImage: boolean;
+}
+
 export interface AnnouncementRecord {
   id: string;
   title: string;
   message: string;
   date: string;
   author?: string;
+  attachments?: AnnouncementAttachment[];
 }
 
 export type TaskStatus = "todo" | "in-progress" | "done";

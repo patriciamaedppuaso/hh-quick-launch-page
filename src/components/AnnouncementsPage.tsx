@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
-import type { AnnouncementRecord, AppTile, Role } from "../types";
+import type { AnnouncementAttachment, AnnouncementRecord, AppTile, Role } from "../types";
 import { Icon } from "../icons";
 import { formatDate, initialOf } from "../utils";
 import { Modal } from "./Modal";
 import { AnnouncementForm } from "./AnnouncementForm";
+import { FilePreviewModal } from "./FilePreviewModal";
 
 interface Props {
   app: AppTile;
@@ -22,6 +23,7 @@ export function AnnouncementsPage({ app, role, onBack, onUpdate, readIds, onMark
   const [editing, setEditing] = useState<AnnouncementRecord | null>(null);
   const [adding, setAdding] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [preview, setPreview] = useState<AnnouncementAttachment | null>(null);
 
   useEffect(() => {
     const unreadIds = records.filter((r) => !readIds.includes(r.id)).map((r) => r.id);
@@ -108,6 +110,27 @@ export function AnnouncementsPage({ app, role, onBack, onUpdate, readIds, onMark
                 </div>
                 <p className="announcement-message">{a.message}</p>
                 {a.author && <span className="items-row-desc">Posted by {a.author}</span>}
+                {a.attachments && a.attachments.length > 0 && (
+                  <div className="attachment-list attachment-list--compact">
+                    {a.attachments.map((att) => (
+                      <button
+                        type="button"
+                        className="attachment-chip attachment-chip--clickable"
+                        key={att.id}
+                        onClick={() => setPreview(att)}
+                      >
+                        {att.isImage ? (
+                          <img src={att.url} alt="" className="attachment-thumb" />
+                        ) : (
+                          <span className="attachment-icon">
+                            <Icon name="file" />
+                          </span>
+                        )}
+                        <span className="attachment-name">{att.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
               {canManage && (
                 <div className={`items-row-manage${confirmDeleteId === a.id ? " items-row-manage--active" : ""}`}>
@@ -154,6 +177,16 @@ export function AnnouncementsPage({ app, role, onBack, onUpdate, readIds, onMark
           <AnnouncementForm initial={editing} onSave={handleEditSave} onCancel={() => setEditing(null)} />
         )}
       </Modal>
+
+      {preview && (
+        <FilePreviewModal
+          open={!!preview}
+          onClose={() => setPreview(null)}
+          fileName={preview.name}
+          url={preview.url}
+          isImage={preview.isImage}
+        />
+      )}
     </div>
   );
 }

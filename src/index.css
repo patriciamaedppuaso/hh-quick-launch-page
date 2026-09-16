@@ -647,6 +647,88 @@ body {
   height: 11px;
 }
 
+/* dashboard announcement banner */
+.announcement-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  margin-bottom: 18px;
+  padding: 12px 16px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--gold) 10%, var(--card-bg));
+  cursor: pointer;
+  font-family: "Public Sans", sans-serif;
+  text-align: left;
+  transition: border-color 0.12s ease, box-shadow 0.12s ease;
+}
+.announcement-banner:hover {
+  border-color: var(--gold);
+  box-shadow: var(--shadow);
+}
+
+.announcement-banner-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--gold) 22%, var(--card-bg));
+  color: color-mix(in srgb, var(--gold) 70%, var(--text));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.announcement-banner-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.announcement-banner-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+.announcement-banner-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--gold) 70%, var(--text));
+  display: flex;
+  align-items: center;
+}
+.announcement-banner-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.announcement-banner-cta {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+.announcement-banner-cta svg {
+  width: 13px;
+  height: 13px;
+}
+
+@media (max-width: 640px) {
+  .announcement-banner-cta span {
+    display: none;
+  }
+}
+
 /* time clock hero card */
 .clock-hero {
   background: var(--surface-soft);
@@ -1653,11 +1735,84 @@ body {
 .pdf-preview-actions .btn-secondary {
   flex: 0 0 auto;
 }
+.image-preview-frame {
+  display: block;
+  max-width: 100%;
+  max-height: 70vh;
+  margin: 0 auto;
+  border-radius: 10px;
+  object-fit: contain;
+}
 
 @media (max-width: 640px) {
   .pdf-preview-frame {
     height: 55vh;
   }
+  .image-preview-frame {
+    max-height: 55vh;
+  }
+}
+
+/* attachments (announcements) */
+.attachment-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.attachment-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.attachment-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 5px 8px;
+  font-family: "Public Sans", sans-serif;
+}
+.attachment-chip--clickable {
+  cursor: pointer;
+}
+.attachment-chip--clickable:hover {
+  border-color: var(--teal);
+}
+.attachment-thumb {
+  width: 24px;
+  height: 24px;
+  border-radius: 5px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+.attachment-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 5px;
+  background: var(--surface-soft);
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.attachment-icon svg {
+  width: 13px;
+  height: 13px;
+}
+.attachment-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.attachment-list--compact {
+  margin-top: 4px;
 }
 
 /* add app form */

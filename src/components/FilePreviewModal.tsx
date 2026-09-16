@@ -6,13 +6,18 @@ interface Props {
   onClose: () => void;
   fileName?: string;
   url: string;
+  isImage?: boolean;
 }
 
-export function FilePreviewModal({ open, onClose, fileName, url }: Props) {
+export function FilePreviewModal({ open, onClose, fileName, url, isImage }: Props) {
   return (
     <Modal open={open} onClose={onClose} title={fileName || "Preview"} wide>
       <div className="pdf-preview">
-        <iframe src={url} title={fileName || "PDF preview"} className="pdf-preview-frame" />
+        {isImage ? (
+          <img src={url} alt={fileName || ""} className="image-preview-frame" />
+        ) : (
+          <iframe src={url} title={fileName || "Preview"} className="pdf-preview-frame" />
+        )}
         <div className="pdf-preview-actions">
           <button type="button" className="btn-secondary" onClick={() => openTarget(url, true, fileName)}>
             Download
