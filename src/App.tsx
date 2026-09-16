@@ -1,20 +1,17 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { AppTile, ListApp, Role, Theme, ViewMode } from "./types";
+import type { AppTile, ListApp, ReadAnnouncements, Role, Theme, ViewMode } from "./types";
 import {
-  loadApps,
-  loadReadAnnouncements,
   loadRole,
   loadSidebarCollapsed,
   loadTheme,
   loadView,
-  saveApps,
-  saveReadAnnouncements,
   saveRole,
   saveSidebarCollapsed,
   saveTheme,
   saveView,
 } from "./storage";
-import type { ReadAnnouncements } from "./storage";
+import { fetchAllApps, fetchReadAnnouncements, markAnnouncementsReadRemote, syncApps } from "./lib/db";
+import { supabase } from "./lib/supabaseClient";
 import { computeMetrics } from "./metrics";
 import { todayIso } from "./utils";
 import { Sidebar } from "./components/Sidebar";
@@ -39,13 +36,30 @@ function parseHashAppId(): string | null {
   return match ? decodeURIComponent(match[1]) : null;
 }
 
+const SYNCED_TABLES = [
+  "apps",
+  "list_items",
+  "contacts",
+  "leads",
+  "announcements",
+  "announcement_attachments",
+  "read_announcements",
+  "tasks",
+  "task_assignees",
+  "clock_records",
+  "time_entries",
+  "time_entry_breaks",
+];
+
 export default function App() {
-  const [apps, setApps] = useState<AppTile[]>(() => loadApps());
+  const [apps, setApps] = useState<AppTile[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [role, setRole] = useState<Role>(() => loadRole());
   const [theme, setTheme] = useState<Theme>(() => loadTheme());
   const [view, setView] = useState<ViewMode>(() => loadView());
   const [openAppId, setOpenAppId] = useState<string | null>(() => parseHashAppId());
-  const [readAnnouncements, setReadAnnouncements] = useState<ReadAnnouncements>(() => loadReadAnnouncements());
+  const [readAnnouncements, setReadAnnouncements] = useState<ReadAnnouncements>({ admin: [], employee: [] });
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(() => loadSidebarCollapsed());
   const [addingApp, setAddingApp] = useState(false);
@@ -54,9 +68,58 @@ export default function App() {
   const hideThumbTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [scrollThumb, setScrollThumb] = useState({ top: 0, height: 0, visible: false });
 
+  async function reloadFromSupabase() {
+    const [nextApps, nextRead] = await Promise.all([fetchAllApps(), fetchReadAnnouncements()]);
+    setApps(nextApps);
+    setReadAnnouncements(nextRead);
+  }
+
   useEffect(() => {
-    saveApps(apps);
-  }, [apps]);
+    let cancelled = false;
+    (async () => {
+      try {
+        await reloadFromSupabase();
+      } catch (err) {
+        if (!cancelled) setLoadError(err instanceof Error ? err.message : "Failed to load data from Supabase.");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Realtime: pick up changes made from other tabs/devices. A remote write on
+  // any synced table triggers a full reload (simple and always-correct; this
+  // app's data volume makes that cheap).
+  useEffect(() => {
+    const channel = supabase.channel("dashboard-sync");
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+    for (const table of SYNCED_TABLES) {
+      channel.on("postgres_changes", { event: "*", schema: "public", table }, () => {
+        if (debounceTimer) clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+          reloadFromSupabase().catch((err) => console.error("Supabase realtime reload failed:", err));
+        }, 400);
+      });
+    }
+    channel.subscribe();
+    return () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      supabase.removeChannel(channel);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  function setAppsAndSync(updater: AppTile[] | ((prev: AppTile[]) => AppTile[])) {
+    setApps((prev) => {
+      const next = typeof updater === "function" ? updater(prev) : updater;
+      syncApps(prev, next).catch((err) => console.error("Supabase sync failed:", err));
+      return next;
+    });
+  }
 
   useEffect(() => {
     saveRole(role);
@@ -74,10 +137,6 @@ export default function App() {
   useEffect(() => {
     saveView(view);
   }, [view]);
-
-  useEffect(() => {
-    saveReadAnnouncements(readAnnouncements);
-  }, [readAnnouncements]);
 
   useEffect(() => {
     saveSidebarCollapsed(sidebarCollapsed);
@@ -182,7 +241,7 @@ export default function App() {
   }
 
   function updateApp(appId: string, patch: Partial<AppTile>) {
-    setApps((prev) => prev.map((a) => (a.id === appId ? ({ ...a, ...patch } as AppTile) : a)));
+    setAppsAndSync((prev) => prev.map((a) => (a.id === appId ? ({ ...a, ...patch } as AppTile) : a)));
   }
 
   function markAnnouncementsRead(ids: string[]) {
@@ -190,10 +249,11 @@ export default function App() {
       ...prev,
       [role]: Array.from(new Set([...(prev[role] ?? []), ...ids])),
     }));
+    markAnnouncementsReadRemote(role, ids).catch((err) => console.error("Failed to mark announcements read:", err));
   }
 
   function handleAddApp(app: AppTile) {
-    setApps((prev) => [...prev, app]);
+    setAppsAndSync((prev) => [...prev, app]);
     setAddingApp(false);
   }
 
@@ -241,6 +301,27 @@ export default function App() {
     }
   }
 
+  if (loading) {
+    return (
+      <div className="boot-screen">
+        <div className="boot-spinner" aria-hidden="true" />
+        <p>Loading your dashboard…</p>
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="boot-screen">
+        <p className="boot-error-title">Couldn't reach Supabase</p>
+        <p className="boot-error-detail">{loadError}</p>
+        <button type="button" className="btn-primary" onClick={() => window.location.reload()}>
+          Retry
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className={`wrap${sidebarCollapsed ? " sidebar-collapsed" : ""}`}>
       <MobileTopBar onOpenMenu={() => setSidebarOpen(true)} />
@@ -276,7 +357,7 @@ export default function App() {
               role={role}
               view={view}
               onViewChange={setView}
-              onReorder={setApps}
+              onReorder={setAppsAndSync}
               onOpenItems={openItems}
               onRequestAdd={() => setAddingApp(true)}
             />

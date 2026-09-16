@@ -1,11 +1,14 @@
 import type { AppTile, Role, Theme, ViewMode } from "./types";
 
-const LIST_KEY = "clock-in:apps:v8";
+// NOTE: apps and read-announcement state now live in Supabase (see src/lib/db.ts).
+// This file only persists per-device UI preferences that were never meant to sync.
 const ROLE_KEY = "clock-in:role:v1";
 const THEME_KEY = "clock-in:theme:v1";
 const VIEW_KEY = "clock-in:view:v1";
-const READ_ANNOUNCEMENTS_KEY = "clock-in:read-announcements:v1";
 const SIDEBAR_COLLAPSED_KEY = "clock-in:sidebar-collapsed:v1";
+
+// Kept for reference -- this is the shape the Supabase seed (supabase/migrations/0002_seed.sql)
+// mirrors. No longer read at runtime.
 
 export const DEFAULT_APPS: AppTile[] = [
   {
@@ -273,25 +276,6 @@ export const DEFAULT_APPS: AppTile[] = [
   },
 ];
 
-export function loadApps(): AppTile[] {
-  try {
-    const raw = localStorage.getItem(LIST_KEY);
-    if (!raw) return DEFAULT_APPS;
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) && parsed.length ? parsed : DEFAULT_APPS;
-  } catch {
-    return DEFAULT_APPS;
-  }
-}
-
-export function saveApps(apps: AppTile[]): void {
-  try {
-    localStorage.setItem(LIST_KEY, JSON.stringify(apps));
-  } catch {
-    // localStorage unavailable (private browsing, quota) — silently skip persistence
-  }
-}
-
 export function loadRole(): Role {
   try {
     return localStorage.getItem(ROLE_KEY) === "employee" ? "employee" : "admin";
@@ -339,30 +323,6 @@ export function loadView(): ViewMode {
 export function saveView(view: ViewMode): void {
   try {
     localStorage.setItem(VIEW_KEY, view);
-  } catch {
-    // localStorage unavailable — silently skip persistence
-  }
-}
-
-export type ReadAnnouncements = Record<Role, string[]>;
-
-export function loadReadAnnouncements(): ReadAnnouncements {
-  try {
-    const raw = localStorage.getItem(READ_ANNOUNCEMENTS_KEY);
-    if (!raw) return { admin: [], employee: [] };
-    const parsed = JSON.parse(raw);
-    return {
-      admin: Array.isArray(parsed.admin) ? parsed.admin : [],
-      employee: Array.isArray(parsed.employee) ? parsed.employee : [],
-    };
-  } catch {
-    return { admin: [], employee: [] };
-  }
-}
-
-export function saveReadAnnouncements(data: ReadAnnouncements): void {
-  try {
-    localStorage.setItem(READ_ANNOUNCEMENTS_KEY, JSON.stringify(data));
   } catch {
     // localStorage unavailable — silently skip persistence
   }

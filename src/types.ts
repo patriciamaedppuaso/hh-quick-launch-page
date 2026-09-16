@@ -1,5 +1,7 @@
 export type Role = "admin" | "employee";
 
+export type ReadAnnouncements = Record<Role, string[]>;
+
 export type Theme = "light" | "dark" | "system";
 
 export type ViewMode = "list" | "grid";
