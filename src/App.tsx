@@ -107,7 +107,13 @@ export default function App() {
   }
 
   useEffect(() => {
+    // RLS now requires an authenticated session (see migration 0004), so
+    // there's nothing to fetch until login completes. Re-runs whenever
+    // `session` changes -- covers the initial post-login load, and a
+    // logout/login-as-someone-else cycle without a full page reload.
+    if (!session) return;
     let cancelled = false;
+    setLoading(true);
     (async () => {
       try {
         await reloadFromSupabase();
@@ -121,7 +127,7 @@ export default function App() {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [session]);
 
   // Realtime: pick up changes made from other tabs/devices. A remote write on
   // any synced table triggers a full reload (simple and always-correct; this
