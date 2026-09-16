@@ -1,5 +1,5 @@
 import type { AppTile, Role } from "./types";
-import { isOverdue } from "./utils";
+import { endOfDayIso, isOverdue, startOfDayIso } from "./utils";
 
 export interface Metric {
   key: string;
@@ -37,7 +37,9 @@ export function computeMetrics(
     if (app.type !== "list") continue;
     for (const item of app.items) {
       if (!item.expiresOn) continue;
-      const daysLeft = (new Date(`${item.expiresOn}T23:59:59`).getTime() - now) / DAY;
+      const expiresAt = endOfDayIso(item.expiresOn);
+      if (!expiresAt) continue;
+      const daysLeft = (new Date(expiresAt).getTime() - now) / DAY;
       if (daysLeft <= EXPIRING_SOON_DAYS) {
         expiringSoon++;
         if (!expiringAppId) expiringAppId = app.id;
@@ -58,9 +60,10 @@ export function computeMetrics(
     }
 
     const weekAgo = now - 7 * DAY;
-    const newLeads = (leadsApp?.leads ?? []).filter(
-      (l) => l.createdAt && new Date(`${l.createdAt}T00:00:00`).getTime() >= weekAgo,
-    ).length;
+    const newLeads = (leadsApp?.leads ?? []).filter((l) => {
+      const createdAt = l.createdAt && startOfDayIso(l.createdAt);
+      return createdAt && new Date(createdAt).getTime() >= weekAgo;
+    }).length;
     if (newLeads > 0 && leadsApp) {
       metrics.push({ key: "new-leads", label: "New leads this week", value: newLeads, appId: leadsApp.id });
     }

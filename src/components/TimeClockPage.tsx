@@ -1,21 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import type { AppTile, ClockRecord, Role, TimeEntry } from "../types";
 import { Icon } from "../icons";
-import {
-  breakTotalMs,
-  formatDate,
-  formatElapsed,
-  formatHoursMinutes,
-  formatTimeOfDay,
-  initialOf,
-  newId,
-  nowIso,
-  todayIso,
-  workedMs,
-} from "../utils";
+import { formatDate, formatElapsed, formatTimeOfDay, initialOf, newId, nowIso, todayIso } from "../utils";
 import { Modal } from "./Modal";
 import { TimeClockForm } from "./TimeClockForm";
 import { TimeEntryEditForm } from "./TimeEntryEditForm";
+import { TimesheetSection } from "./TimesheetSection";
 
 interface Props {
   app: AppTile;
@@ -225,43 +215,7 @@ export function TimeClockPage({ app, role, currentUserName, onBack, onUpdate }: 
         </div>
       </div>
 
-      <div className="items-section">
-        <h2 className="items-section-title">My timesheet</h2>
-        {myEntries.length === 0 ? (
-          <p className="items-empty">No shifts recorded yet.</p>
-        ) : (
-          <div className="items-list">
-            {myEntries.map((entry) => (
-              <div className="items-row" key={entry.id}>
-                <div className="items-row-text">
-                  <span className="items-row-name">{formatDate(entry.date)}</span>
-                  <span className="items-row-desc">
-                    {formatTimeOfDay(entry.clockIn)} –{" "}
-                    {entry.clockOut ? formatTimeOfDay(entry.clockOut) : "In progress"}
-                    {entry.breaks.length > 0 ? ` · ${formatHoursMinutes(breakTotalMs(entry.breaks))} break` : ""}
-                    {` · ${formatHoursMinutes(workedMs(entry))} worked`}
-                  </span>
-                </div>
-                {entry.editRequest && (
-                  <span className="status-pill" style={{ background: "var(--danger-soft)", color: "var(--danger)" }}>
-                    Pending approval
-                  </span>
-                )}
-                <div className="items-row-manage items-row-manage--active">
-                  <button
-                    type="button"
-                    className="icon-btn-sm"
-                    aria-label={`Request edit for ${formatDate(entry.date)}`}
-                    onClick={() => setEditingEntry(entry)}
-                  >
-                    <Icon name="edit" />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+      <TimesheetSection entries={myEntries} onRequestEdit={setEditingEntry} />
 
       {isAdmin && pendingEntries.length > 0 && (
         <div className="items-section">

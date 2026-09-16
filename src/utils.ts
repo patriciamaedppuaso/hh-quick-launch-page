@@ -86,8 +86,79 @@ export function formatFileSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+// The business runs on US Pacific time regardless of where a given browser/
+// device happens to be set. JS Date objects don't carry a timezone -- every
+// getter (getDate, getHours, ...) reads the *host system's* local zone -- so
+// "Pacific" has to be applied explicitly via Intl, which also handles the
+// PST/PDT switch automatically (a fixed UTC offset would be wrong half the
+// year).
+export const APP_TIMEZONE = "America/Los_Angeles";
+
+function partsInAppTimeZone(date: Date) {
+  const fmt = new Intl.DateTimeFormat("en-US", {
+    timeZone: APP_TIMEZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  });
+  const parts = fmt.formatToParts(date);
+  const get = (type: string) => Number(parts.find((p) => p.type === type)?.value ?? 0);
+  return {
+    year: get("year"),
+    month: get("month"),
+    day: get("day"),
+    hour: get("hour") % 24, // Intl can return "24" for midnight with hour12:false
+    minute: get("minute"),
+    second: get("second"),
+  };
+}
+
+/**
+ * A Date whose *local* getters (getFullYear, getDate, getDay, getHours, ...)
+ * report the wall-clock values as seen in APP_TIMEZONE for the given instant.
+ * Its own epoch value is meaningless -- only use it for calendar arithmetic
+ * (setDate/getDay/etc.) and reading back with plain local getters, never by
+ * comparing/subtracting against a real Date's getTime().
+ */
+export function toZonedDate(date: Date): Date {
+  const p = partsInAppTimeZone(date);
+  return new Date(p.year, p.month - 1, p.day, p.hour, p.minute, p.second);
+}
+
+/** Inverse of toZonedDate: treats (y, m, d, h, min) as APP_TIMEZONE wall-clock
+ * time and returns the matching real instant as an ISO string. */
+function zonedToUtcIso(year: number, month: number, day: number, hour: number, minute: number): string {
+  const guessUtcMs = Date.UTC(year, month - 1, day, hour, minute);
+  const observed = partsInAppTimeZone(new Date(guessUtcMs));
+  const observedAsUtcMs = Date.UTC(observed.year, observed.month - 1, observed.day, observed.hour, observed.minute);
+  return new Date(guessUtcMs + (guessUtcMs - observedAsUtcMs)).toISOString();
+}
+
+export function toIsoDate(date: Date): string {
+  const pad = (n: number) => n.toString().padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
 export function todayIso(): string {
-  return new Date().toISOString().slice(0, 10);
+  // Pacific calendar date, not the viewer's own local date or UTC.
+  return toIsoDate(toZonedDate(new Date()));
+}
+
+export function startOfWeek(date: Date): Date {
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() - d.getDay());
+  return d;
+}
+
+export function addDays(date: Date, days: number): Date {
+  const d = new Date(date);
+  d.setDate(d.getDate() + days);
+  return d;
 }
 
 export function formatDate(iso?: string): string {
@@ -97,10 +168,24 @@ export function formatDate(iso?: string): string {
   return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
 }
 
+/** Instant a Y-M-D calendar date starts/ends, as observed in APP_TIMEZONE. */
+export function startOfDayIso(dateIso: string): string | undefined {
+  const match = dateIso.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return undefined;
+  return zonedToUtcIso(Number(match[1]), Number(match[2]), Number(match[3]), 0, 0);
+}
+
+export function endOfDayIso(dateIso: string): string | undefined {
+  const match = dateIso.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return undefined;
+  return zonedToUtcIso(Number(match[1]), Number(match[2]), Number(match[3]), 23, 59);
+}
+
 export function isOverdue(iso?: string): boolean {
   if (!iso) return false;
-  const d = new Date(`${iso}T23:59:59`);
-  return d.getTime() < Date.now();
+  const endOfDay = endOfDayIso(iso);
+  if (!endOfDay) return false;
+  return new Date(endOfDay).getTime() < Date.now();
 }
 
 export function formatCurrency(value?: number): string {
@@ -133,7 +218,7 @@ export function formatTimeOfDay(iso?: string): string {
   if (!iso) return "";
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "";
-  return d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+  return d.toLocaleTimeString(undefined, { timeZone: APP_TIMEZONE, hour: "numeric", minute: "2-digit" });
 }
 
 export function formatElapsed(sinceIso: string): string {
@@ -147,19 +232,24 @@ export function formatElapsed(sinceIso: string): string {
   return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
 }
 
+// These feed <input type="datetime-local">, which has no timezone concept of
+// its own -- the value shown/entered is treated as Pacific wall-clock time,
+// consistent with everywhere else times are displayed.
 export function toDateTimeLocal(iso?: string): string {
   if (!iso) return "";
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "";
+  const z = toZonedDate(d);
   const pad = (n: number) => n.toString().padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  return `${z.getFullYear()}-${pad(z.getMonth() + 1)}-${pad(z.getDate())}T${pad(z.getHours())}:${pad(z.getMinutes())}`;
 }
 
 export function fromDateTimeLocal(value: string): string | undefined {
   if (!value) return undefined;
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return undefined;
-  return d.toISOString();
+  const match = value.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+  if (!match) return undefined;
+  const [, y, mo, d, h, mi] = match;
+  return zonedToUtcIso(Number(y), Number(mo), Number(d), Number(h), Number(mi));
 }
 
 export function breakTotalMs(breaks: BreakEntry[]): number {
