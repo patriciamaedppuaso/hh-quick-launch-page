@@ -113,7 +113,7 @@ export const DEFAULT_APPS: AppTile[] = [
   },
   {
     id: "contracts-warranty-quotes",
-    name: "Contracts, Warranty & Quotes",
+    name: "Contracts, Guarantee & Quotes",
     type: "list",
     initial: "CW",
     category: "Documents",
@@ -125,7 +125,7 @@ export const DEFAULT_APPS: AppTile[] = [
       { id: "cwq-1", name: "Standard sales contract", url: "" },
       { id: "cwq-2", name: "NDA template", url: "" },
       { id: "cwq-3", name: "Vendor agreement", url: "", expiresOn: "2026-09-20", updatedAt: "2026-09-12" },
-      { id: "cwq-4", name: "Warranty template", url: "", expiresOn: "2026-10-05" },
+      { id: "cwq-4", name: "Guarantee template", url: "", expiresOn: "2026-10-05" },
       { id: "cwq-5", name: "Quote template", url: "" },
     ],
   },
