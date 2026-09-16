@@ -25,6 +25,7 @@ export function TimeClockPage({ app, role, currentUserName, onBack, onUpdate }: 
   const [adding, setAdding] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [editingEntry, setEditingEntry] = useState<TimeEntry | null>(null);
+  const [viewingName, setViewingName] = useState(currentUserName);
   const [, forceTick] = useState(0);
 
   const isAdmin = role === "admin";
@@ -32,16 +33,16 @@ export function TimeClockPage({ app, role, currentUserName, onBack, onUpdate }: 
 
   const myOpenEntry = entries.find((e) => e.name === currentUserName && !e.clockOut);
   const myOpenBreak = myOpenEntry?.breaks.find((b) => !b.end);
-  const myEntries = useMemo(
-    () =>
-      entries
-        .filter((e) => e.name === currentUserName)
-        .sort((a, b) => (b.date + b.clockIn).localeCompare(a.date + a.clockIn)),
-    [entries, currentUserName],
-  );
   const pendingEntries = useMemo(() => entries.filter((e) => e.editRequest), [entries]);
 
   const otherRecords = records.filter((r) => r.name !== currentUserName);
+  const viewedEntries = useMemo(
+    () =>
+      entries
+        .filter((e) => e.name === viewingName)
+        .sort((a, b) => (b.date + b.clockIn).localeCompare(a.date + a.clockIn)),
+    [entries, viewingName],
+  );
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return otherRecords;
@@ -215,7 +216,26 @@ export function TimeClockPage({ app, role, currentUserName, onBack, onUpdate }: 
         </div>
       </div>
 
-      <TimesheetSection entries={myEntries} onRequestEdit={setEditingEntry} />
+      {isAdmin && otherRecords.length > 0 && (
+        <div className="timesheet-viewer">
+          <label htmlFor="timesheetViewer">Viewing timesheet for</label>
+          <select id="timesheetViewer" value={viewingName} onChange={(e) => setViewingName(e.target.value)}>
+            <option value={currentUserName}>{currentUserName} (You)</option>
+            {otherRecords.map((r) => (
+              <option key={r.id} value={r.name}>
+                {r.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      <TimesheetSection
+        title={viewingName === currentUserName ? "My timesheet" : `${viewingName}'s timesheet`}
+        personName={viewingName}
+        entries={viewedEntries}
+        onRequestEdit={setEditingEntry}
+      />
 
       {isAdmin && pendingEntries.length > 0 && (
         <div className="items-section">

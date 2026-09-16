@@ -15,6 +15,8 @@ import {
 import { useClickOutside } from "../hooks/useClickOutside";
 
 interface Props {
+  title: string;
+  personName: string;
   entries: TimeEntry[];
   onRequestEdit: (entry: TimeEntry) => void;
 }
@@ -51,7 +53,8 @@ function csvCell(value: string): string {
   return `"${value.replace(/"/g, '""')}"`;
 }
 
-export function TimesheetSection({ entries, onRequestEdit }: Props) {
+export function TimesheetSection({ title, personName, entries, onRequestEdit }: Props) {
+  const fileSlug = personName.trim().toLowerCase().replace(/\s+/g, "-") || "employee";
   const [weekStart, setWeekStart] = useState(() => startOfWeek(toZonedDate(new Date())));
   const [exportOpen, setExportOpen] = useState(false);
   const exportMenuRef = useRef<HTMLDivElement>(null);
@@ -106,7 +109,7 @@ export function TimesheetSection({ entries, onRequestEdit }: Props) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `timesheet-${toIsoDate(weekStart)}.csv`;
+    a.download = `timesheet-${fileSlug}-${toIsoDate(weekStart)}.csv`;
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -126,7 +129,7 @@ export function TimesheetSection({ entries, onRequestEdit }: Props) {
     type Rgb = [number, number, number];
     type Cell = string | { content: string; rowSpan?: number; styles?: Record<string, unknown> };
 
-    const employeeName = entries[0]?.name || "Employee";
+    const employeeName = personName || "Employee";
     const doc = new jsPDF({ orientation: "landscape" });
     const pageWidth = doc.internal.pageSize.getWidth();
     const margin = 14;
@@ -230,13 +233,13 @@ export function TimesheetSection({ entries, onRequestEdit }: Props) {
       doc.text(`Page ${i}/${pageCount}`, pageWidth - margin, 16, { align: "right" });
     }
 
-    doc.save(`timesheet-${toIsoDate(weekStart)}.pdf`);
+    doc.save(`timesheet-${fileSlug}-${toIsoDate(weekStart)}.pdf`);
   }
 
   return (
     <div className="items-section">
       <div className="timesheet-head">
-        <h2 className="items-section-title">My timesheet</h2>
+        <h2 className="items-section-title">{title}</h2>
         <div className="timesheet-nav">
           <button
             type="button"
