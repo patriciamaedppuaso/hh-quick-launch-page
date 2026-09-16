@@ -1,8 +1,8 @@
 // Handles the two account operations that require the Supabase service role
 // key (create + delete) and therefore can never run in the browser. Deploy
-// with `supabase functions deploy manage-user --no-verify-jwt` -- JWT
-// verification is off because the dashboard doesn't have real login sessions
-// yet (see the security note in supabase/migrations/0001_init.sql).
+// with `supabase functions deploy manage-user --no-verify-jwt` -- the
+// platform-level JWT check is off because we do our own, stricter check
+// below (valid session AND admin role, not just "any signed-in user").
 //
 // Accounts are created directly with an admin-set temporary password
 // (email_confirm: true) rather than emailed an invite, so this has no
@@ -26,6 +26,31 @@ Deno.serve(async (req) => {
     return new Response("ok", { headers: corsHeaders });
   }
 
+  const supabaseAdmin = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+  );
+
+  // Only a signed-in admin may call this function. The client's supabase-js
+  // automatically attaches the caller's session token as a Bearer header on
+  // functions.invoke(), so a logged-out or non-admin caller is rejected here
+  // before anything else runs.
+  const authHeader = req.headers.get("Authorization") ?? "";
+  const token = authHeader.replace(/^Bearer\s+/i, "");
+  if (!token) return jsonResponse({ error: "Not signed in." }, 401);
+
+  const { data: callerData, error: callerErr } = await supabaseAdmin.auth.getUser(token);
+  if (callerErr || !callerData.user) return jsonResponse({ error: "Not signed in." }, 401);
+
+  const { data: callerProfile } = await supabaseAdmin
+    .from("profiles")
+    .select("role")
+    .eq("id", callerData.user.id)
+    .single();
+  if (callerProfile?.role !== "admin") {
+    return jsonResponse({ error: "Only admins can manage user accounts." }, 403);
+  }
+
   let body: Record<string, unknown>;
   try {
     body = await req.json();
@@ -34,10 +59,6 @@ Deno.serve(async (req) => {
   }
 
   const action = body.action;
-  const supabaseAdmin = createClient(
-    Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-  );
 
   if (action === "create") {
     const email = typeof body.email === "string" ? body.email.trim() : "";

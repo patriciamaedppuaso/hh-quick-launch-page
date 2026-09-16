@@ -3,7 +3,6 @@ import type { AppTile, ClockRecord, Role, TimeEntry } from "../types";
 import { Icon } from "../icons";
 import {
   breakTotalMs,
-  CURRENT_USER_NAME,
   formatDate,
   formatElapsed,
   formatHoursMinutes,
@@ -21,13 +20,14 @@ import { TimeEntryEditForm } from "./TimeEntryEditForm";
 interface Props {
   app: AppTile;
   role: Role;
+  currentUserName: string;
   onBack: () => void;
   onUpdate: (patch: { clockRecords?: ClockRecord[]; timeEntries?: TimeEntry[] }) => void;
 }
 
 const FALLBACK_TINT = { bg: "#EDF7F6", fg: "#479CA4" };
 
-export function TimeClockPage({ app, role, onBack, onUpdate }: Props) {
+export function TimeClockPage({ app, role, currentUserName, onBack, onUpdate }: Props) {
   const records = app.clockRecords ?? [];
   const entries = app.timeEntries ?? [];
   const [query, setQuery] = useState("");
@@ -40,18 +40,18 @@ export function TimeClockPage({ app, role, onBack, onUpdate }: Props) {
   const isAdmin = role === "admin";
   const tint = app.tint ?? FALLBACK_TINT;
 
-  const myOpenEntry = entries.find((e) => e.name === CURRENT_USER_NAME && !e.clockOut);
+  const myOpenEntry = entries.find((e) => e.name === currentUserName && !e.clockOut);
   const myOpenBreak = myOpenEntry?.breaks.find((b) => !b.end);
   const myEntries = useMemo(
     () =>
       entries
-        .filter((e) => e.name === CURRENT_USER_NAME)
+        .filter((e) => e.name === currentUserName)
         .sort((a, b) => (b.date + b.clockIn).localeCompare(a.date + a.clockIn)),
-    [entries],
+    [entries, currentUserName],
   );
   const pendingEntries = useMemo(() => entries.filter((e) => e.editRequest), [entries]);
 
-  const otherRecords = records.filter((r) => r.name !== CURRENT_USER_NAME);
+  const otherRecords = records.filter((r) => r.name !== currentUserName);
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return otherRecords;
@@ -65,17 +65,17 @@ export function TimeClockPage({ app, role, onBack, onUpdate }: Props) {
   }, [myOpenEntry]);
 
   function updateMyClockStatus(clockedIn: boolean, since?: string) {
-    const existing = records.find((r) => r.name === CURRENT_USER_NAME);
+    const existing = records.find((r) => r.name === currentUserName);
     if (existing) {
       return records.map((r) => (r.id === existing.id ? { ...r, clockedIn, since } : r));
     }
-    return [...records, { id: newId("clock"), name: CURRENT_USER_NAME, clockedIn, since }];
+    return [...records, { id: newId("clock"), name: currentUserName, clockedIn, since }];
   }
 
   function handleStart() {
     const entry: TimeEntry = {
       id: newId("te"),
-      name: CURRENT_USER_NAME,
+      name: currentUserName,
       date: todayIso(),
       clockIn: nowIso(),
       breaks: [],

@@ -1,13 +1,14 @@
 import { useMemo, useState } from "react";
 import type { AppTile, Role, TaskPriority, TaskRecord, TaskStatus } from "../types";
 import { Icon } from "../icons";
-import { CURRENT_USER_NAME, formatDate, initialOf, isOverdue } from "../utils";
+import { formatDate, initialOf, isOverdue } from "../utils";
 import { Modal } from "./Modal";
 import { TaskForm } from "./TaskForm";
 
 interface Props {
   app: AppTile;
   role: Role;
+  currentUserName: string;
   onBack: () => void;
   onUpdate: (records: TaskRecord[]) => void;
 }
@@ -36,7 +37,7 @@ const PRIORITY_COLORS: Record<TaskPriority, { bg: string; fg: string }> = {
   high: { bg: "#F6E2DD", fg: "#C05A4A" },
 };
 
-export function TasksPage({ app, role, onBack, onUpdate }: Props) {
+export function TasksPage({ app, role, currentUserName, onBack, onUpdate }: Props) {
   const records = app.tasks ?? [];
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
@@ -58,7 +59,7 @@ export function TasksPage({ app, role, onBack, onUpdate }: Props) {
   }, [records, query, statusFilter]);
 
   function canChangeStatus(task: TaskRecord) {
-    return canManage || (task.assignees?.includes(CURRENT_USER_NAME) ?? false);
+    return canManage || (task.assignees?.includes(currentUserName) ?? false);
   }
 
   function handleStatusChange(task: TaskRecord, status: TaskStatus) {

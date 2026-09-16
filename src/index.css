@@ -106,6 +106,51 @@ body {
   margin: 0;
 }
 
+/* login */
+.login-screen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: var(--bg);
+}
+.login-card {
+  width: 100%;
+  max-width: 340px;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 32px 28px;
+  box-shadow: var(--shadow);
+  text-align: center;
+}
+.login-logo {
+  width: 52px;
+  height: 52px;
+  object-fit: contain;
+  margin: 0 auto 14px;
+}
+.login-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0;
+}
+.login-sub {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin: 4px 0 22px;
+}
+.login-card .form-row {
+  text-align: left;
+}
+.login-submit {
+  width: 100%;
+  margin-top: 6px;
+  padding: 10px;
+}
+
 .wrap {
   width: 100%;
 }
@@ -1096,52 +1141,6 @@ body {
     flex: 1 1 45%;
     width: auto;
   }
-}
-
-/* role bar */
-.role-bar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 22px;
-}
-
-.role-toggle {
-  display: inline-flex;
-  background: var(--surface-soft);
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  padding: 3px;
-  gap: 2px;
-}
-
-.role-btn {
-  border: none;
-  background: transparent;
-  color: var(--text-secondary);
-  font-family: "Public Sans", sans-serif;
-  font-weight: 700;
-  font-size: 13px;
-  padding: 7px 18px;
-  border-radius: 999px;
-  cursor: pointer;
-}
-.role-btn:hover {
-  color: var(--text);
-}
-.role-btn:focus-visible {
-  outline: 2px solid var(--teal);
-  outline-offset: 1px;
-}
-.role-btn.active {
-  background: var(--teal);
-  color: #fff;
-}
-
-.role-desc {
-  font-size: 13px;
-  color: var(--text-secondary);
 }
 
 /* section head */
@@ -2312,18 +2311,6 @@ body {
   }
   .hero .clock .location {
     font-size: 9.5px;
-  }
-
-  .role-bar {
-    margin-bottom: 14px;
-    gap: 8px;
-  }
-  .role-btn {
-    padding: 6px 14px;
-    font-size: 12px;
-  }
-  .role-desc {
-    font-size: 11px;
   }
 
   .section-head {

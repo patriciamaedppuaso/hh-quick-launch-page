@@ -1,5 +1,5 @@
 import type { AppTile, Role } from "./types";
-import { CURRENT_USER_NAME, isOverdue } from "./utils";
+import { isOverdue } from "./utils";
 
 export interface Metric {
   key: string;
@@ -13,7 +13,12 @@ const DAY = 24 * 60 * 60 * 1000;
 const EXPIRING_SOON_DAYS = 30;
 const EXPIRING_URGENT_DAYS = 7;
 
-export function computeMetrics(apps: AppTile[], role: Role, readAnnouncementIds: string[]): Metric[] {
+export function computeMetrics(
+  apps: AppTile[],
+  role: Role,
+  readAnnouncementIds: string[],
+  currentUserName: string,
+): Metric[] {
   const taskApp = apps.find((a) => a.builtin === "tasks");
   const leadsApp = apps.find((a) => a.builtin === "leads");
   const announcementsApp = apps.find((a) => a.builtin === "announcements");
@@ -22,7 +27,7 @@ export function computeMetrics(apps: AppTile[], role: Role, readAnnouncementIds:
   const allTasks = taskApp?.tasks ?? [];
   const overdueAll = allTasks.filter((t) => t.status !== "done" && isOverdue(t.dueDate)).length;
   const overdueMine = allTasks.filter(
-    (t) => t.status !== "done" && t.assignees?.includes(CURRENT_USER_NAME) && isOverdue(t.dueDate),
+    (t) => t.status !== "done" && t.assignees?.includes(currentUserName) && isOverdue(t.dueDate),
   ).length;
 
   let expiringSoon = 0;
@@ -78,7 +83,7 @@ export function computeMetrics(apps: AppTile[], role: Role, readAnnouncementIds:
     }
   } else {
     const yourTasks = allTasks.filter(
-      (t) => t.status !== "done" && t.assignees?.includes(CURRENT_USER_NAME),
+      (t) => t.status !== "done" && t.assignees?.includes(currentUserName),
     ).length;
     if (yourTasks > 0 && taskApp) {
       metrics.push({ key: "your-tasks", label: "Your open tasks", value: yourTasks, appId: taskApp.id });

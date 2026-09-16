@@ -1,18 +1,20 @@
 import { useMemo, useRef, useState } from "react";
 import type { AppTile, Role, Theme } from "../types";
 import { Icon } from "../icons";
-import { CURRENT_USER_NAME, initialOf } from "../utils";
+import { initialOf } from "../utils";
 import { useClickOutside } from "../hooks/useClickOutside";
 import { useIsMobile } from "../hooks/useIsMobile";
 
 interface Props {
   apps: AppTile[];
   role: Role;
+  currentUserName: string;
   activeAppId: string | null;
   theme: Theme;
   onThemeChange: (theme: Theme) => void;
   onNavigate: (appId: string | null) => void;
   onRequestAdd: () => void;
+  onSignOut: () => void;
   mobileOpen: boolean;
   onCloseMobile: () => void;
   collapsed: boolean;
@@ -24,11 +26,13 @@ const FALLBACK_TINT = { bg: "#EDF7F6", fg: "#479CA4" };
 export function Sidebar({
   apps,
   role,
+  currentUserName,
   activeAppId,
   theme,
   onThemeChange,
   onNavigate,
   onRequestAdd,
+  onSignOut,
   mobileOpen,
   onCloseMobile,
   collapsed,
@@ -190,22 +194,26 @@ export function Sidebar({
               type="button"
               className="sidebar-item sidebar-user-trigger"
               onClick={() => setUserMenuOpen((v) => !v)}
-              title={CURRENT_USER_NAME}
+              title={currentUserName}
             >
-              <span className="role-pill-avatar">MM</span>
+              <span className="role-pill-avatar">{initialOf(currentUserName || "?")}</span>
               {!isCollapsed && (
                 <span className="sidebar-user-info">
-                  <span className="sidebar-user-name">{CURRENT_USER_NAME}</span>
+                  <span className="sidebar-user-name">{currentUserName}</span>
                   <span className="sidebar-user-role">{role === "admin" ? "Administrator" : "Staff"}</span>
                 </span>
               )}
             </button>
             {userMenuOpen && (
               <div className="dropdown dropdown-wide sidebar-user-menu">
-                <button type="button" className="dropdown-item" onClick={() => setUserMenuOpen(false)}>
-                  Profile settings
-                </button>
-                <button type="button" className="dropdown-item" onClick={() => setUserMenuOpen(false)}>
+                <button
+                  type="button"
+                  className="dropdown-item"
+                  onClick={() => {
+                    setUserMenuOpen(false);
+                    onSignOut();
+                  }}
+                >
                   Sign out
                 </button>
               </div>

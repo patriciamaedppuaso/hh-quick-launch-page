@@ -1,8 +1,8 @@
-import type { AppTile, Role, Theme, ViewMode } from "./types";
+import type { AppTile, Theme, ViewMode } from "./types";
 
 // NOTE: apps and read-announcement state now live in Supabase (see src/lib/db.ts).
-// This file only persists per-device UI preferences that were never meant to sync.
-const ROLE_KEY = "clock-in:role:v1";
+// Role now comes from the signed-in user's real profile (see src/lib/auth.ts),
+// not a local preference. This file only persists per-device UI prefs.
 const THEME_KEY = "clock-in:theme:v1";
 const VIEW_KEY = "clock-in:view:v1";
 const SIDEBAR_COLLAPSED_KEY = "clock-in:sidebar-collapsed:v1";
@@ -275,22 +275,6 @@ export const DEFAULT_APPS: AppTile[] = [
     ],
   },
 ];
-
-export function loadRole(): Role {
-  try {
-    return localStorage.getItem(ROLE_KEY) === "employee" ? "employee" : "admin";
-  } catch {
-    return "admin";
-  }
-}
-
-export function saveRole(role: Role): void {
-  try {
-    localStorage.setItem(ROLE_KEY, role);
-  } catch {
-    // localStorage unavailable — silently skip persistence
-  }
-}
 
 export function loadTheme(): Theme {
   try {

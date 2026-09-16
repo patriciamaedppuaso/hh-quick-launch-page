@@ -1,24 +1,17 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import type { Session } from "@supabase/supabase-js";
 import type { AppTile, ListApp, ReadAnnouncements, Role, Theme, ViewMode } from "./types";
-import {
-  loadRole,
-  loadSidebarCollapsed,
-  loadTheme,
-  loadView,
-  saveRole,
-  saveSidebarCollapsed,
-  saveTheme,
-  saveView,
-} from "./storage";
+import { loadSidebarCollapsed, loadTheme, loadView, saveSidebarCollapsed, saveTheme, saveView } from "./storage";
 import { fetchAllApps, fetchReadAnnouncements, markAnnouncementsReadRemote, syncApps } from "./lib/db";
 import { supabase } from "./lib/supabaseClient";
+import { type CurrentUser, fetchCurrentUser, signOut } from "./lib/auth";
 import { computeMetrics } from "./metrics";
 import { todayIso } from "./utils";
+import { LoginScreen } from "./components/LoginScreen";
 import { Sidebar } from "./components/Sidebar";
 import { MobileTopBar } from "./components/MobileTopBar";
 import { Greeting } from "./components/Greeting";
 import { AnnouncementBanner } from "./components/AnnouncementBanner";
-import { RoleToggle } from "./components/RoleToggle";
 import { AppGrid } from "./components/AppGrid";
 import { WidgetsPanel } from "./components/WidgetsPanel";
 import { Modal } from "./components/Modal";
@@ -53,10 +46,13 @@ const SYNCED_TABLES = [
 ];
 
 export default function App() {
+  const [session, setSession] = useState<Session | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
+
   const [apps, setApps] = useState<AppTile[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [role, setRole] = useState<Role>(() => loadRole());
   const [theme, setTheme] = useState<Theme>(() => loadTheme());
   const [view, setView] = useState<ViewMode>(() => loadView());
   const [openAppId, setOpenAppId] = useState<string | null>(() => parseHashAppId());
@@ -68,6 +64,41 @@ export default function App() {
   const mainRef = useRef<HTMLElement>(null);
   const hideThumbTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [scrollThumb, setScrollThumb] = useState({ top: 0, height: 0, visible: false });
+
+  useEffect(() => {
+    let cancelled = false;
+    supabase.auth.getSession().then(({ data }) => {
+      if (cancelled) return;
+      setSession(data.session);
+      setAuthLoading(false);
+    });
+    const { data: subscription } = supabase.auth.onAuthStateChange((_event, newSession) => {
+      setSession(newSession);
+    });
+    return () => {
+      cancelled = true;
+      subscription.subscription.unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!session) {
+      setCurrentUser(null);
+      return;
+    }
+    let cancelled = false;
+    fetchCurrentUser(session.user.id, session.user.email ?? "")
+      .then((user) => {
+        if (!cancelled) setCurrentUser(user);
+      })
+      .catch((err) => console.error("Failed to load current user's profile:", err));
+    return () => {
+      cancelled = true;
+    };
+  }, [session]);
+
+  const role: Role = currentUser?.role ?? "employee";
+  const currentUserName = currentUser?.name || currentUser?.email || "";
 
   async function reloadFromSupabase() {
     const [nextApps, nextRead] = await Promise.all([fetchAllApps(), fetchReadAnnouncements()]);
@@ -121,10 +152,6 @@ export default function App() {
       return next;
     });
   }
-
-  useEffect(() => {
-    saveRole(role);
-  }, [role]);
 
   useEffect(() => {
     saveTheme(theme);
@@ -219,8 +246,8 @@ export default function App() {
     : undefined;
 
   const metrics = useMemo(
-    () => computeMetrics(apps, role, readAnnouncements[role] ?? []),
-    [apps, role, readAnnouncements],
+    () => computeMetrics(apps, role, readAnnouncements[role] ?? [], currentUserName),
+    [apps, role, readAnnouncements, currentUserName],
   );
 
   const announcementsApp = apps.find((a) => a.builtin === "announcements");
@@ -286,10 +313,24 @@ export default function App() {
         );
       case "tasks":
         return (
-          <TasksPage app={app} role={role} onBack={closeItems} onUpdate={(tasks) => updateApp(app.id, { tasks })} />
+          <TasksPage
+            app={app}
+            role={role}
+            currentUserName={currentUserName}
+            onBack={closeItems}
+            onUpdate={(tasks) => updateApp(app.id, { tasks })}
+          />
         );
       case "timeclock":
-        return <TimeClockPage app={app} role={role} onBack={closeItems} onUpdate={(patch) => updateApp(app.id, patch)} />;
+        return (
+          <TimeClockPage
+            app={app}
+            role={role}
+            currentUserName={currentUserName}
+            onBack={closeItems}
+            onUpdate={(patch) => updateApp(app.id, patch)}
+          />
+        );
       case "users":
         return <UsersPage app={app} role={role} onBack={closeItems} />;
       default:
@@ -302,6 +343,18 @@ export default function App() {
           />
         );
     }
+  }
+
+  if (authLoading) {
+    return (
+      <div className="boot-screen">
+        <div className="boot-spinner" aria-hidden="true" />
+      </div>
+    );
+  }
+
+  if (!session) {
+    return <LoginScreen />;
   }
 
   if (loading) {
@@ -331,11 +384,13 @@ export default function App() {
       <Sidebar
         apps={apps}
         role={role}
+        currentUserName={currentUserName}
         activeAppId={openAppId}
         theme={theme}
         onThemeChange={setTheme}
         onNavigate={(appId) => (appId ? openItems(appId) : closeItems())}
         onRequestAdd={() => setAddingApp(true)}
+        onSignOut={() => signOut().catch((err) => console.error("Sign out failed:", err))}
         mobileOpen={sidebarOpen}
         onCloseMobile={() => setSidebarOpen(false)}
         collapsed={sidebarCollapsed}
@@ -354,7 +409,6 @@ export default function App() {
                 onOpen={() => openItems(announcementsApp.id)}
               />
             )}
-            <RoleToggle role={role} onChange={setRole} />
             <AppGrid
               apps={apps}
               role={role}

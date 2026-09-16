@@ -1,7 +1,5 @@
 import type { AppTile, BreakEntry, TimeEntry } from "./types";
 
-export const CURRENT_USER_NAME = "Myka";
-
 export const TEAM_MEMBERS = ["Myka", "Front Desk", "Warehouse Team"];
 
 export function domainOf(url: string): string {
