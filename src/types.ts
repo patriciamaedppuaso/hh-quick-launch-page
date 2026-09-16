@@ -51,7 +51,7 @@ export interface ListItem {
   updatedAt?: string;
 }
 
-export type BuiltinKind = "contacts" | "leads" | "announcements" | "tasks" | "timeclock";
+export type BuiltinKind = "contacts" | "leads" | "announcements" | "tasks" | "timeclock" | "users";
 
 export interface ContactRecord {
   id: string;
@@ -102,6 +102,15 @@ export interface TaskRecord {
   dueDate?: string;
   assignees?: string[];
   priority?: TaskPriority;
+}
+
+export interface UserProfile {
+  id: string;
+  email: string;
+  name?: string;
+  role: Role;
+  createdAt: string;
+  lastSignInAt?: string;
 }
 
 export interface ClockRecord {

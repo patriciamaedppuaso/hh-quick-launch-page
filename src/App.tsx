@@ -29,6 +29,7 @@ import { LeadsPage } from "./components/LeadsPage";
 import { AnnouncementsPage } from "./components/AnnouncementsPage";
 import { TasksPage } from "./components/TasksPage";
 import { TimeClockPage } from "./components/TimeClockPage";
+import { UsersPage } from "./components/UsersPage";
 import { Footer } from "./components/Footer";
 
 function parseHashAppId(): string | null {
@@ -289,6 +290,8 @@ export default function App() {
         );
       case "timeclock":
         return <TimeClockPage app={app} role={role} onBack={closeItems} onUpdate={(patch) => updateApp(app.id, patch)} />;
+      case "users":
+        return <UsersPage app={app} role={role} onBack={closeItems} />;
       default:
         return (
           <ItemsPage
