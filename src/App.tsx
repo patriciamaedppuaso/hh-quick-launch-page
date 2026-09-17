@@ -81,6 +81,12 @@ export default function App() {
     };
   }, []);
 
+  // Depend on the user id, not the whole `session` object: Supabase silently
+  // reissues a new session object (same user) whenever the tab regains focus
+  // or the token refreshes, which would otherwise re-run this on every tab
+  // switch.
+  const sessionUserId = session?.user?.id;
+
   useEffect(() => {
     if (!session) {
       setCurrentUser(null);
@@ -95,7 +101,8 @@ export default function App() {
     return () => {
       cancelled = true;
     };
-  }, [session]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionUserId]);
 
   const role: Role = currentUser?.role ?? "employee";
   const currentUserName = currentUser?.name || currentUser?.email || "";
@@ -108,10 +115,11 @@ export default function App() {
 
   useEffect(() => {
     // RLS now requires an authenticated session (see migration 0004), so
-    // there's nothing to fetch until login completes. Re-runs whenever
-    // `session` changes -- covers the initial post-login load, and a
-    // logout/login-as-someone-else cycle without a full page reload.
-    if (!session) return;
+    // there's nothing to fetch until login completes. Re-runs on the user id
+    // (not the whole session object, which changes on every token refresh)
+    // -- covers the initial post-login load and a logout/login-as-someone-
+    // else cycle without a full page reload.
+    if (!sessionUserId) return;
     let cancelled = false;
     setLoading(true);
     (async () => {
@@ -127,7 +135,7 @@ export default function App() {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session]);
+  }, [sessionUserId]);
 
   // Realtime: pick up changes made from other tabs/devices. A remote write on
   // any synced table triggers a full reload (simple and always-correct; this
