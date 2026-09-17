@@ -135,18 +135,18 @@ export function TasksPage({ app, role, currentUserName, onBack, onUpdate, onUpda
             onChange={(e) => setQuery(e.target.value)}
           />
         </div>
-        <div className="type-toggle" role="group" aria-label="Filter by status">
+        <select
+          className="filter-select"
+          aria-label="Filter by status"
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+        >
           {FILTERS.map((f) => (
-            <button
-              key={f.value}
-              type="button"
-              className={`type-btn${statusFilter === f.value ? " active" : ""}`}
-              onClick={() => setStatusFilter(f.value)}
-            >
+            <option key={f.value} value={f.value}>
               {f.label}
-            </button>
+            </option>
           ))}
-        </div>
+        </select>
         {canManage && (
           <select
             className="filter-select"

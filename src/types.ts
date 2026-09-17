@@ -57,6 +57,7 @@ export interface ContactRecord {
   id: string;
   name: string;
   role?: string;
+  category?: string;
   phone?: string;
   email?: string;
   notes?: string;

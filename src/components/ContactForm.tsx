@@ -5,13 +5,15 @@ import { AvatarPicker } from "./AvatarPicker";
 
 interface Props {
   initial?: ContactRecord;
+  categoryOptions: string[];
   onSave: (record: ContactRecord) => void;
   onCancel: () => void;
 }
 
-export function ContactForm({ initial, onSave, onCancel }: Props) {
+export function ContactForm({ initial, categoryOptions, onSave, onCancel }: Props) {
   const [name, setName] = useState(initial?.name ?? "");
   const [role, setRole] = useState(initial?.role ?? "");
+  const [category, setCategory] = useState(initial?.category ?? categoryOptions[0] ?? "");
   const [phone, setPhone] = useState(initial?.phone ?? "");
   const [email, setEmail] = useState(initial?.email ?? "");
   const [notes, setNotes] = useState(initial?.notes ?? "");
@@ -24,6 +26,7 @@ export function ContactForm({ initial, onSave, onCancel }: Props) {
       id: initial?.id ?? newId("contact"),
       name: trimmedName,
       role: role.trim() || undefined,
+      category: category || undefined,
       phone: phone.trim() || undefined,
       email: email.trim() || undefined,
       notes: notes.trim() || undefined,
@@ -52,10 +55,20 @@ export function ContactForm({ initial, onSave, onCancel }: Props) {
         <input
           id="cRole"
           type="text"
-          placeholder="e.g. Vendor, Staff, Emergency"
+          placeholder="e.g. Manager, Warehouse Lead"
           value={role}
           onChange={(e) => setRole(e.target.value)}
         />
+      </div>
+      <div className="form-row">
+        <label htmlFor="cCategory">Category</label>
+        <select id="cCategory" value={category} onChange={(e) => setCategory(e.target.value)}>
+          {categoryOptions.map((opt) => (
+            <option key={opt} value={opt}>
+              {opt}
+            </option>
+          ))}
+        </select>
       </div>
       <div className="form-row">
         <label htmlFor="cPhone">Phone (optional)</label>

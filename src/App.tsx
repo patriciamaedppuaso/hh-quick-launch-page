@@ -316,6 +316,7 @@ export default function App() {
             role={role}
             onBack={closeItems}
             onUpdate={(contacts) => updateApp(app.id, { contacts })}
+            onUpdateStatusOptions={(statusOptions) => updateApp(app.id, { statusOptions })}
           />
         );
       case "leads":

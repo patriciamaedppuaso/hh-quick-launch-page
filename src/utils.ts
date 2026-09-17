@@ -19,6 +19,8 @@ export const DEFAULT_LEAD_STATUSES = [
 
 export const DEFAULT_TASK_STATUSES = ["To do", "In progress"];
 
+export const DEFAULT_CONTACT_CATEGORIES = ["Client", "Employee", "Vendor"];
+
 /** Fixed, non-removable task status -- overdue/strikethrough logic depends on it. */
 export const DONE_STATUS = "Done";
 
