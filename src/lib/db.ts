@@ -70,6 +70,8 @@ export async function fetchAllApps(): Promise<AppTile[]> {
       icon: row.icon ?? undefined,
       tint: row.tint_bg && row.tint_fg ? { bg: row.tint_bg, fg: row.tint_fg } : undefined,
       builtin: row.builtin ?? undefined,
+      statusOptions: (row.status_options as string[] | null) ?? undefined,
+      visible: (row.visible as boolean | null) ?? true,
       contacts: (contactsByApp.get(row.id) ?? []).map(rowToContact),
       leads: (leadsByApp.get(row.id) ?? []).map(rowToLead),
       announcements: (announcementsByApp.get(row.id) ?? []).map((a) =>
@@ -259,6 +261,8 @@ function appToRow(app: AppTile, sortOrder: number) {
     tint_bg: app.tint?.bg ?? null,
     tint_fg: app.tint?.fg ?? null,
     builtin: app.builtin ?? null,
+    status_options: app.statusOptions ?? null,
+    visible: app.visible ?? true,
     sort_order: sortOrder,
     url: isLink ? app.url : null,
     subtitle: isLink ? (app.subtitle ?? null) : null,

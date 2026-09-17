@@ -4,24 +4,28 @@ import { AppCard } from "./AppCard";
 import { AppRow } from "./AppRow";
 import { ViewToggle } from "./ViewToggle";
 import { useIsMobile } from "../hooks/useIsMobile";
+import { isAppVisible } from "../utils";
 
 interface Props {
   apps: AppTile[];
   onReorder: (apps: AppTile[]) => void;
   onOpenItems: (appId: string) => void;
   onRequestAdd: () => void;
+  onEditApp: (app: AppTile) => void;
   role: Role;
   view: ViewMode;
   onViewChange: (view: ViewMode) => void;
 }
 
-export function AppGrid({ apps, onReorder, onOpenItems, onRequestAdd, role, view, onViewChange }: Props) {
+export function AppGrid({ apps, onReorder, onOpenItems, onRequestAdd, onEditApp, role, view, onViewChange }: Props) {
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
   const isMobile = useIsMobile();
 
   const canReorder = role === "admin" && !isMobile;
+  const canEdit = role === "admin";
   const useIconTiles = view === "grid" && isMobile;
+  const visibleApps = apps.filter((app) => isAppVisible(app, role));
 
   function handleDrop(targetId: string) {
     if (draggedId && draggedId !== targetId) {
@@ -52,13 +56,13 @@ export function AppGrid({ apps, onReorder, onOpenItems, onRequestAdd, role, view
           </p>
         </div>
         <div className="section-head-actions">
-          <span className="ready-badge">{apps.length} apps ready</span>
+          <span className="ready-badge">{visibleApps.length} apps ready</span>
           <ViewToggle view={view} onChange={onViewChange} />
         </div>
       </div>
 
       <div className={`apps-grid${useIconTiles ? " apps-grid--tiles" : ""}`}>
-        {apps.map((app) => (
+        {visibleApps.map((app) => (
           <div
             key={app.id}
             className={`drag-item${draggedId === app.id ? " dragging" : ""}${
@@ -82,11 +86,23 @@ export function AppGrid({ apps, onReorder, onOpenItems, onRequestAdd, role, view
             }}
           >
             {view === "list" ? (
-              <AppRow app={app} onOpenItems={() => onOpenItems(app.id)} showHandle={canReorder} />
+              <AppRow
+                app={app}
+                onOpenItems={() => onOpenItems(app.id)}
+                showHandle={canReorder}
+                canEdit={canEdit}
+                onEdit={() => onEditApp(app)}
+              />
             ) : useIconTiles ? (
               <AppRow app={app} onOpenItems={() => onOpenItems(app.id)} layout="tile" />
             ) : (
-              <AppCard app={app} onOpenItems={() => onOpenItems(app.id)} showHandle={canReorder} />
+              <AppCard
+                app={app}
+                onOpenItems={() => onOpenItems(app.id)}
+                showHandle={canReorder}
+                canEdit={canEdit}
+                onEdit={() => onEditApp(app)}
+              />
             )}
           </div>
         ))}

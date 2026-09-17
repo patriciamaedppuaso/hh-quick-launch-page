@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from "react";
 import type { AppTile, Role, Theme } from "../types";
 import { Icon } from "../icons";
-import { initialOf } from "../utils";
+import { initialOf, isAppVisible } from "../utils";
 import { useClickOutside } from "../hooks/useClickOutside";
 import { useIsMobile } from "../hooks/useIsMobile";
 
@@ -49,11 +49,11 @@ export function Sidebar({
   const isCollapsed = collapsed && !isMobile;
 
   const pages = useMemo(() => {
-    const listApps = apps.filter((a) => a.type === "list");
+    const listApps = apps.filter((a) => a.type === "list" && isAppVisible(a, role));
     const q = query.trim().toLowerCase();
     if (!q) return listApps;
     return listApps.filter((a) => a.name.toLowerCase().includes(q));
-  }, [apps, query]);
+  }, [apps, query, role]);
 
   const canAdd = role === "admin";
   const isDarkActive =

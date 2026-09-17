@@ -4,24 +4,15 @@ import { newId, todayIso } from "../utils";
 
 interface Props {
   initial?: LeadRecord;
+  statusOptions: string[];
   onSave: (record: LeadRecord) => void;
   onCancel: () => void;
 }
 
-const STATUS_OPTIONS: { value: LeadStatus; label: string }[] = [
-  { value: "contacted", label: "Contacted" },
-  { value: "follow-up", label: "Follow Up" },
-  { value: "interested", label: "Interested" },
-  { value: "schedule-meeting", label: "Schedule Meeting" },
-  { value: "signing-contract", label: "Signing Contract" },
-  { value: "closed", label: "Closed" },
-  { value: "closed-down", label: "Closed Down" },
-];
-
-export function LeadForm({ initial, onSave, onCancel }: Props) {
+export function LeadForm({ initial, statusOptions, onSave, onCancel }: Props) {
   const [name, setName] = useState(initial?.name ?? "");
   const [company, setCompany] = useState(initial?.company ?? "");
-  const [status, setStatus] = useState<LeadStatus>(initial?.status ?? "contacted");
+  const [status, setStatus] = useState<LeadStatus>(initial?.status ?? statusOptions[0]);
   const [rep, setRep] = useState(initial?.rep ?? "");
   const [value, setValue] = useState(initial?.value != null ? String(initial.value) : "");
   const [followUp, setFollowUp] = useState(initial?.followUp ?? "");
@@ -69,9 +60,9 @@ export function LeadForm({ initial, onSave, onCancel }: Props) {
       <div className="form-row">
         <label htmlFor="lStatus">Status</label>
         <select id="lStatus" value={status} onChange={(e) => setStatus(e.target.value as LeadStatus)}>
-          {STATUS_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
+          {statusOptions.map((opt) => (
+            <option key={opt} value={opt}>
+              {opt}
             </option>
           ))}
         </select>

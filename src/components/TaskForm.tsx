@@ -4,16 +4,11 @@ import { TEAM_MEMBERS, newId } from "../utils";
 
 interface Props {
   initial?: TaskRecord;
+  statusOptions: string[];
   currentUserName: string;
   onSave: (record: TaskRecord) => void;
   onCancel: () => void;
 }
-
-const STATUS_OPTIONS: { value: TaskStatus; label: string }[] = [
-  { value: "todo", label: "To do" },
-  { value: "in-progress", label: "In progress" },
-  { value: "done", label: "Done" },
-];
 
 const PRIORITY_OPTIONS: { value: TaskPriority; label: string }[] = [
   { value: "low", label: "Low" },
@@ -21,9 +16,9 @@ const PRIORITY_OPTIONS: { value: TaskPriority; label: string }[] = [
   { value: "high", label: "High" },
 ];
 
-export function TaskForm({ initial, currentUserName, onSave, onCancel }: Props) {
+export function TaskForm({ initial, statusOptions, currentUserName, onSave, onCancel }: Props) {
   const [title, setTitle] = useState(initial?.title ?? "");
-  const [status, setStatus] = useState<TaskStatus>(initial?.status ?? "todo");
+  const [status, setStatus] = useState<TaskStatus>(initial?.status ?? statusOptions[0]);
   const [priority, setPriority] = useState<TaskPriority>(initial?.priority ?? "medium");
   const [dueDate, setDueDate] = useState(initial?.dueDate ?? "");
   const [assignees, setAssignees] = useState<string[]>(initial?.assignees ?? []);
@@ -63,9 +58,9 @@ export function TaskForm({ initial, currentUserName, onSave, onCancel }: Props) 
       <div className="form-row">
         <label htmlFor="tStatus">Status</label>
         <select id="tStatus" value={status} onChange={(e) => setStatus(e.target.value as TaskStatus)}>
-          {STATUS_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
+          {statusOptions.map((opt) => (
+            <option key={opt} value={opt}>
+              {opt}
             </option>
           ))}
         </select>

@@ -1,9 +1,18 @@
 import { useMemo, useState } from "react";
 import type { AppTile, Role, TaskPriority, TaskRecord, TaskStatus } from "../types";
 import { Icon } from "../icons";
-import { formatDate, initialOf, isOverdue, TEAM_MEMBERS } from "../utils";
+import {
+  DEFAULT_TASK_STATUSES,
+  DONE_STATUS,
+  TEAM_MEMBERS,
+  colorForStatus,
+  formatDate,
+  initialOf,
+  isOverdue,
+} from "../utils";
 import { Modal } from "./Modal";
 import { TaskForm } from "./TaskForm";
+import { ManageStatusesForm } from "./ManageStatusesForm";
 
 interface Props {
   app: AppTile;
@@ -11,24 +20,12 @@ interface Props {
   currentUserName: string;
   onBack: () => void;
   onUpdate: (records: TaskRecord[]) => void;
+  onUpdateStatusOptions: (options: string[]) => void;
 }
 
 const FALLBACK_TINT = { bg: "#EDF7F6", fg: "#479CA4" };
 
 type StatusFilter = "all" | TaskStatus;
-
-const FILTERS: { value: StatusFilter; label: string }[] = [
-  { value: "all", label: "All" },
-  { value: "todo", label: "To do" },
-  { value: "in-progress", label: "In progress" },
-  { value: "done", label: "Done" },
-];
-
-const STATUS_OPTIONS: { value: TaskStatus; label: string }[] = [
-  { value: "todo", label: "To do" },
-  { value: "in-progress", label: "In progress" },
-  { value: "done", label: "Done" },
-];
 
 const PRIORITY_LABEL: Record<TaskPriority, string> = { low: "Low", medium: "Medium", high: "High" };
 const PRIORITY_COLORS: Record<TaskPriority, { bg: string; fg: string }> = {
@@ -37,17 +34,35 @@ const PRIORITY_COLORS: Record<TaskPriority, { bg: string; fg: string }> = {
   high: { bg: "#F6E2DD", fg: "#C05A4A" },
 };
 
-export function TasksPage({ app, role, currentUserName, onBack, onUpdate }: Props) {
+const DONE_COLOR = { bg: "#E9F5EF", fg: "#3E9A6D" };
+
+export function TasksPage({ app, role, currentUserName, onBack, onUpdate, onUpdateStatusOptions }: Props) {
   const records = app.tasks ?? [];
+  const editableStatuses = app.statusOptions ?? DEFAULT_TASK_STATUSES;
+  const statusTabs = useMemo(() => [...editableStatuses, DONE_STATUS], [editableStatuses]);
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [assigneeFilter, setAssigneeFilter] = useState("all");
   const [editing, setEditing] = useState<TaskRecord | null>(null);
   const [adding, setAdding] = useState(false);
+  const [managingStatuses, setManagingStatuses] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const canManage = role === "admin";
   const tint = app.tint ?? FALLBACK_TINT;
+
+  const FILTERS: { value: StatusFilter; label: string }[] = useMemo(
+    () => [{ value: "all", label: "All" }, ...statusTabs.map((s) => ({ value: s, label: s }))],
+    [statusTabs],
+  );
+
+  const statusColor = (status: string) => (status === DONE_STATUS ? DONE_COLOR : colorForStatus(editableStatuses, status));
+
+  const statusUsageCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const t of records) counts[t.status] = (counts[t.status] ?? 0) + 1;
+    return counts;
+  }, [records]);
 
   const assigneeOptions = useMemo(() => {
     const names = new Set(TEAM_MEMBERS);
@@ -149,6 +164,17 @@ export function TasksPage({ app, role, currentUserName, onBack, onUpdate }: Prop
           </select>
         )}
         {canManage && (
+          <button
+            type="button"
+            className="card-edit-btn"
+            aria-label="Manage statuses"
+            title="Manage statuses"
+            onClick={() => setManagingStatuses(true)}
+          >
+            <Icon name="edit" />
+          </button>
+        )}
+        {canManage && (
           <button type="button" className="btn-primary items-add-btn" onClick={() => setAdding(true)}>
             + Add task
           </button>
@@ -162,12 +188,12 @@ export function TasksPage({ app, role, currentUserName, onBack, onUpdate }: Prop
       ) : (
         <div className="items-list">
           {filtered.map((task) => {
-            const overdue = task.status !== "done" && isOverdue(task.dueDate);
+            const overdue = task.status !== DONE_STATUS && isOverdue(task.dueDate);
             const assignees = task.assignees ?? [];
             return (
               <div className="items-row" key={task.id}>
                 <div className="items-row-text">
-                  <span className={`items-row-name${task.status === "done" ? " task-done" : ""}`}>
+                  <span className={`items-row-name${task.status === DONE_STATUS ? " task-done" : ""}`}>
                     {task.title}
                   </span>
                 </div>
@@ -196,15 +222,16 @@ export function TasksPage({ app, role, currentUserName, onBack, onUpdate }: Prop
                     </span>
                   )}
                   <select
-                    className={`task-status-select task-status-select--${task.status}`}
+                    className="task-status-select"
+                    style={{ background: statusColor(task.status).bg, color: statusColor(task.status).fg }}
                     value={task.status}
                     disabled={!canChangeStatus(task)}
                     onChange={(e) => handleStatusChange(task, e.target.value as TaskStatus)}
                     aria-label={`Status for ${task.title}`}
                   >
-                    {STATUS_OPTIONS.map((opt) => (
-                      <option key={opt.value} value={opt.value}>
-                        {opt.label}
+                    {statusTabs.map((opt) => (
+                      <option key={opt} value={opt}>
+                        {opt}
                       </option>
                     ))}
                   </select>
@@ -250,18 +277,38 @@ export function TasksPage({ app, role, currentUserName, onBack, onUpdate }: Prop
       )}
 
       <Modal open={adding} onClose={() => setAdding(false)} title="Add task">
-        <TaskForm currentUserName={currentUserName} onSave={handleAddSave} onCancel={() => setAdding(false)} />
+        <TaskForm
+          statusOptions={statusTabs}
+          currentUserName={currentUserName}
+          onSave={handleAddSave}
+          onCancel={() => setAdding(false)}
+        />
       </Modal>
 
       <Modal open={!!editing} onClose={() => setEditing(null)} title="Edit task">
         {editing && (
           <TaskForm
             initial={editing}
+            statusOptions={statusTabs}
             currentUserName={currentUserName}
             onSave={handleEditSave}
             onCancel={() => setEditing(null)}
           />
         )}
+      </Modal>
+
+      <Modal open={managingStatuses} onClose={() => setManagingStatuses(false)} title="Manage task statuses">
+        <ManageStatusesForm
+          statuses={editableStatuses}
+          usageCounts={statusUsageCounts}
+          minCount={0}
+          protectedNote={`"${DONE_STATUS}" is built-in and always available — it can't be removed here.`}
+          onSave={(next) => {
+            onUpdateStatusOptions(next);
+            setManagingStatuses(false);
+          }}
+          onCancel={() => setManagingStatuses(false)}
+        />
       </Modal>
     </div>
   );

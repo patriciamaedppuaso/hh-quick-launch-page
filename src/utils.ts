@@ -1,6 +1,42 @@
-import type { AppTile, BreakEntry, TimeEntry } from "./types";
+import type { AppTile, BreakEntry, Role, TimeEntry } from "./types";
 
 export const TEAM_MEMBERS = ["Myka", "Front Desk", "Warehouse Team"];
+
+/** Admins always see every app; staff only see the ones marked visible. */
+export function isAppVisible(app: AppTile, role: Role): boolean {
+  return role === "admin" || app.visible !== false;
+}
+
+export const DEFAULT_LEAD_STATUSES = [
+  "Contacted",
+  "Follow Up",
+  "Interested",
+  "Schedule Meeting",
+  "Signing Contract",
+  "Closed",
+  "Closed Down",
+];
+
+export const DEFAULT_TASK_STATUSES = ["To do", "In progress"];
+
+/** Fixed, non-removable task status -- overdue/strikethrough logic depends on it. */
+export const DONE_STATUS = "Done";
+
+const STATUS_PALETTE: { bg: string; fg: string }[] = [
+  { bg: "#FCF0DC", fg: "#B9772E" },
+  { bg: "#E7F6F8", fg: "#2E8B99" },
+  { bg: "#EFECFB", fg: "#7C6FE0" },
+  { bg: "#EAF1FD", fg: "#5B8DEF" },
+  { bg: "#E7EEF3", fg: "#285677" },
+  { bg: "#E9F5EF", fg: "#3E9A6D" },
+  { bg: "#F6E2DD", fg: "#C05A4A" },
+];
+
+/** Assigns a stable color to a status by its position in the app's editable status list. */
+export function colorForStatus(options: string[], status: string): { bg: string; fg: string } {
+  const idx = options.indexOf(status);
+  return STATUS_PALETTE[(idx < 0 ? 0 : idx) % STATUS_PALETTE.length];
+}
 
 export function domainOf(url: string): string {
   try {

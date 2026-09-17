@@ -1,5 +1,5 @@
 import type { AppTile, Role } from "./types";
-import { endOfDayIso, isOverdue, startOfDayIso } from "./utils";
+import { DONE_STATUS, endOfDayIso, isOverdue, startOfDayIso } from "./utils";
 
 export interface Metric {
   key: string;
@@ -25,9 +25,9 @@ export function computeMetrics(
 
   const now = Date.now();
   const allTasks = taskApp?.tasks ?? [];
-  const overdueAll = allTasks.filter((t) => t.status !== "done" && isOverdue(t.dueDate)).length;
+  const overdueAll = allTasks.filter((t) => t.status !== DONE_STATUS && isOverdue(t.dueDate)).length;
   const overdueMine = allTasks.filter(
-    (t) => t.status !== "done" && t.assignees?.includes(currentUserName) && isOverdue(t.dueDate),
+    (t) => t.status !== DONE_STATUS && t.assignees?.includes(currentUserName) && isOverdue(t.dueDate),
   ).length;
 
   let expiringSoon = 0;
@@ -54,7 +54,7 @@ export function computeMetrics(
   const metrics: Metric[] = [];
 
   if (role === "admin") {
-    const openTasks = allTasks.filter((t) => t.status !== "done").length;
+    const openTasks = allTasks.filter((t) => t.status !== DONE_STATUS).length;
     if (openTasks > 0 && taskApp) {
       metrics.push({ key: "open-tasks", label: "Open tasks", value: openTasks, appId: taskApp.id });
     }
@@ -86,7 +86,7 @@ export function computeMetrics(
     }
   } else {
     const yourTasks = allTasks.filter(
-      (t) => t.status !== "done" && t.assignees?.includes(currentUserName),
+      (t) => t.status !== DONE_STATUS && t.assignees?.includes(currentUserName),
     ).length;
     if (yourTasks > 0 && taskApp) {
       metrics.push({ key: "your-tasks", label: "Your open tasks", value: yourTasks, appId: taskApp.id });

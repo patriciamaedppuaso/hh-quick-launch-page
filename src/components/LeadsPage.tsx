@@ -1,62 +1,46 @@
 import { useMemo, useState } from "react";
-import type { AppTile, LeadRecord, LeadStatus, Role } from "../types";
+import type { AppTile, LeadRecord, Role } from "../types";
 import { Icon } from "../icons";
-import { formatCurrency, formatDate, initialOf } from "../utils";
+import { DEFAULT_LEAD_STATUSES, colorForStatus, formatCurrency, formatDate, initialOf } from "../utils";
 import { Modal } from "./Modal";
 import { LeadForm } from "./LeadForm";
+import { ManageStatusesForm } from "./ManageStatusesForm";
 
 interface Props {
   app: AppTile;
   role: Role;
   onBack: () => void;
   onUpdate: (records: LeadRecord[]) => void;
+  onUpdateStatusOptions: (options: string[]) => void;
 }
 
 const FALLBACK_TINT = { bg: "#EDF7F6", fg: "#479CA4" };
 
-type StatusFilter = "all" | LeadStatus;
+type StatusFilter = "all" | string;
 
-const FILTERS: { value: StatusFilter; label: string }[] = [
-  { value: "all", label: "All" },
-  { value: "contacted", label: "Contacted" },
-  { value: "follow-up", label: "Follow Up" },
-  { value: "interested", label: "Interested" },
-  { value: "schedule-meeting", label: "Schedule Meeting" },
-  { value: "signing-contract", label: "Signing Contract" },
-  { value: "closed", label: "Closed" },
-  { value: "closed-down", label: "Closed Down" },
-];
-
-const STATUS_LABEL: Record<LeadStatus, string> = {
-  contacted: "Contacted",
-  "follow-up": "Follow Up",
-  interested: "Interested",
-  "schedule-meeting": "Schedule Meeting",
-  "signing-contract": "Signing Contract",
-  closed: "Closed",
-  "closed-down": "Closed Down",
-};
-
-const STATUS_COLORS: Record<LeadStatus, { bg: string; fg: string }> = {
-  contacted: { bg: "#FCF0DC", fg: "#B9772E" },
-  "follow-up": { bg: "#E7F6F8", fg: "#2E8B99" },
-  interested: { bg: "#EFECFB", fg: "#7C6FE0" },
-  "schedule-meeting": { bg: "#EAF1FD", fg: "#5B8DEF" },
-  "signing-contract": { bg: "#E7EEF3", fg: "#285677" },
-  closed: { bg: "#E9F5EF", fg: "#3E9A6D" },
-  "closed-down": { bg: "#F6E2DD", fg: "#C05A4A" },
-};
-
-export function LeadsPage({ app, role, onBack, onUpdate }: Props) {
+export function LeadsPage({ app, role, onBack, onUpdate, onUpdateStatusOptions }: Props) {
   const records = app.leads ?? [];
+  const statusOptions = app.statusOptions ?? DEFAULT_LEAD_STATUSES;
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [editing, setEditing] = useState<LeadRecord | null>(null);
   const [adding, setAdding] = useState(false);
+  const [managingStatuses, setManagingStatuses] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const canManage = role === "admin";
   const tint = app.tint ?? FALLBACK_TINT;
+
+  const FILTERS: { value: StatusFilter; label: string }[] = useMemo(
+    () => [{ value: "all", label: "All" }, ...statusOptions.map((s) => ({ value: s, label: s }))],
+    [statusOptions],
+  );
+
+  const statusUsageCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const r of records) counts[r.status] = (counts[r.status] ?? 0) + 1;
+    return counts;
+  }, [records]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -122,6 +106,17 @@ export function LeadsPage({ app, role, onBack, onUpdate }: Props) {
           ))}
         </div>
         {canManage && (
+          <button
+            type="button"
+            className="card-edit-btn"
+            aria-label="Manage statuses"
+            title="Manage statuses"
+            onClick={() => setManagingStatuses(true)}
+          >
+            <Icon name="edit" />
+          </button>
+        )}
+        {canManage && (
           <button type="button" className="btn-primary items-add-btn" onClick={() => setAdding(true)}>
             + Add lead
           </button>
@@ -148,11 +143,11 @@ export function LeadsPage({ app, role, onBack, onUpdate }: Props) {
               <span
                 className="status-pill"
                 style={{
-                  background: STATUS_COLORS[lead.status]?.bg ?? FALLBACK_TINT.bg,
-                  color: STATUS_COLORS[lead.status]?.fg ?? FALLBACK_TINT.fg,
+                  background: colorForStatus(statusOptions, lead.status).bg,
+                  color: colorForStatus(statusOptions, lead.status).fg,
                 }}
               >
-                {STATUS_LABEL[lead.status] ?? lead.status}
+                {lead.status}
               </span>
               {canManage && (
                 <div className={`items-row-manage${confirmDeleteId === lead.id ? " items-row-manage--active" : ""}`}>
@@ -191,11 +186,30 @@ export function LeadsPage({ app, role, onBack, onUpdate }: Props) {
       )}
 
       <Modal open={adding} onClose={() => setAdding(false)} title="Add lead">
-        <LeadForm onSave={handleAddSave} onCancel={() => setAdding(false)} />
+        <LeadForm statusOptions={statusOptions} onSave={handleAddSave} onCancel={() => setAdding(false)} />
       </Modal>
 
       <Modal open={!!editing} onClose={() => setEditing(null)} title="Edit lead">
-        {editing && <LeadForm initial={editing} onSave={handleEditSave} onCancel={() => setEditing(null)} />}
+        {editing && (
+          <LeadForm
+            initial={editing}
+            statusOptions={statusOptions}
+            onSave={handleEditSave}
+            onCancel={() => setEditing(null)}
+          />
+        )}
+      </Modal>
+
+      <Modal open={managingStatuses} onClose={() => setManagingStatuses(false)} title="Manage lead statuses">
+        <ManageStatusesForm
+          statuses={statusOptions}
+          usageCounts={statusUsageCounts}
+          onSave={(next) => {
+            onUpdateStatusOptions(next);
+            setManagingStatuses(false);
+          }}
+          onCancel={() => setManagingStatuses(false)}
+        />
       </Modal>
     </div>
   );

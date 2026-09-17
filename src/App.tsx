@@ -16,6 +16,7 @@ import { AppGrid } from "./components/AppGrid";
 import { WidgetsPanel } from "./components/WidgetsPanel";
 import { Modal } from "./components/Modal";
 import { AddAppForm } from "./components/AddAppForm";
+import { EditAppForm } from "./components/EditAppForm";
 import { ItemsPage } from "./components/ItemsPage";
 import { ContactsPage } from "./components/ContactsPage";
 import { LeadsPage } from "./components/LeadsPage";
@@ -60,6 +61,7 @@ export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(() => loadSidebarCollapsed());
   const [addingApp, setAddingApp] = useState(false);
+  const [editingApp, setEditingApp] = useState<AppTile | null>(null);
 
   const mainRef = useRef<HTMLElement>(null);
   const hideThumbTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -299,6 +301,12 @@ export default function App() {
     setAddingApp(false);
   }
 
+  function handleEditApp(patch: { name: string; description?: string; visible: boolean }) {
+    if (!editingApp) return;
+    updateApp(editingApp.id, patch);
+    setEditingApp(null);
+  }
+
   function renderActiveApp(app: ListApp) {
     switch (app.builtin) {
       case "contacts":
@@ -312,7 +320,13 @@ export default function App() {
         );
       case "leads":
         return (
-          <LeadsPage app={app} role={role} onBack={closeItems} onUpdate={(leads) => updateApp(app.id, { leads })} />
+          <LeadsPage
+            app={app}
+            role={role}
+            onBack={closeItems}
+            onUpdate={(leads) => updateApp(app.id, { leads })}
+            onUpdateStatusOptions={(statusOptions) => updateApp(app.id, { statusOptions })}
+          />
         );
       case "announcements":
         return (
@@ -333,6 +347,7 @@ export default function App() {
             currentUserName={currentUserName}
             onBack={closeItems}
             onUpdate={(tasks) => updateApp(app.id, { tasks })}
+            onUpdateStatusOptions={(statusOptions) => updateApp(app.id, { statusOptions })}
           />
         );
       case "timeclock":
@@ -431,6 +446,7 @@ export default function App() {
               onReorder={setAppsAndSync}
               onOpenItems={openItems}
               onRequestAdd={() => setAddingApp(true)}
+              onEditApp={(app) => setEditingApp(app)}
             />
           </>
         )}
@@ -450,6 +466,12 @@ export default function App() {
 
       <Modal open={addingApp} onClose={() => setAddingApp(false)} title="Add an app">
         <AddAppForm onSave={handleAddApp} onCancel={() => setAddingApp(false)} />
+      </Modal>
+
+      <Modal open={!!editingApp} onClose={() => setEditingApp(null)} title="Edit app">
+        {editingApp && (
+          <EditAppForm app={editingApp} onSave={handleEditApp} onCancel={() => setEditingApp(null)} />
+        )}
       </Modal>
     </div>
   );

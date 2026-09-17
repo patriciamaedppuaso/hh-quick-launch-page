@@ -63,14 +63,7 @@ export interface ContactRecord {
   avatar?: string;
 }
 
-export type LeadStatus =
-  | "contacted"
-  | "follow-up"
-  | "interested"
-  | "schedule-meeting"
-  | "signing-contract"
-  | "closed"
-  | "closed-down";
+export type LeadStatus = string;
 
 export interface LeadRecord {
   id: string;
@@ -100,7 +93,7 @@ export interface AnnouncementRecord {
   attachments?: AnnouncementAttachment[];
 }
 
-export type TaskStatus = "todo" | "in-progress" | "done";
+export type TaskStatus = string;
 export type TaskPriority = "low" | "medium" | "high";
 
 export interface TaskRecord {
@@ -160,6 +153,10 @@ interface AppBase {
   icon?: IconName;
   tint?: Tint;
   builtin?: BuiltinKind;
+  /** Admin-editable status tabs for builtin apps that filter by status (leads, tasks). */
+  statusOptions?: string[];
+  /** Whether staff can see this app. Admins always see every app regardless. Defaults to true. */
+  visible?: boolean;
   contacts?: ContactRecord[];
   leads?: LeadRecord[];
   announcements?: AnnouncementRecord[];

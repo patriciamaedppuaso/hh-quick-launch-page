@@ -9,11 +9,13 @@ interface Props {
   app: AppTile;
   onOpenItems: () => void;
   showHandle?: boolean;
+  canEdit?: boolean;
+  onEdit?: () => void;
 }
 
 const FALLBACK_TINT = { bg: "#EDF7F6", fg: "#479CA4" };
 
-export function AppCard({ app, onOpenItems, showHandle }: Props) {
+export function AppCard({ app, onOpenItems, showHandle, canEdit, onEdit }: Props) {
   const [previewOpen, setPreviewOpen] = useState(false);
   const isList = app.type === "list";
   const linkApp = app.type === "link" ? app : null;
@@ -33,9 +35,11 @@ export function AppCard({ app, onOpenItems, showHandle }: Props) {
     }
   }
 
+  const isHidden = app.visible === false;
+
   return (
     <div
-      className="card"
+      className={`card${isHidden ? " card-hidden" : ""}`}
       style={{
         background: `linear-gradient(160deg, color-mix(in srgb, ${tint.fg} 16%, var(--card-bg)) 0%, var(--card-bg) 55%)`,
       }}
@@ -45,7 +49,21 @@ export function AppCard({ app, onOpenItems, showHandle }: Props) {
           <AppLogo app={app} />
         </div>
         <div className="card-top-right">
+          {isHidden && <span className="visibility-badge">Hidden</span>}
           {app.category && <span className="category-badge">{app.category}</span>}
+          {canEdit && (
+            <button
+              type="button"
+              className="card-edit-btn"
+              aria-label={`Edit ${app.name}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit?.();
+              }}
+            >
+              <Icon name="edit" />
+            </button>
+          )}
           {showHandle && (
             <span className="drag-handle" aria-hidden="true" title="Drag to reorder">
               <Icon name="grip" />
