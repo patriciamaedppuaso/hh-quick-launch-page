@@ -18,27 +18,33 @@ type StatusFilter = "all" | LeadStatus;
 
 const FILTERS: { value: StatusFilter; label: string }[] = [
   { value: "all", label: "All" },
-  { value: "new", label: "New" },
   { value: "contacted", label: "Contacted" },
-  { value: "qualified", label: "Qualified" },
-  { value: "won", label: "Won" },
-  { value: "lost", label: "Lost" },
+  { value: "follow-up", label: "Follow Up" },
+  { value: "interested", label: "Interested" },
+  { value: "schedule-meeting", label: "Schedule Meeting" },
+  { value: "signing-contract", label: "Signing Contract" },
+  { value: "closed", label: "Closed" },
+  { value: "closed-down", label: "Closed Down" },
 ];
 
 const STATUS_LABEL: Record<LeadStatus, string> = {
-  new: "New",
   contacted: "Contacted",
-  qualified: "Qualified",
-  won: "Won",
-  lost: "Lost",
+  "follow-up": "Follow Up",
+  interested: "Interested",
+  "schedule-meeting": "Schedule Meeting",
+  "signing-contract": "Signing Contract",
+  closed: "Closed",
+  "closed-down": "Closed Down",
 };
 
 const STATUS_COLORS: Record<LeadStatus, { bg: string; fg: string }> = {
-  new: { bg: "var(--surface-soft)", fg: "var(--text-secondary)" },
   contacted: { bg: "#FCF0DC", fg: "#B9772E" },
-  qualified: { bg: "#E7F6F8", fg: "#2E8B99" },
-  won: { bg: "#E9F5EF", fg: "#3E9A6D" },
-  lost: { bg: "#F6E2DD", fg: "#C05A4A" },
+  "follow-up": { bg: "#E7F6F8", fg: "#2E8B99" },
+  interested: { bg: "#EFECFB", fg: "#7C6FE0" },
+  "schedule-meeting": { bg: "#EAF1FD", fg: "#5B8DEF" },
+  "signing-contract": { bg: "#E7EEF3", fg: "#285677" },
+  closed: { bg: "#E9F5EF", fg: "#3E9A6D" },
+  "closed-down": { bg: "#F6E2DD", fg: "#C05A4A" },
 };
 
 export function LeadsPage({ app, role, onBack, onUpdate }: Props) {
@@ -57,7 +63,7 @@ export function LeadsPage({ app, role, onBack, onUpdate }: Props) {
     return records.filter((r) => {
       if (statusFilter !== "all" && r.status !== statusFilter) return false;
       if (!q) return true;
-      return [r.name, r.company, r.notes].some((v) => v?.toLowerCase().includes(q));
+      return [r.name, r.company, r.rep, r.notes].some((v) => v?.toLowerCase().includes(q));
     });
   }, [records, query, statusFilter]);
 
@@ -133,14 +139,20 @@ export function LeadsPage({ app, role, onBack, onUpdate }: Props) {
               <div className="items-row-text">
                 <span className="items-row-name">{lead.name}</span>
                 <span className="items-row-desc">
-                  {[lead.company, lead.followUp && `Follow up ${formatDate(lead.followUp)}`]
+                  {[lead.company, lead.rep && `Rep: ${lead.rep}`, lead.followUp && `Follow up ${formatDate(lead.followUp)}`]
                     .filter(Boolean)
                     .join(" · ")}
                 </span>
               </div>
               {lead.value != null && <span className="items-row-kind">{formatCurrency(lead.value)}</span>}
-              <span className="status-pill" style={{ background: STATUS_COLORS[lead.status].bg, color: STATUS_COLORS[lead.status].fg }}>
-                {STATUS_LABEL[lead.status]}
+              <span
+                className="status-pill"
+                style={{
+                  background: STATUS_COLORS[lead.status]?.bg ?? FALLBACK_TINT.bg,
+                  color: STATUS_COLORS[lead.status]?.fg ?? FALLBACK_TINT.fg,
+                }}
+              >
+                {STATUS_LABEL[lead.status] ?? lead.status}
               </span>
               {canManage && (
                 <div className={`items-row-manage${confirmDeleteId === lead.id ? " items-row-manage--active" : ""}`}>

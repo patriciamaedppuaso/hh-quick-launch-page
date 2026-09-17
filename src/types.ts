@@ -63,7 +63,14 @@ export interface ContactRecord {
   avatar?: string;
 }
 
-export type LeadStatus = "new" | "contacted" | "qualified" | "won" | "lost";
+export type LeadStatus =
+  | "contacted"
+  | "follow-up"
+  | "interested"
+  | "schedule-meeting"
+  | "signing-contract"
+  | "closed"
+  | "closed-down";
 
 export interface LeadRecord {
   id: string;
@@ -74,6 +81,7 @@ export interface LeadRecord {
   followUp?: string;
   notes?: string;
   createdAt?: string;
+  rep?: string;
 }
 
 export interface AnnouncementAttachment {

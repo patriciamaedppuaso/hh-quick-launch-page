@@ -9,17 +9,20 @@ interface Props {
 }
 
 const STATUS_OPTIONS: { value: LeadStatus; label: string }[] = [
-  { value: "new", label: "New" },
   { value: "contacted", label: "Contacted" },
-  { value: "qualified", label: "Qualified" },
-  { value: "won", label: "Won" },
-  { value: "lost", label: "Lost" },
+  { value: "follow-up", label: "Follow Up" },
+  { value: "interested", label: "Interested" },
+  { value: "schedule-meeting", label: "Schedule Meeting" },
+  { value: "signing-contract", label: "Signing Contract" },
+  { value: "closed", label: "Closed" },
+  { value: "closed-down", label: "Closed Down" },
 ];
 
 export function LeadForm({ initial, onSave, onCancel }: Props) {
   const [name, setName] = useState(initial?.name ?? "");
   const [company, setCompany] = useState(initial?.company ?? "");
-  const [status, setStatus] = useState<LeadStatus>(initial?.status ?? "new");
+  const [status, setStatus] = useState<LeadStatus>(initial?.status ?? "contacted");
+  const [rep, setRep] = useState(initial?.rep ?? "");
   const [value, setValue] = useState(initial?.value != null ? String(initial.value) : "");
   const [followUp, setFollowUp] = useState(initial?.followUp ?? "");
   const [notes, setNotes] = useState(initial?.notes ?? "");
@@ -33,6 +36,7 @@ export function LeadForm({ initial, onSave, onCancel }: Props) {
       name: trimmedName,
       company: company.trim() || undefined,
       status,
+      rep: rep.trim() || undefined,
       value: parsedValue !== undefined && !Number.isNaN(parsedValue) ? parsedValue : undefined,
       followUp: followUp || undefined,
       notes: notes.trim() || undefined,
@@ -71,6 +75,16 @@ export function LeadForm({ initial, onSave, onCancel }: Props) {
             </option>
           ))}
         </select>
+      </div>
+      <div className="form-row">
+        <label htmlFor="lRep">Rep (optional)</label>
+        <input
+          id="lRep"
+          type="text"
+          placeholder="Who's working this lead?"
+          value={rep}
+          onChange={(e) => setRep(e.target.value)}
+        />
       </div>
       <div className="form-row">
         <label htmlFor="lValue">Est. value (optional)</label>

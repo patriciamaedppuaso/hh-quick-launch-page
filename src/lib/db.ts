@@ -159,6 +159,7 @@ function rowToLead(row: Record<string, unknown>): LeadRecord {
     followUp: (row.follow_up as string) ?? undefined,
     notes: (row.notes as string) ?? undefined,
     createdAt: (row.created_at as string) ?? undefined,
+    rep: (row.rep as string) ?? undefined,
   };
 }
 
@@ -329,6 +330,7 @@ async function syncAppCollections(app: AppTile): Promise<void> {
           follow_up: l.followUp ?? null,
           notes: l.notes ?? null,
           created_at: l.createdAt ?? null,
+          rep: l.rep ?? null,
         })),
       ),
     );
