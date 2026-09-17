@@ -136,6 +136,7 @@ function rowToListItem(row: Record<string, unknown>): ListItem {
     fileName: (row.file_name as string) ?? undefined,
     expiresOn: (row.expires_on as string) ?? undefined,
     updatedAt: (row.updated_at as string) ?? undefined,
+    folder: (row.folder as string) ?? undefined,
   };
 }
 
@@ -294,6 +295,7 @@ async function syncAppCollections(app: AppTile): Promise<void> {
           file_name: it.fileName ?? null,
           expires_on: it.expiresOn ?? null,
           updated_at: it.updatedAt ?? null,
+          folder: it.folder ?? null,
         })),
       ),
     );

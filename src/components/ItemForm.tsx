@@ -5,15 +5,18 @@ import { FilePicker } from "./FilePicker";
 
 interface Props {
   initial?: ListItem;
+  folderOptions?: string[];
+  defaultFolder?: string;
   onSave: (item: ListItem) => void;
   onCancel: () => void;
 }
 
 type Source = "link" | "file";
 
-export function ItemForm({ initial, onSave, onCancel }: Props) {
+export function ItemForm({ initial, folderOptions, defaultFolder, onSave, onCancel }: Props) {
   const [name, setName] = useState(initial?.name ?? "");
   const [description, setDescription] = useState(initial?.description ?? "");
+  const [folder, setFolder] = useState(initial?.folder ?? defaultFolder ?? "");
   const [expiresOn, setExpiresOn] = useState(initial?.expiresOn ?? "");
   const [source, setSource] = useState<Source>(initial?.isFile ? "file" : "link");
   const [url, setUrl] = useState(initial?.isFile ? "" : (initial?.url ?? ""));
@@ -55,6 +58,7 @@ export function ItemForm({ initial, onSave, onCancel }: Props) {
         fileName,
         expiresOn: expiresOn || undefined,
         updatedAt: todayIso(),
+        folder: folder || undefined,
       });
       return;
     }
@@ -66,6 +70,7 @@ export function ItemForm({ initial, onSave, onCancel }: Props) {
       url: url.trim() ? normalizeUrl(url.trim()) : "",
       expiresOn: expiresOn || undefined,
       updatedAt: todayIso(),
+      folder: folder || undefined,
     });
   }
 
@@ -92,6 +97,20 @@ export function ItemForm({ initial, onSave, onCancel }: Props) {
           onChange={(e) => setDescription(e.target.value)}
         />
       </div>
+
+      {folderOptions && (
+        <div className="form-row">
+          <label htmlFor="iFolder">Folder</label>
+          <select id="iFolder" value={folder} onChange={(e) => setFolder(e.target.value)}>
+            <option value="">No folder</option>
+            {folderOptions.map((opt) => (
+              <option key={opt} value={opt}>
+                {opt}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       <div className="form-row">
         <label htmlFor="iExpires">Expires on (optional)</label>

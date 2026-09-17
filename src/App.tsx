@@ -307,6 +307,14 @@ export default function App() {
     setEditingApp(null);
   }
 
+  function handleDeleteApp() {
+    if (!editingApp) return;
+    const appId = editingApp.id;
+    setAppsAndSync((prev) => prev.filter((a) => a.id !== appId));
+    setEditingApp(null);
+    if (openAppId === appId) setOpenAppId(null);
+  }
+
   function renderActiveApp(app: ListApp) {
     switch (app.builtin) {
       case "contacts":
@@ -370,6 +378,7 @@ export default function App() {
             role={role}
             onBack={closeItems}
             onUpdateItems={(items) => updateApp(app.id, { items })}
+            onUpdateStatusOptions={(statusOptions) => updateApp(app.id, { statusOptions })}
           />
         );
     }
@@ -471,7 +480,12 @@ export default function App() {
 
       <Modal open={!!editingApp} onClose={() => setEditingApp(null)} title="Edit app">
         {editingApp && (
-          <EditAppForm app={editingApp} onSave={handleEditApp} onCancel={() => setEditingApp(null)} />
+          <EditAppForm
+            app={editingApp}
+            onSave={handleEditApp}
+            onDelete={handleDeleteApp}
+            onCancel={() => setEditingApp(null)}
+          />
         )}
       </Modal>
     </div>

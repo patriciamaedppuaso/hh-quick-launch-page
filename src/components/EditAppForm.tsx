@@ -4,13 +4,15 @@ import type { AppTile } from "../types";
 interface Props {
   app: AppTile;
   onSave: (patch: { name: string; description?: string; visible: boolean }) => void;
+  onDelete: () => void;
   onCancel: () => void;
 }
 
-export function EditAppForm({ app, onSave, onCancel }: Props) {
+export function EditAppForm({ app, onSave, onDelete, onCancel }: Props) {
   const [name, setName] = useState(app.name);
   const [description, setDescription] = useState(app.description ?? "");
   const [visible, setVisible] = useState(app.visible !== false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   function handleSave() {
     const trimmedName = name.trim();
@@ -54,6 +56,28 @@ export function EditAppForm({ app, onSave, onCancel }: Props) {
         </div>
         <p className="form-hint">Admins always see every app. Hidden apps stay editable, just off staff's dashboard.</p>
       </div>
+
+      <div className="danger-zone">
+        <div>
+          <p className="danger-zone-title">Delete this app</p>
+          <p className="form-hint">This removes "{app.name}" and everything inside it for everyone. This can't be undone.</p>
+        </div>
+        {confirmingDelete ? (
+          <span className="confirm-delete">
+            <button type="button" className="btn-danger-sm" onClick={onDelete}>
+              Delete
+            </button>
+            <button type="button" className="btn-secondary-sm" onClick={() => setConfirmingDelete(false)}>
+              Cancel
+            </button>
+          </span>
+        ) : (
+          <button type="button" className="btn-danger-sm" onClick={() => setConfirmingDelete(true)}>
+            Delete app
+          </button>
+        )}
+      </div>
+
       <div className="form-buttons">
         <button type="button" className="btn-secondary" onClick={onCancel}>
           Cancel

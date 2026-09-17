@@ -216,6 +216,8 @@ export function ContactsPage({ app, role, onBack, onUpdate, onUpdateStatusOption
         <ManageStatusesForm
           statuses={categoryOptions}
           usageCounts={categoryUsageCounts}
+          itemLabel="category"
+          placeholder="e.g. Partner"
           onSave={(next) => {
             onUpdateStatusOptions(next);
             setManagingCategories(false);

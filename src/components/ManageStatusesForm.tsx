@@ -5,11 +5,22 @@ interface Props {
   usageCounts: Record<string, number>;
   minCount?: number;
   protectedNote?: string;
+  placeholder?: string;
+  itemLabel?: string;
   onSave: (next: string[]) => void;
   onCancel: () => void;
 }
 
-export function ManageStatusesForm({ statuses, usageCounts, minCount = 1, protectedNote, onSave, onCancel }: Props) {
+export function ManageStatusesForm({
+  statuses,
+  usageCounts,
+  minCount = 1,
+  protectedNote,
+  placeholder = "e.g. Blocked",
+  itemLabel = "status",
+  onSave,
+  onCancel,
+}: Props) {
   const [items, setItems] = useState(statuses);
   const [newLabel, setNewLabel] = useState("");
   const [error, setError] = useState("");
@@ -34,7 +45,7 @@ export function ManageStatusesForm({ statuses, usageCounts, minCount = 1, protec
 
   function handleSave() {
     if (items.length < minCount) {
-      setError(`Keep at least ${minCount} status${minCount === 1 ? "" : "es"}.`);
+      setError(`Keep at least ${minCount} ${itemLabel}${minCount === 1 ? "" : "es"}.`);
       return;
     }
     onSave(items);
@@ -70,12 +81,12 @@ export function ManageStatusesForm({ statuses, usageCounts, minCount = 1, protec
       )}
 
       <div className="form-row">
-        <label htmlFor="newStatusLabel">Add a status</label>
+        <label htmlFor="newStatusLabel">Add a {itemLabel}</label>
         <div className="url-field">
           <input
             id="newStatusLabel"
             type="text"
-            placeholder="e.g. Blocked"
+            placeholder={placeholder}
             value={newLabel}
             onChange={(e) => setNewLabel(e.target.value)}
             onKeyDown={(e) => {

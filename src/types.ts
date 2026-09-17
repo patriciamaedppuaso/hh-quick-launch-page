@@ -33,7 +33,9 @@ export type IconName =
   | "mail"
   | "home"
   | "plus"
-  | "menu";
+  | "menu"
+  | "folder"
+  | "chevron-right";
 
 export interface Tint {
   bg: string;
@@ -49,6 +51,8 @@ export interface ListItem {
   fileName?: string;
   expiresOn?: string;
   updatedAt?: string;
+  /** Which folder this item sits in, when the app has folders enabled. Undefined = no folder. */
+  folder?: string;
 }
 
 export type BuiltinKind = "contacts" | "leads" | "announcements" | "tasks" | "timeclock" | "users";
