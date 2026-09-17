@@ -4,6 +4,7 @@ import { TEAM_MEMBERS, newId } from "../utils";
 
 interface Props {
   initial?: TaskRecord;
+  currentUserName: string;
   onSave: (record: TaskRecord) => void;
   onCancel: () => void;
 }
@@ -20,12 +21,15 @@ const PRIORITY_OPTIONS: { value: TaskPriority; label: string }[] = [
   { value: "high", label: "High" },
 ];
 
-export function TaskForm({ initial, onSave, onCancel }: Props) {
+export function TaskForm({ initial, currentUserName, onSave, onCancel }: Props) {
   const [title, setTitle] = useState(initial?.title ?? "");
   const [status, setStatus] = useState<TaskStatus>(initial?.status ?? "todo");
   const [priority, setPriority] = useState<TaskPriority>(initial?.priority ?? "medium");
   const [dueDate, setDueDate] = useState(initial?.dueDate ?? "");
   const [assignees, setAssignees] = useState<string[]>(initial?.assignees ?? []);
+
+  const assigneeOptions =
+    currentUserName && !TEAM_MEMBERS.includes(currentUserName) ? [currentUserName, ...TEAM_MEMBERS] : TEAM_MEMBERS;
 
   function toggleAssignee(name: string) {
     setAssignees((prev) => (prev.includes(name) ? prev.filter((n) => n !== name) : [...prev, name]));
@@ -83,7 +87,7 @@ export function TaskForm({ initial, onSave, onCancel }: Props) {
       <div className="form-row">
         <label>Assignees (optional)</label>
         <div className="assignee-picker">
-          {TEAM_MEMBERS.map((name) => (
+          {assigneeOptions.map((name) => (
             <button
               key={name}
               type="button"
@@ -91,6 +95,7 @@ export function TaskForm({ initial, onSave, onCancel }: Props) {
               onClick={() => toggleAssignee(name)}
             >
               {name}
+              {name === currentUserName ? " (You)" : ""}
             </button>
           ))}
         </div>

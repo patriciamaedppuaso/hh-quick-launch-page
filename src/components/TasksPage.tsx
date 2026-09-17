@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import type { AppTile, Role, TaskPriority, TaskRecord, TaskStatus } from "../types";
 import { Icon } from "../icons";
-import { formatDate, initialOf, isOverdue } from "../utils";
+import { formatDate, initialOf, isOverdue, TEAM_MEMBERS } from "../utils";
 import { Modal } from "./Modal";
 import { TaskForm } from "./TaskForm";
 
@@ -41,6 +41,7 @@ export function TasksPage({ app, role, currentUserName, onBack, onUpdate }: Prop
   const records = app.tasks ?? [];
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [assigneeFilter, setAssigneeFilter] = useState("all");
   const [editing, setEditing] = useState<TaskRecord | null>(null);
   const [adding, setAdding] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
@@ -48,15 +49,26 @@ export function TasksPage({ app, role, currentUserName, onBack, onUpdate }: Prop
   const canManage = role === "admin";
   const tint = app.tint ?? FALLBACK_TINT;
 
+  const assigneeOptions = useMemo(() => {
+    const names = new Set(TEAM_MEMBERS);
+    for (const t of records) {
+      for (const a of t.assignees ?? []) names.add(a);
+    }
+    return Array.from(names);
+  }, [records]);
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return records.filter((t) => {
       if (statusFilter !== "all" && t.status !== statusFilter) return false;
+      if (assigneeFilter === "unassigned" && (t.assignees ?? []).length > 0) return false;
+      if (assigneeFilter !== "all" && assigneeFilter !== "unassigned" && !(t.assignees ?? []).includes(assigneeFilter))
+        return false;
       if (!q) return true;
       if (t.title.toLowerCase().includes(q)) return true;
       return (t.assignees ?? []).some((a) => a.toLowerCase().includes(q));
     });
-  }, [records, query, statusFilter]);
+  }, [records, query, statusFilter, assigneeFilter]);
 
   function canChangeStatus(task: TaskRecord) {
     return canManage || (task.assignees?.includes(currentUserName) ?? false);
@@ -120,6 +132,22 @@ export function TasksPage({ app, role, currentUserName, onBack, onUpdate }: Prop
             </button>
           ))}
         </div>
+        {canManage && (
+          <select
+            className="filter-select"
+            aria-label="Filter by assignee"
+            value={assigneeFilter}
+            onChange={(e) => setAssigneeFilter(e.target.value)}
+          >
+            <option value="all">Everyone's tasks</option>
+            <option value="unassigned">Unassigned</option>
+            {assigneeOptions.map((name) => (
+              <option key={name} value={name}>
+                {name}
+              </option>
+            ))}
+          </select>
+        )}
         {canManage && (
           <button type="button" className="btn-primary items-add-btn" onClick={() => setAdding(true)}>
             + Add task
@@ -222,11 +250,18 @@ export function TasksPage({ app, role, currentUserName, onBack, onUpdate }: Prop
       )}
 
       <Modal open={adding} onClose={() => setAdding(false)} title="Add task">
-        <TaskForm onSave={handleAddSave} onCancel={() => setAdding(false)} />
+        <TaskForm currentUserName={currentUserName} onSave={handleAddSave} onCancel={() => setAdding(false)} />
       </Modal>
 
       <Modal open={!!editing} onClose={() => setEditing(null)} title="Edit task">
-        {editing && <TaskForm initial={editing} onSave={handleEditSave} onCancel={() => setEditing(null)} />}
+        {editing && (
+          <TaskForm
+            initial={editing}
+            currentUserName={currentUserName}
+            onSave={handleEditSave}
+            onCancel={() => setEditing(null)}
+          />
+        )}
       </Modal>
     </div>
   );

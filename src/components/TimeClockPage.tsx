@@ -219,7 +219,12 @@ export function TimeClockPage({ app, role, currentUserName, onBack, onUpdate }: 
       {isAdmin && otherRecords.length > 0 && (
         <div className="timesheet-viewer">
           <label htmlFor="timesheetViewer">Viewing timesheet for</label>
-          <select id="timesheetViewer" value={viewingName} onChange={(e) => setViewingName(e.target.value)}>
+          <select
+            id="timesheetViewer"
+            className="filter-select"
+            value={viewingName}
+            onChange={(e) => setViewingName(e.target.value)}
+          >
             <option value={currentUserName}>{currentUserName} (You)</option>
             {otherRecords.map((r) => (
               <option key={r.id} value={r.name}>
