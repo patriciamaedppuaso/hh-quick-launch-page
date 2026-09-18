@@ -22,6 +22,7 @@ export function TaskForm({ initial, statusOptions, currentUserName, onSave, onCa
   const [priority, setPriority] = useState<TaskPriority>(initial?.priority ?? "medium");
   const [dueDate, setDueDate] = useState(initial?.dueDate ?? "");
   const [assignees, setAssignees] = useState<string[]>(initial?.assignees ?? []);
+  const [error, setError] = useState("");
 
   const assigneeOptions =
     currentUserName && !TEAM_MEMBERS.includes(currentUserName) ? [currentUserName, ...TEAM_MEMBERS] : TEAM_MEMBERS;
@@ -32,7 +33,11 @@ export function TaskForm({ initial, statusOptions, currentUserName, onSave, onCa
 
   function handleSave() {
     const trimmedTitle = title.trim();
-    if (!trimmedTitle) return;
+    if (!trimmedTitle) {
+      setError("Task title is required.");
+      return;
+    }
+    setError("");
     onSave({
       id: initial?.id ?? newId("task"),
       title: trimmedTitle,
@@ -95,6 +100,8 @@ export function TaskForm({ initial, statusOptions, currentUserName, onSave, onCa
           ))}
         </div>
       </div>
+      {error && <p className="field-error">{error}</p>}
+
       <div className="form-buttons">
         <button type="button" className="btn-secondary" onClick={onCancel}>
           Cancel

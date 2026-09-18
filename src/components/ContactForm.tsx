@@ -18,10 +18,15 @@ export function ContactForm({ initial, categoryOptions, onSave, onCancel }: Prop
   const [email, setEmail] = useState(initial?.email ?? "");
   const [notes, setNotes] = useState(initial?.notes ?? "");
   const [avatar, setAvatar] = useState(initial?.avatar ?? "");
+  const [error, setError] = useState("");
 
   function handleSave() {
     const trimmedName = name.trim();
-    if (!trimmedName) return;
+    if (!trimmedName) {
+      setError("Name is required.");
+      return;
+    }
+    setError("");
     onSave({
       id: initial?.id ?? newId("contact"),
       name: trimmedName,
@@ -100,6 +105,8 @@ export function ContactForm({ initial, categoryOptions, onSave, onCancel }: Prop
           onChange={(e) => setNotes(e.target.value)}
         />
       </div>
+      {error && <p className="field-error">{error}</p>}
+
       <div className="form-buttons">
         <button type="button" className="btn-secondary" onClick={onCancel}>
           Cancel

@@ -13,10 +13,15 @@ export function EditAppForm({ app, onSave, onDelete, onCancel }: Props) {
   const [description, setDescription] = useState(app.description ?? "");
   const [visible, setVisible] = useState(app.visible !== false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [error, setError] = useState("");
 
   function handleSave() {
     const trimmedName = name.trim();
-    if (!trimmedName) return;
+    if (!trimmedName) {
+      setError("Name is required.");
+      return;
+    }
+    setError("");
     onSave({ name: trimmedName, description: description.trim() || undefined, visible });
   }
 
@@ -77,6 +82,8 @@ export function EditAppForm({ app, onSave, onDelete, onCancel }: Props) {
           </button>
         )}
       </div>
+
+      {error && <p className="field-error">{error}</p>}
 
       <div className="form-buttons">
         <button type="button" className="btn-secondary" onClick={onCancel}>

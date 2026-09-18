@@ -10,10 +10,15 @@ interface Props {
 
 export function TimeClockForm({ initial, onSave, onCancel }: Props) {
   const [name, setName] = useState(initial?.name ?? "");
+  const [error, setError] = useState("");
 
   function handleSave() {
     const trimmed = name.trim();
-    if (!trimmed) return;
+    if (!trimmed) {
+      setError("Staff name is required.");
+      return;
+    }
+    setError("");
     onSave({
       id: initial?.id ?? newId("clock"),
       name: trimmed,
@@ -34,6 +39,8 @@ export function TimeClockForm({ initial, onSave, onCancel }: Props) {
           onChange={(e) => setName(e.target.value)}
         />
       </div>
+      {error && <p className="field-error">{error}</p>}
+
       <div className="form-buttons">
         <button type="button" className="btn-secondary" onClick={onCancel}>
           Cancel

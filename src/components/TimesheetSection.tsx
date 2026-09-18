@@ -13,6 +13,7 @@ import {
   workedMs,
 } from "../utils";
 import { useClickOutside } from "../hooks/useClickOutside";
+import { useToast } from "./ToastProvider";
 
 interface Props {
   title: string;
@@ -54,6 +55,7 @@ function csvCell(value: string): string {
 }
 
 export function TimesheetSection({ title, personName, entries, onRequestEdit }: Props) {
+  const toast = useToast();
   const fileSlug = personName.trim().toLowerCase().replace(/\s+/g, "-") || "employee";
   const [weekStart, setWeekStart] = useState(() => startOfWeek(toZonedDate(new Date())));
   const [exportOpen, setExportOpen] = useState(false);
@@ -103,21 +105,28 @@ export function TimesheetSection({ title, personName, entries, onRequestEdit }: 
 
   function exportCsv() {
     setExportOpen(false);
-    const rows = [["Date", "Type", "Start", "End", "Duration"], ...buildTableRows()];
-    const csv = rows.map((row) => row.map(csvCell).join(",")).join("\n");
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `timesheet-${fileSlug}-${toIsoDate(weekStart)}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
+    try {
+      const rows = [["Date", "Type", "Start", "End", "Duration"], ...buildTableRows()];
+      const csv = rows.map((row) => row.map(csvCell).join(",")).join("\n");
+      const blob = new Blob([csv], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `timesheet-${fileSlug}-${toIsoDate(weekStart)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast.success("CSV exported");
+    } catch (err) {
+      console.error("CSV export failed:", err);
+      toast.error("Couldn't export the CSV. Please try again.");
+    }
   }
 
   async function exportPdf() {
     setExportOpen(false);
+    try {
     // Loaded on demand: jsPDF drags in html2canvas + dompurify (for a feature
     // we don't use), which would otherwise bloat every page load for a
     // button most people won't click.
@@ -234,6 +243,11 @@ export function TimesheetSection({ title, personName, entries, onRequestEdit }: 
     }
 
     doc.save(`timesheet-${fileSlug}-${toIsoDate(weekStart)}.pdf`);
+    toast.success("PDF exported");
+    } catch (err) {
+      console.error("PDF export failed:", err);
+      toast.error("Couldn't export the PDF. Please try again.");
+    }
   }
 
   return (

@@ -166,6 +166,13 @@ const PATHS: Record<IconName, ReactNode> = {
   ),
   folder: <path d="M3 6.5A1.5 1.5 0 0 1 4.5 5h4.6l2 2.5H19.5A1.5 1.5 0 0 1 21 9v9a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18Z" />,
   "chevron-right": <path d="M9 6l6 6-6 6" />,
+  "alert-circle": (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7.5v5.5" />
+      <circle cx="12" cy="16.3" r="0.9" fill="currentColor" stroke="none" />
+    </>
+  ),
 };
 
 export function Icon({ name, className }: Props) {

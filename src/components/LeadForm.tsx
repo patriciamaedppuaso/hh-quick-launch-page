@@ -17,18 +17,27 @@ export function LeadForm({ initial, statusOptions, onSave, onCancel }: Props) {
   const [value, setValue] = useState(initial?.value != null ? String(initial.value) : "");
   const [followUp, setFollowUp] = useState(initial?.followUp ?? "");
   const [notes, setNotes] = useState(initial?.notes ?? "");
+  const [error, setError] = useState("");
 
   function handleSave() {
     const trimmedName = name.trim();
-    if (!trimmedName) return;
+    if (!trimmedName) {
+      setError("Name is required.");
+      return;
+    }
     const parsedValue = value.trim() ? Number(value) : undefined;
+    if (parsedValue !== undefined && Number.isNaN(parsedValue)) {
+      setError("Est. value must be a number.");
+      return;
+    }
+    setError("");
     onSave({
       id: initial?.id ?? newId("lead"),
       name: trimmedName,
       company: company.trim() || undefined,
       status,
       rep: rep.trim() || undefined,
-      value: parsedValue !== undefined && !Number.isNaN(parsedValue) ? parsedValue : undefined,
+      value: parsedValue,
       followUp: followUp || undefined,
       notes: notes.trim() || undefined,
       createdAt: initial?.createdAt ?? todayIso(),
@@ -101,6 +110,8 @@ export function LeadForm({ initial, statusOptions, onSave, onCancel }: Props) {
           onChange={(e) => setNotes(e.target.value)}
         />
       </div>
+      {error && <p className="field-error">{error}</p>}
+
       <div className="form-buttons">
         <button type="button" className="btn-secondary" onClick={onCancel}>
           Cancel

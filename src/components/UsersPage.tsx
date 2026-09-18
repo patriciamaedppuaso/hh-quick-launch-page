@@ -6,6 +6,7 @@ import { formatDate, initialOf } from "../utils";
 import { Modal } from "./Modal";
 import { UserCreateForm } from "./UserCreateForm";
 import { UserEditForm } from "./UserEditForm";
+import { useToast } from "./ToastProvider";
 
 interface Props {
   app: AppTile;
@@ -16,6 +17,7 @@ interface Props {
 const FALLBACK_TINT = { bg: "#EFEFFB", fg: "#6C63C6" };
 
 export function UsersPage({ app, role, onBack }: Props) {
+  const toast = useToast();
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadErr, setLoadErr] = useState<string | null>(null);
@@ -51,15 +53,27 @@ export function UsersPage({ app, role, onBack }: Props) {
   }, [users, query]);
 
   async function handleCreate(input: { email: string; password: string; name?: string; role: Role }) {
-    await createUserAccount(input);
-    await reload();
-    setCreating(false);
+    try {
+      await createUserAccount(input);
+      await reload();
+      setCreating(false);
+      toast.success("Account created");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Couldn't create the account.");
+      throw err;
+    }
   }
 
   async function handleEditSave(id: string, patch: { name?: string; role?: Role }) {
-    await updateUserProfile(id, patch);
-    await reload();
-    setEditing(null);
+    try {
+      await updateUserProfile(id, patch);
+      await reload();
+      setEditing(null);
+      toast.success("User updated");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Couldn't save changes.");
+      throw err;
+    }
   }
 
   async function handleDelete(id: string) {
@@ -68,8 +82,11 @@ export function UsersPage({ app, role, onBack }: Props) {
       await deleteUser(id);
       await reload();
       setConfirmDeleteId(null);
+      toast.success("User removed");
     } catch (err) {
-      setLoadErr(err instanceof Error ? err.message : "Couldn't remove that user.");
+      const message = err instanceof Error ? err.message : "Couldn't remove that user.";
+      setLoadErr(message);
+      toast.error(message);
     } finally {
       setBusyId(null);
     }

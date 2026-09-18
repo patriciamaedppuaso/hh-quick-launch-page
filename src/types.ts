@@ -35,7 +35,8 @@ export type IconName =
   | "plus"
   | "menu"
   | "folder"
-  | "chevron-right";
+  | "chevron-right"
+  | "alert-circle";
 
 export interface Tint {
   bg: string;

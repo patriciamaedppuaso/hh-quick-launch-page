@@ -17,7 +17,10 @@ export function UserCreateForm({ onSave, onCancel }: Props) {
 
   async function handleSave() {
     const trimmedEmail = email.trim();
-    if (!trimmedEmail) return;
+    if (!trimmedEmail) {
+      setError("Email is required.");
+      return;
+    }
     if (password.length < 8) {
       setError("Password must be at least 8 characters.");
       return;

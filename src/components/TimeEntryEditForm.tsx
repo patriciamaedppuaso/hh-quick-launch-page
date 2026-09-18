@@ -12,9 +12,18 @@ export function TimeEntryEditForm({ entry, onSave, onCancel }: Props) {
   const [clockIn, setClockIn] = useState(toDateTimeLocal(entry.editRequest?.clockIn ?? entry.clockIn));
   const [clockOut, setClockOut] = useState(toDateTimeLocal(entry.editRequest?.clockOut ?? entry.clockOut));
   const [note, setNote] = useState(entry.editRequest?.note ?? "");
+  const [error, setError] = useState("");
 
   function handleSave() {
-    if (!clockIn) return;
+    if (!clockIn) {
+      setError("Clock in time is required.");
+      return;
+    }
+    if (clockOut && clockOut < clockIn) {
+      setError("Clock out can't be before clock in.");
+      return;
+    }
+    setError("");
     onSave(fromDateTimeLocal(clockIn), clockOut ? fromDateTimeLocal(clockOut) : undefined, note.trim());
   }
 
@@ -51,6 +60,8 @@ export function TimeEntryEditForm({ entry, onSave, onCancel }: Props) {
           onChange={(e) => setNote(e.target.value)}
         />
       </div>
+      {error && <p className="field-error">{error}</p>}
+
       <div className="form-buttons">
         <button type="button" className="btn-secondary" onClick={onCancel}>
           Cancel

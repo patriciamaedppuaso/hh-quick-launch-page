@@ -24,6 +24,7 @@ export function ItemForm({ initial, folderOptions, defaultFolder, onSave, onCanc
   const [fileSize, setFileSize] = useState(0);
   const [fileDataUrl, setFileDataUrl] = useState(initial?.isFile ? (initial?.url ?? "") : "");
   const [fileError, setFileError] = useState("");
+  const [error, setError] = useState("");
 
   async function handleFileChange(file: File | null) {
     setFileError("");
@@ -44,11 +45,18 @@ export function ItemForm({ initial, folderOptions, defaultFolder, onSave, onCanc
 
   function handleSave() {
     const trimmedName = name.trim();
-    if (!trimmedName) return;
+    if (!trimmedName) {
+      setError("Name is required.");
+      return;
+    }
     const trimmedDesc = description.trim();
 
     if (source === "file") {
-      if (!fileDataUrl) return;
+      if (!fileDataUrl) {
+        setError("Upload a file, or switch the source to Link.");
+        return;
+      }
+      setError("");
       onSave({
         id: initial?.id ?? newId("item"),
         name: trimmedName,
@@ -63,6 +71,7 @@ export function ItemForm({ initial, folderOptions, defaultFolder, onSave, onCanc
       return;
     }
 
+    setError("");
     onSave({
       id: initial?.id ?? newId("item"),
       name: trimmedName,
@@ -158,6 +167,8 @@ export function ItemForm({ initial, folderOptions, defaultFolder, onSave, onCanc
           />
         )}
       </div>
+
+      {error && <p className="field-error">{error}</p>}
 
       <div className="form-buttons">
         <button type="button" className="btn-secondary" onClick={onCancel}>

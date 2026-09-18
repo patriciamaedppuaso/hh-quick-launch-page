@@ -21,6 +21,7 @@ export function AddAppForm({ onSave, onCancel }: Props) {
   const [fileSize, setFileSize] = useState(0);
   const [fileDataUrl, setFileDataUrl] = useState("");
   const [fileError, setFileError] = useState("");
+  const [error, setError] = useState("");
 
   const [logoStep, setLogoStep] = useState(0);
   useEffect(() => {
@@ -47,12 +48,19 @@ export function AddAppForm({ onSave, onCancel }: Props) {
 
   function handleSave() {
     const trimmedName = name.trim();
-    if (!trimmedName) return;
+    if (!trimmedName) {
+      setError("Name is required.");
+      return;
+    }
     const trimmedDescription = description.trim();
 
     if (type === "link") {
       if (source === "file") {
-        if (!fileDataUrl) return;
+        if (!fileDataUrl) {
+          setError("Upload a file, or switch the source to Link.");
+          return;
+        }
+        setError("");
         onSave({
           id: newId("app"),
           type: "link",
@@ -66,7 +74,11 @@ export function AddAppForm({ onSave, onCancel }: Props) {
         return;
       }
       const trimmedUrl = url.trim();
-      if (!trimmedUrl) return;
+      if (!trimmedUrl) {
+        setError("Enter a link, or switch the source to Upload file.");
+        return;
+      }
+      setError("");
       onSave({
         id: newId("app"),
         type: "link",
@@ -79,6 +91,7 @@ export function AddAppForm({ onSave, onCancel }: Props) {
       return;
     }
 
+    setError("");
     onSave({
       id: newId("app"),
       type: "list",
@@ -188,6 +201,8 @@ export function AddAppForm({ onSave, onCancel }: Props) {
       ) : (
         <p className="form-hint">You'll add items (and folders, if you want them) from inside the app after creating it.</p>
       )}
+
+      {error && <p className="field-error">{error}</p>}
 
       <div className="form-buttons">
         <button type="button" className="btn-secondary" onClick={onCancel}>

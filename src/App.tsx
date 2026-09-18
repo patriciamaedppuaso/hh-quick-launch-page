@@ -25,10 +25,41 @@ import { TasksPage } from "./components/TasksPage";
 import { TimeClockPage } from "./components/TimeClockPage";
 import { UsersPage } from "./components/UsersPage";
 import { Footer } from "./components/Footer";
+import { useToast } from "./components/ToastProvider";
 
 function parseHashAppId(): string | null {
   const match = window.location.hash.match(/^#items\/(.+)$/);
   return match ? decodeURIComponent(match[1]) : null;
+}
+
+const FIELD_LABELS: Record<string, string> = {
+  contacts: "Contact",
+  leads: "Lead",
+  tasks: "Task",
+  items: "Item",
+  announcements: "Announcement",
+  clockRecords: "Staff",
+  timeEntries: "Time entry",
+  statusOptions: "List",
+  name: "App",
+  visible: "App",
+  description: "App",
+};
+
+function describeChange(prevApp: AppTile | undefined, patch: Partial<AppTile>): string {
+  for (const key of Object.keys(patch) as (keyof AppTile)[]) {
+    const label = FIELD_LABELS[key];
+    if (!label) continue;
+    const nextValue = patch[key];
+    if (Array.isArray(nextValue)) {
+      const prevArr = (prevApp?.[key] as unknown[] | undefined) ?? [];
+      if (nextValue.length > prevArr.length) return `${label} added`;
+      if (nextValue.length < prevArr.length) return `${label} deleted`;
+      return `${label} updated`;
+    }
+    return `${label} updated`;
+  }
+  return "Changes saved";
 }
 
 const SYNCED_TABLES = [
@@ -47,6 +78,7 @@ const SYNCED_TABLES = [
 ];
 
 export default function App() {
+  const toast = useToast();
   const [session, setSession] = useState<Session | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
@@ -161,10 +193,21 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  function setAppsAndSync(updater: AppTile[] | ((prev: AppTile[]) => AppTile[])) {
+  function setAppsAndSync(
+    updater: AppTile[] | ((prev: AppTile[]) => AppTile[]),
+    successMessage?: string | ((prev: AppTile[], next: AppTile[]) => string),
+  ) {
     setApps((prev) => {
       const next = typeof updater === "function" ? updater(prev) : updater;
-      syncApps(prev, next).catch((err) => console.error("Supabase sync failed:", err));
+      const message = typeof successMessage === "function" ? successMessage(prev, next) : successMessage;
+      syncApps(prev, next)
+        .then(() => {
+          if (message) toast.success(message);
+        })
+        .catch((err) => {
+          console.error("Supabase sync failed:", err);
+          toast.error("Couldn't save your changes. Please try again.");
+        });
       return next;
     });
   }
@@ -285,7 +328,10 @@ export default function App() {
   }
 
   function updateApp(appId: string, patch: Partial<AppTile>) {
-    setAppsAndSync((prev) => prev.map((a) => (a.id === appId ? ({ ...a, ...patch } as AppTile) : a)));
+    setAppsAndSync(
+      (prev) => prev.map((a) => (a.id === appId ? ({ ...a, ...patch } as AppTile) : a)),
+      (prev) => describeChange(prev.find((a) => a.id === appId), patch),
+    );
   }
 
   function markAnnouncementsRead(ids: string[]) {
@@ -297,7 +343,7 @@ export default function App() {
   }
 
   function handleAddApp(app: AppTile) {
-    setAppsAndSync((prev) => [...prev, app]);
+    setAppsAndSync((prev) => [...prev, app], "App added");
     setAddingApp(false);
   }
 
@@ -310,7 +356,7 @@ export default function App() {
   function handleDeleteApp() {
     if (!editingApp) return;
     const appId = editingApp.id;
-    setAppsAndSync((prev) => prev.filter((a) => a.id !== appId));
+    setAppsAndSync((prev) => prev.filter((a) => a.id !== appId), "App deleted");
     setEditingApp(null);
     if (openAppId === appId) setOpenAppId(null);
   }
@@ -429,7 +475,12 @@ export default function App() {
         onThemeChange={setTheme}
         onNavigate={(appId) => (appId ? openItems(appId) : closeItems())}
         onRequestAdd={() => setAddingApp(true)}
-        onSignOut={() => signOut().catch((err) => console.error("Sign out failed:", err))}
+        onSignOut={() =>
+          signOut().catch((err) => {
+            console.error("Sign out failed:", err);
+            toast.error("Couldn't sign out. Please try again.");
+          })
+        }
         mobileOpen={sidebarOpen}
         onCloseMobile={() => setSidebarOpen(false)}
         collapsed={sidebarCollapsed}
@@ -453,7 +504,7 @@ export default function App() {
               role={role}
               view={view}
               onViewChange={setView}
-              onReorder={setAppsAndSync}
+              onReorder={(next) => setAppsAndSync(next, "Dashboard order updated")}
               onOpenItems={openItems}
               onRequestAdd={() => setAddingApp(true)}
               onEditApp={(app) => setEditingApp(app)}

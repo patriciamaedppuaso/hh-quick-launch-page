@@ -15,11 +15,20 @@ export function AnnouncementForm({ initial, onSave, onCancel }: Props) {
   const [date, setDate] = useState(initial?.date ?? todayIso());
   const [author, setAuthor] = useState(initial?.author ?? "");
   const [attachments, setAttachments] = useState<AnnouncementAttachment[]>(initial?.attachments ?? []);
+  const [error, setError] = useState("");
 
   function handleSave() {
     const trimmedTitle = title.trim();
     const trimmedMessage = message.trim();
-    if (!trimmedTitle || !trimmedMessage) return;
+    if (!trimmedTitle) {
+      setError("Title is required.");
+      return;
+    }
+    if (!trimmedMessage) {
+      setError("Message is required.");
+      return;
+    }
+    setError("");
     onSave({
       id: initial?.id ?? newId("announcement"),
       title: trimmedTitle,
@@ -70,6 +79,8 @@ export function AnnouncementForm({ initial, onSave, onCancel }: Props) {
         <label>Attachments (optional)</label>
         <AttachmentPicker attachments={attachments} onChange={setAttachments} />
       </div>
+      {error && <p className="field-error">{error}</p>}
+
       <div className="form-buttons">
         <button type="button" className="btn-secondary" onClick={onCancel}>
           Cancel
