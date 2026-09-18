@@ -56,7 +56,7 @@ export interface ListItem {
   folder?: string;
 }
 
-export type BuiltinKind = "contacts" | "leads" | "announcements" | "tasks" | "timeclock" | "users";
+export type BuiltinKind = "contacts" | "leads" | "announcements" | "tasks" | "timeclock" | "users" | "receivables";
 
 export interface ContactRecord {
   id: string;
@@ -109,6 +109,20 @@ export interface TaskRecord {
   dueDate?: string;
   assignees?: string[];
   priority?: TaskPriority;
+}
+
+export type RpKind = "receivable" | "payable";
+
+export interface ReceivablePayableRecord {
+  id: string;
+  kind: RpKind;
+  /** Who owes the money (payable) or who owes it to us (receivable). */
+  party: string;
+  amount: number;
+  status: string;
+  dueDate?: string;
+  notes?: string;
+  createdAt?: string;
 }
 
 export interface UserProfile {
@@ -169,6 +183,7 @@ interface AppBase {
   tasks?: TaskRecord[];
   clockRecords?: ClockRecord[];
   timeEntries?: TimeEntry[];
+  receivablesPayables?: ReceivablePayableRecord[];
 }
 
 export interface LinkApp extends AppBase {

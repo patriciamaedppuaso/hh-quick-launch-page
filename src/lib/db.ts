@@ -9,6 +9,7 @@ import type {
   LeadRecord,
   ListItem,
   ReadAnnouncements,
+  ReceivablePayableRecord,
   Role,
   TaskRecord,
   TimeEntry,
@@ -30,22 +31,48 @@ function groupBy<T, K>(rows: T[], key: (row: T) => K): Map<K, T[]> {
 }
 
 export async function fetchAllApps(): Promise<AppTile[]> {
-  const [apps, items, contacts, leads, announcements, attachments, tasks, assignees, clockRecords, timeEntries, breaks] =
-    await Promise.all([
-      supabase.from("apps").select("*").order("sort_order"),
-      supabase.from("list_items").select("*").order("sort_order"),
-      supabase.from("contacts").select("*"),
-      supabase.from("leads").select("*"),
-      supabase.from("announcements").select("*").order("date", { ascending: false }),
-      supabase.from("announcement_attachments").select("*"),
-      supabase.from("tasks").select("*"),
-      supabase.from("task_assignees").select("*"),
-      supabase.from("clock_records").select("*"),
-      supabase.from("time_entries").select("*"),
-      supabase.from("time_entry_breaks").select("*"),
-    ]);
+  const [
+    apps,
+    items,
+    contacts,
+    leads,
+    announcements,
+    attachments,
+    tasks,
+    assignees,
+    clockRecords,
+    timeEntries,
+    breaks,
+    receivablesPayables,
+  ] = await Promise.all([
+    supabase.from("apps").select("*").order("sort_order"),
+    supabase.from("list_items").select("*").order("sort_order"),
+    supabase.from("contacts").select("*"),
+    supabase.from("leads").select("*"),
+    supabase.from("announcements").select("*").order("date", { ascending: false }),
+    supabase.from("announcement_attachments").select("*"),
+    supabase.from("tasks").select("*"),
+    supabase.from("task_assignees").select("*"),
+    supabase.from("clock_records").select("*"),
+    supabase.from("time_entries").select("*"),
+    supabase.from("time_entry_breaks").select("*"),
+    supabase.from("receivables_payables").select("*"),
+  ]);
 
-  for (const res of [apps, items, contacts, leads, announcements, attachments, tasks, assignees, clockRecords, timeEntries, breaks]) {
+  for (const res of [
+    apps,
+    items,
+    contacts,
+    leads,
+    announcements,
+    attachments,
+    tasks,
+    assignees,
+    clockRecords,
+    timeEntries,
+    breaks,
+    receivablesPayables,
+  ]) {
     if (res.error) throw res.error;
   }
 
@@ -59,6 +86,7 @@ export async function fetchAllApps(): Promise<AppTile[]> {
   const clockRecordsByApp = groupBy(clockRecords.data ?? [], (r) => r.app_id);
   const timeEntriesByApp = groupBy(timeEntries.data ?? [], (r) => r.app_id);
   const breaksByEntry = groupBy(breaks.data ?? [], (r) => r.time_entry_id);
+  const receivablesPayablesByApp = groupBy(receivablesPayables.data ?? [], (r) => r.app_id);
 
   return (apps.data ?? []).map((row): AppTile => {
     const base = {
@@ -80,6 +108,7 @@ export async function fetchAllApps(): Promise<AppTile[]> {
       tasks: (tasksByApp.get(row.id) ?? []).map((t) => rowToTask(t, assigneesByTask.get(t.id) ?? [])),
       clockRecords: (clockRecordsByApp.get(row.id) ?? []).map(rowToClockRecord),
       timeEntries: (timeEntriesByApp.get(row.id) ?? []).map((e) => rowToTimeEntry(e, breaksByEntry.get(e.id) ?? [])),
+      receivablesPayables: (receivablesPayablesByApp.get(row.id) ?? []).map(rowToReceivablePayable),
     };
 
     if (row.type === "link") {
@@ -164,6 +193,19 @@ function rowToLead(row: Record<string, unknown>): LeadRecord {
     notes: (row.notes as string) ?? undefined,
     createdAt: (row.created_at as string) ?? undefined,
     rep: (row.rep as string) ?? undefined,
+  };
+}
+
+function rowToReceivablePayable(row: Record<string, unknown>): ReceivablePayableRecord {
+  return {
+    id: row.id as string,
+    kind: row.kind as ReceivablePayableRecord["kind"],
+    party: row.party as string,
+    amount: (row.amount as number) ?? 0,
+    status: row.status as string,
+    dueDate: (row.due_date as string) ?? undefined,
+    notes: (row.notes as string) ?? undefined,
+    createdAt: (row.created_at as string) ?? undefined,
   };
 }
 
@@ -371,6 +413,27 @@ async function syncAppCollections(app: AppTile): Promise<void> {
 
   if (app.timeEntries) {
     work.push(syncTimeEntries(app.id, app.timeEntries));
+  }
+
+  if (app.receivablesPayables) {
+    work.push(
+      replaceRows(
+        "receivables_payables",
+        "app_id",
+        app.id,
+        app.receivablesPayables.map((r) => ({
+          id: r.id,
+          app_id: app.id,
+          kind: r.kind,
+          party: r.party,
+          amount: r.amount,
+          status: r.status,
+          due_date: r.dueDate ?? null,
+          notes: r.notes ?? null,
+          created_at: r.createdAt ?? null,
+        })),
+      ),
+    );
   }
 
   await Promise.all(work);

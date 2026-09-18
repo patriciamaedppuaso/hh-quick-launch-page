@@ -24,6 +24,7 @@ import { AnnouncementsPage } from "./components/AnnouncementsPage";
 import { TasksPage } from "./components/TasksPage";
 import { TimeClockPage } from "./components/TimeClockPage";
 import { UsersPage } from "./components/UsersPage";
+import { ReceivablesPayablesPage } from "./components/ReceivablesPayablesPage";
 import { Footer } from "./components/Footer";
 import { useToast } from "./components/ToastProvider";
 
@@ -40,6 +41,7 @@ const FIELD_LABELS: Record<string, string> = {
   announcements: "Announcement",
   clockRecords: "Staff",
   timeEntries: "Time entry",
+  receivablesPayables: "Entry",
   statusOptions: "List",
   name: "App",
   visible: "App",
@@ -417,6 +419,16 @@ export default function App() {
         );
       case "users":
         return <UsersPage app={app} role={role} onBack={closeItems} />;
+      case "receivables":
+        return (
+          <ReceivablesPayablesPage
+            app={app}
+            role={role}
+            onBack={closeItems}
+            onUpdate={(receivablesPayables) => updateApp(app.id, { receivablesPayables })}
+            onUpdateStatusOptions={(statusOptions) => updateApp(app.id, { statusOptions })}
+          />
+        );
       default:
         return (
           <ItemsPage

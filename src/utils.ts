@@ -21,6 +21,8 @@ export const DEFAULT_TASK_STATUSES = ["To do", "In progress"];
 
 export const DEFAULT_CONTACT_CATEGORIES = ["Client", "Employee", "Vendor"];
 
+export const DEFAULT_RP_STATUSES = ["Unpaid", "Partially Paid", "Paid", "Overdue"];
+
 /** Fixed, non-removable task status -- overdue/strikethrough logic depends on it. */
 export const DONE_STATUS = "Done";
 
