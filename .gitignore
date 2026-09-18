@@ -15,6 +15,9 @@ dist-ssr
 # Supabase CLI local state (project link cache, etc.) -- machine-specific, not shared
 supabase/.temp
 
+# Wrangler (Cloudflare) local state
+.wrangler
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
