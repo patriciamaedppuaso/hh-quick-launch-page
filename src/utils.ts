@@ -1,6 +1,6 @@
 import type { AppTile, BreakEntry, Role, TimeEntry } from "./types";
 
-export const TEAM_MEMBERS = ["Myka", "Front Desk", "Warehouse Team"];
+export const TEAM_MEMBERS = ["Myka"];
 
 /** Admins always see every app; staff only see the ones marked visible. */
 export function isAppVisible(app: AppTile, role: Role): boolean {

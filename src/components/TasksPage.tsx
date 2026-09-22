@@ -18,6 +18,7 @@ interface Props {
   app: AppTile;
   role: Role;
   currentUserName: string;
+  registeredUserNames: string[];
   onBack: () => void;
   onUpdate: (records: TaskRecord[]) => void;
   onUpdateStatusOptions: (options: string[]) => void;
@@ -36,7 +37,15 @@ const PRIORITY_COLORS: Record<TaskPriority, { bg: string; fg: string }> = {
 
 const DONE_COLOR = { bg: "#E9F5EF", fg: "#3E9A6D" };
 
-export function TasksPage({ app, role, currentUserName, onBack, onUpdate, onUpdateStatusOptions }: Props) {
+export function TasksPage({
+  app,
+  role,
+  currentUserName,
+  registeredUserNames,
+  onBack,
+  onUpdate,
+  onUpdateStatusOptions,
+}: Props) {
   const records = app.tasks ?? [];
   const editableStatuses = app.statusOptions ?? DEFAULT_TASK_STATUSES;
   const statusTabs = useMemo(() => [...editableStatuses, DONE_STATUS], [editableStatuses]);
@@ -65,12 +74,12 @@ export function TasksPage({ app, role, currentUserName, onBack, onUpdate, onUpda
   }, [records]);
 
   const assigneeOptions = useMemo(() => {
-    const names = new Set(TEAM_MEMBERS);
+    const names = new Set([...TEAM_MEMBERS, ...registeredUserNames]);
     for (const t of records) {
       for (const a of t.assignees ?? []) names.add(a);
     }
     return Array.from(names);
-  }, [records]);
+  }, [records, registeredUserNames]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -279,6 +288,7 @@ export function TasksPage({ app, role, currentUserName, onBack, onUpdate, onUpda
       <Modal open={adding} onClose={() => setAdding(false)} title="Add task">
         <TaskForm
           statusOptions={statusTabs}
+          knownAssignees={assigneeOptions}
           currentUserName={currentUserName}
           onSave={handleAddSave}
           onCancel={() => setAdding(false)}
@@ -290,6 +300,7 @@ export function TasksPage({ app, role, currentUserName, onBack, onUpdate, onUpda
           <TaskForm
             initial={editing}
             statusOptions={statusTabs}
+            knownAssignees={assigneeOptions}
             currentUserName={currentUserName}
             onSave={handleEditSave}
             onCancel={() => setEditing(null)}

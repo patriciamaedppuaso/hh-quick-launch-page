@@ -1,10 +1,11 @@
 import { useState } from "react";
 import type { TaskPriority, TaskRecord, TaskStatus } from "../types";
-import { TEAM_MEMBERS, newId } from "../utils";
+import { newId } from "../utils";
 
 interface Props {
   initial?: TaskRecord;
   statusOptions: string[];
+  knownAssignees: string[];
   currentUserName: string;
   onSave: (record: TaskRecord) => void;
   onCancel: () => void;
@@ -16,19 +17,36 @@ const PRIORITY_OPTIONS: { value: TaskPriority; label: string }[] = [
   { value: "high", label: "High" },
 ];
 
-export function TaskForm({ initial, statusOptions, currentUserName, onSave, onCancel }: Props) {
+export function TaskForm({ initial, statusOptions, knownAssignees, currentUserName, onSave, onCancel }: Props) {
   const [title, setTitle] = useState(initial?.title ?? "");
   const [status, setStatus] = useState<TaskStatus>(initial?.status ?? statusOptions[0]);
   const [priority, setPriority] = useState<TaskPriority>(initial?.priority ?? "medium");
   const [dueDate, setDueDate] = useState(initial?.dueDate ?? "");
   const [assignees, setAssignees] = useState<string[]>(initial?.assignees ?? []);
+  const [assigneeQuery, setAssigneeQuery] = useState("");
   const [error, setError] = useState("");
 
   const assigneeOptions =
-    currentUserName && !TEAM_MEMBERS.includes(currentUserName) ? [currentUserName, ...TEAM_MEMBERS] : TEAM_MEMBERS;
+    currentUserName && !knownAssignees.includes(currentUserName)
+      ? [currentUserName, ...knownAssignees]
+      : knownAssignees;
+  const visibleOptions = Array.from(new Set([...assigneeOptions, ...assignees]));
+  const trimmedQuery = assigneeQuery.trim();
+  const filteredOptions = trimmedQuery
+    ? visibleOptions.filter((n) => n.toLowerCase().includes(trimmedQuery.toLowerCase()))
+    : visibleOptions;
+  const hasExactMatch = visibleOptions.some((n) => n.toLowerCase() === trimmedQuery.toLowerCase());
 
   function toggleAssignee(name: string) {
     setAssignees((prev) => (prev.includes(name) ? prev.filter((n) => n !== name) : [...prev, name]));
+  }
+
+  function addAssignee() {
+    if (!trimmedQuery) return;
+    const match = visibleOptions.find((n) => n.toLowerCase() === trimmedQuery.toLowerCase());
+    const name = match ?? trimmedQuery;
+    if (!assignees.includes(name)) setAssignees((prev) => [...prev, name]);
+    setAssigneeQuery("");
   }
 
   function handleSave() {
@@ -85,19 +103,43 @@ export function TaskForm({ initial, statusOptions, currentUserName, onSave, onCa
         <input id="tDue" type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
       </div>
       <div className="form-row">
-        <label>Assignees (optional)</label>
-        <div className="assignee-picker">
-          {assigneeOptions.map((name) => (
-            <button
-              key={name}
-              type="button"
-              className={`assignee-option${assignees.includes(name) ? " active" : ""}`}
-              onClick={() => toggleAssignee(name)}
-            >
-              {name}
-              {name === currentUserName ? " (You)" : ""}
+        <label htmlFor="tAssigneeSearch">Assignees (optional)</label>
+        <div className="url-field">
+          <input
+            id="tAssigneeSearch"
+            type="text"
+            placeholder="Search or add a name..."
+            value={assigneeQuery}
+            onChange={(e) => setAssigneeQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                addAssignee();
+              }
+            }}
+          />
+          {trimmedQuery && (
+            <button type="button" className="btn-secondary-sm" onClick={addAssignee}>
+              {hasExactMatch ? "Assign" : `Add "${trimmedQuery}"`}
             </button>
-          ))}
+          )}
+        </div>
+        <div className="assignee-picker">
+          {filteredOptions.length > 0 ? (
+            filteredOptions.map((name) => (
+              <button
+                key={name}
+                type="button"
+                className={`assignee-option${assignees.includes(name) ? " active" : ""}`}
+                onClick={() => toggleAssignee(name)}
+              >
+                {name}
+                {name === currentUserName ? " (You)" : ""}
+              </button>
+            ))
+          ) : (
+            <p className="form-hint">No match. Press Add to assign "{trimmedQuery}" as a new name.</p>
+          )}
         </div>
       </div>
       {error && <p className="field-error">{error}</p>}

@@ -3,6 +3,7 @@ import type { Session } from "@supabase/supabase-js";
 import type { AppTile, ListApp, ReadAnnouncements, Role, Theme, ViewMode } from "./types";
 import { loadSidebarCollapsed, loadTheme, loadView, saveSidebarCollapsed, saveTheme, saveView } from "./storage";
 import { fetchAllApps, fetchReadAnnouncements, markAnnouncementsReadRemote, syncApps } from "./lib/db";
+import { fetchUsers } from "./lib/users";
 import { supabase } from "./lib/supabaseClient";
 import { type CurrentUser, fetchCurrentUser, signOut } from "./lib/auth";
 import { computeMetrics } from "./metrics";
@@ -92,6 +93,7 @@ export default function App() {
   const [view, setView] = useState<ViewMode>(() => loadView());
   const [openAppId, setOpenAppId] = useState<string | null>(() => parseHashAppId());
   const [readAnnouncements, setReadAnnouncements] = useState<ReadAnnouncements>({ admin: [], employee: [] });
+  const [registeredUserNames, setRegisteredUserNames] = useState<string[]>([]);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(() => loadSidebarCollapsed());
   const [addingApp, setAddingApp] = useState(false);
@@ -144,9 +146,14 @@ export default function App() {
   const currentUserName = currentUser?.name || currentUser?.email || "";
 
   async function reloadFromSupabase() {
-    const [nextApps, nextRead] = await Promise.all([fetchAllApps(), fetchReadAnnouncements()]);
+    const [nextApps, nextRead, nextUsers] = await Promise.all([
+      fetchAllApps(),
+      fetchReadAnnouncements(),
+      fetchUsers(),
+    ]);
     setApps(nextApps);
     setReadAnnouncements(nextRead);
+    setRegisteredUserNames(nextUsers.map((u) => u.name || u.email));
   }
 
   useEffect(() => {
@@ -402,6 +409,7 @@ export default function App() {
             app={app}
             role={role}
             currentUserName={currentUserName}
+            registeredUserNames={registeredUserNames}
             onBack={closeItems}
             onUpdate={(tasks) => updateApp(app.id, { tasks })}
             onUpdateStatusOptions={(statusOptions) => updateApp(app.id, { statusOptions })}
