@@ -43,11 +43,11 @@ insert into contacts (id, app_id, name, role, category, phone, email) values
 -- Leads
 -- ===================================================================
 insert into leads (id, app_id, name, company, status, value, follow_up, notes, created_at, rep) values
-  ('lead-1', 'leads', 'Marcus Webb', 'Webb Physical Therapy', 'Contacted', 3200, '2026-10-02', 'Interested in a recurring monthly supply order.', '2026-09-12', 'Myka'),
-  ('lead-2', 'leads', 'Riverside Urgent Care', null, 'Interested', 4800, '2026-09-28', 'Asked for a formal quote on bulk wound-care supplies.', '2026-09-08', 'Myka'),
-  ('lead-3', 'leads', 'Dr. Samantha Ortiz', 'Ortiz Family Medicine', 'Schedule Meeting', 1500, '2026-09-25', 'Wants a walkthrough of our catalog next week.', '2026-09-15', 'Myka'),
-  ('lead-4', 'leads', 'Sunset Hospice Care', null, 'Signing Contract', 6200, null, 'Verbally agreed, waiting on signed paperwork.', '2026-08-30', 'Myka'),
-  ('lead-5', 'leads', 'Greenview Rehab Center', null, 'Closed', 5400, null, 'Signed an annual supply contract.', '2026-08-10', 'Myka');
+  ('lead-1', 'leads', 'Marcus Webb', 'Webb Physical Therapy', 'Contacted', 3200, '2026-10-02', 'Interested in a recurring monthly supply order.', '2026-09-12', 'Myka Tamangan'),
+  ('lead-2', 'leads', 'Riverside Urgent Care', null, 'Interested', 4800, '2026-09-28', 'Asked for a formal quote on bulk wound-care supplies.', '2026-09-08', 'Myka Tamangan'),
+  ('lead-3', 'leads', 'Dr. Samantha Ortiz', 'Ortiz Family Medicine', 'Schedule Meeting', 1500, '2026-09-25', 'Wants a walkthrough of our catalog next week.', '2026-09-15', 'Myka Tamangan'),
+  ('lead-4', 'leads', 'Sunset Hospice Care', null, 'Signing Contract', 6200, null, 'Verbally agreed, waiting on signed paperwork.', '2026-08-30', 'Myka Tamangan'),
+  ('lead-5', 'leads', 'Greenview Rehab Center', null, 'Closed', 5400, null, 'Signed an annual supply contract.', '2026-08-10', 'Myka Tamangan');
 
 -- ===================================================================
 -- Announcements
@@ -67,9 +67,9 @@ insert into tasks (id, app_id, title, status, due_date, priority) values
   ('task-4', 'task', 'Confirm Q4 catalog pricing with distributors', 'To do', '2026-10-01', 'medium');
 
 insert into task_assignees (task_id, assignee_name) values
-  ('task-1', 'Myka'),
-  ('task-2', 'Myka'),
-  ('task-4', 'Myka');
+  ('task-1', 'Myka Tamangan'),
+  ('task-2', 'Myka Tamangan'),
+  ('task-4', 'Myka Tamangan');
 
 -- ===================================================================
 -- Contracts, Guarantee & Quotes -- list items organized into folders
