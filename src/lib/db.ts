@@ -3,6 +3,7 @@ import type {
   AnnouncementAttachment,
   AnnouncementRecord,
   AppTile,
+  BlogPostRecord,
   BreakEntry,
   ClockRecord,
   ContactRecord,
@@ -44,6 +45,7 @@ export async function fetchAllApps(): Promise<AppTile[]> {
     timeEntries,
     breaks,
     receivablesPayables,
+    blogPosts,
   ] = await Promise.all([
     supabase.from("apps").select("*").order("sort_order"),
     supabase.from("list_items").select("*").order("sort_order"),
@@ -57,6 +59,7 @@ export async function fetchAllApps(): Promise<AppTile[]> {
     supabase.from("time_entries").select("*"),
     supabase.from("time_entry_breaks").select("*"),
     supabase.from("receivables_payables").select("*"),
+    supabase.from("hh_blog_posts").select("*").order("published_at", { ascending: false }),
   ]);
 
   for (const res of [
@@ -72,6 +75,7 @@ export async function fetchAllApps(): Promise<AppTile[]> {
     timeEntries,
     breaks,
     receivablesPayables,
+    blogPosts,
   ]) {
     if (res.error) throw res.error;
   }
@@ -87,6 +91,7 @@ export async function fetchAllApps(): Promise<AppTile[]> {
   const timeEntriesByApp = groupBy(timeEntries.data ?? [], (r) => r.app_id);
   const breaksByEntry = groupBy(breaks.data ?? [], (r) => r.time_entry_id);
   const receivablesPayablesByApp = groupBy(receivablesPayables.data ?? [], (r) => r.app_id);
+  const blogPostsByApp = groupBy(blogPosts.data ?? [], (r) => r.app_id);
 
   return (apps.data ?? []).map((row): AppTile => {
     const base = {
@@ -109,6 +114,7 @@ export async function fetchAllApps(): Promise<AppTile[]> {
       clockRecords: (clockRecordsByApp.get(row.id) ?? []).map(rowToClockRecord),
       timeEntries: (timeEntriesByApp.get(row.id) ?? []).map((e) => rowToTimeEntry(e, breaksByEntry.get(e.id) ?? [])),
       receivablesPayables: (receivablesPayablesByApp.get(row.id) ?? []).map(rowToReceivablePayable),
+      blogPosts: (blogPostsByApp.get(row.id) ?? []).map(rowToBlogPost),
     };
 
     if (row.type === "link") {
@@ -205,6 +211,21 @@ function rowToReceivablePayable(row: Record<string, unknown>): ReceivablePayable
     status: row.status as string,
     dueDate: (row.due_date as string) ?? undefined,
     notes: (row.notes as string) ?? undefined,
+    createdAt: (row.created_at as string) ?? undefined,
+  };
+}
+
+function rowToBlogPost(row: Record<string, unknown>): BlogPostRecord {
+  return {
+    id: row.id as string,
+    slug: row.slug as string,
+    title: row.title as string,
+    excerpt: (row.excerpt as string) ?? undefined,
+    content: row.content as string,
+    coverImageUrl: (row.cover_image_url as string) ?? undefined,
+    authorName: (row.author_name as string) ?? undefined,
+    isActive: row.is_active as boolean,
+    publishedAt: (row.published_at as string) ?? undefined,
     createdAt: (row.created_at as string) ?? undefined,
   };
 }
@@ -431,6 +452,29 @@ async function syncAppCollections(app: AppTile): Promise<void> {
           due_date: r.dueDate ?? null,
           notes: r.notes ?? null,
           created_at: r.createdAt ?? null,
+        })),
+      ),
+    );
+  }
+
+  if (app.blogPosts) {
+    work.push(
+      replaceRows(
+        "hh_blog_posts",
+        "app_id",
+        app.id,
+        app.blogPosts.map((p) => ({
+          id: p.id,
+          app_id: app.id,
+          slug: p.slug,
+          title: p.title,
+          excerpt: p.excerpt ?? null,
+          content: p.content,
+          cover_image_url: p.coverImageUrl ?? null,
+          author_name: p.authorName ?? null,
+          is_active: p.isActive,
+          published_at: p.publishedAt ?? null,
+          created_at: p.createdAt ?? null,
         })),
       ),
     );

@@ -26,6 +26,7 @@ import { TasksPage } from "./components/TasksPage";
 import { TimeClockPage } from "./components/TimeClockPage";
 import { UsersPage } from "./components/UsersPage";
 import { ReceivablesPayablesPage } from "./components/ReceivablesPayablesPage";
+import { BlogPage } from "./components/BlogPage";
 import { Footer } from "./components/Footer";
 import { useToast } from "./components/ToastProvider";
 
@@ -43,6 +44,7 @@ const FIELD_LABELS: Record<string, string> = {
   clockRecords: "Staff",
   timeEntries: "Time entry",
   receivablesPayables: "Entry",
+  blogPosts: "Post",
   statusOptions: "List",
   name: "App",
   visible: "App",
@@ -87,6 +89,10 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
 
   const [apps, setApps] = useState<AppTile[]>([]);
+  const appsRef = useRef<AppTile[]>([]);
+  useEffect(() => {
+    appsRef.current = apps;
+  }, [apps]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [theme, setTheme] = useState<Theme>(() => loadTheme());
@@ -202,23 +208,29 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Deliberately NOT a setApps((prev) => ...) functional updater: React 18
+  // Strict Mode invokes updater functions twice to catch impure ones, which
+  // would fire syncApps (a real network request) twice per call and cause
+  // duplicate-key races against Supabase. appsRef always mirrors the latest
+  // committed `apps` state, so this reads/writes it as a plain, single-run
+  // function instead.
   function setAppsAndSync(
     updater: AppTile[] | ((prev: AppTile[]) => AppTile[]),
     successMessage?: string | ((prev: AppTile[], next: AppTile[]) => string),
   ) {
-    setApps((prev) => {
-      const next = typeof updater === "function" ? updater(prev) : updater;
-      const message = typeof successMessage === "function" ? successMessage(prev, next) : successMessage;
-      syncApps(prev, next)
-        .then(() => {
-          if (message) toast.success(message);
-        })
-        .catch((err) => {
-          console.error("Supabase sync failed:", err);
-          toast.error("Couldn't save your changes. Please try again.");
-        });
-      return next;
-    });
+    const prev = appsRef.current;
+    const next = typeof updater === "function" ? updater(prev) : updater;
+    appsRef.current = next;
+    setApps(next);
+    const message = typeof successMessage === "function" ? successMessage(prev, next) : successMessage;
+    syncApps(prev, next)
+      .then(() => {
+        if (message) toast.success(message);
+      })
+      .catch((err) => {
+        console.error("Supabase sync failed:", err);
+        toast.error("Couldn't save your changes. Please try again.");
+      });
   }
 
   useEffect(() => {
@@ -435,6 +447,15 @@ export default function App() {
             onBack={closeItems}
             onUpdate={(receivablesPayables) => updateApp(app.id, { receivablesPayables })}
             onUpdateStatusOptions={(statusOptions) => updateApp(app.id, { statusOptions })}
+          />
+        );
+      case "blog":
+        return (
+          <BlogPage
+            app={app}
+            role={role}
+            onBack={closeItems}
+            onUpdate={(blogPosts) => updateApp(app.id, { blogPosts })}
           />
         );
       default:

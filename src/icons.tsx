@@ -173,6 +173,13 @@ const PATHS: Record<IconName, ReactNode> = {
       <circle cx="12" cy="16.3" r="0.9" fill="currentColor" stroke="none" />
     </>
   ),
+  newspaper: (
+    <>
+      <path d="M4 4.5h12a2 2 0 0 1 2 2V18a1.5 1.5 0 0 0 1.5 1.5H6a2 2 0 0 1-2-2Z" />
+      <path d="M18 19.5a1.5 1.5 0 0 0 1.5-1.5V8h-1.5" />
+      <path d="M7 8.5h6M7 12h6M7 15.5h4" />
+    </>
+  ),
 };
 
 export function Icon({ name, className }: Props) {

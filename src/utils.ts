@@ -23,6 +23,14 @@ export const DEFAULT_CONTACT_CATEGORIES = ["Client", "Employee", "Vendor"];
 
 export const DEFAULT_RP_STATUSES = ["Unpaid", "Partially Paid", "Paid", "Overdue"];
 
+export function slugify(text: string): string {
+  return text
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
 /** Fixed, non-removable task status -- overdue/strikethrough logic depends on it. */
 export const DONE_STATUS = "Done";
 

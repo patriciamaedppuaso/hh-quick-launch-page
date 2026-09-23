@@ -36,7 +36,8 @@ export type IconName =
   | "menu"
   | "folder"
   | "chevron-right"
-  | "alert-circle";
+  | "alert-circle"
+  | "newspaper";
 
 export interface Tint {
   bg: string;
@@ -56,7 +57,15 @@ export interface ListItem {
   folder?: string;
 }
 
-export type BuiltinKind = "contacts" | "leads" | "announcements" | "tasks" | "timeclock" | "users" | "receivables";
+export type BuiltinKind =
+  | "contacts"
+  | "leads"
+  | "announcements"
+  | "tasks"
+  | "timeclock"
+  | "users"
+  | "receivables"
+  | "blog";
 
 export interface ContactRecord {
   id: string;
@@ -125,6 +134,19 @@ export interface ReceivablePayableRecord {
   createdAt?: string;
 }
 
+export interface BlogPostRecord {
+  id: string;
+  slug: string;
+  title: string;
+  excerpt?: string;
+  content: string;
+  coverImageUrl?: string;
+  authorName?: string;
+  isActive: boolean;
+  publishedAt?: string;
+  createdAt?: string;
+}
+
 export interface UserProfile {
   id: string;
   email: string;
@@ -184,6 +206,7 @@ interface AppBase {
   clockRecords?: ClockRecord[];
   timeEntries?: TimeEntry[];
   receivablesPayables?: ReceivablePayableRecord[];
+  blogPosts?: BlogPostRecord[];
 }
 
 export interface LinkApp extends AppBase {
