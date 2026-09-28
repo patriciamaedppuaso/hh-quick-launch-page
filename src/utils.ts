@@ -7,6 +7,13 @@ export function isAppVisible(app: AppTile, role: Role): boolean {
   return role === "admin" || app.visible !== false;
 }
 
+/** Whether an app currently shows in the sidebar nav list (independent of who's viewing). */
+export function isInNav(app: AppTile): boolean {
+  if (app.showInNav === true) return true;
+  if (app.showInNav === false) return false;
+  return app.type === "list";
+}
+
 export const DEFAULT_LEAD_STATUSES = [
   "Contacted",
   "Follow Up",

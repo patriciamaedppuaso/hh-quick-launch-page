@@ -17,6 +17,7 @@ import { AppGrid } from "./components/AppGrid";
 import { WidgetsPanel } from "./components/WidgetsPanel";
 import { Modal } from "./components/Modal";
 import { AddAppForm } from "./components/AddAppForm";
+import { AddToNavForm } from "./components/AddToNavForm";
 import { EditAppForm } from "./components/EditAppForm";
 import { ItemsPage } from "./components/ItemsPage";
 import { ContactsPage } from "./components/ContactsPage";
@@ -103,6 +104,7 @@ export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(() => loadSidebarCollapsed());
   const [addingApp, setAddingApp] = useState(false);
+  const [addingToNav, setAddingToNav] = useState(false);
   const [editingApp, setEditingApp] = useState<AppTile | null>(null);
 
   const mainRef = useRef<HTMLElement>(null);
@@ -355,6 +357,20 @@ export default function App() {
     );
   }
 
+  function handleAddToNav(appId: string) {
+    setAppsAndSync(
+      (prev) => prev.map((a) => (a.id === appId ? ({ ...a, showInNav: true } as AppTile) : a)),
+      "Added to nav",
+    );
+  }
+
+  function handleRemoveFromNav(appId: string) {
+    setAppsAndSync(
+      (prev) => prev.map((a) => (a.id === appId ? ({ ...a, showInNav: false } as AppTile) : a)),
+      "Removed from nav",
+    );
+  }
+
   function markAnnouncementsRead(ids: string[]) {
     setReadAnnouncements((prev) => ({
       ...prev,
@@ -368,7 +384,7 @@ export default function App() {
     setAddingApp(false);
   }
 
-  function handleEditApp(patch: { name: string; description?: string; visible: boolean }) {
+  function handleEditApp(patch: { name: string; description?: string; visible: boolean; showInNav: boolean }) {
     if (!editingApp) return;
     updateApp(editingApp.id, patch);
     setEditingApp(null);
@@ -515,7 +531,9 @@ export default function App() {
         theme={theme}
         onThemeChange={setTheme}
         onNavigate={(appId) => (appId ? openItems(appId) : closeItems())}
-        onRequestAdd={() => setAddingApp(true)}
+        onRequestAddToNav={() => setAddingToNav(true)}
+        onRemoveFromNav={handleRemoveFromNav}
+        onReorderNav={(next) => setAppsAndSync(next, "Nav order updated")}
         onSignOut={() =>
           signOut().catch((err) => {
             console.error("Sign out failed:", err);
@@ -568,6 +586,10 @@ export default function App() {
 
       <Modal open={addingApp} onClose={() => setAddingApp(false)} title="Add an app">
         <AddAppForm onSave={handleAddApp} onCancel={() => setAddingApp(false)} />
+      </Modal>
+
+      <Modal open={addingToNav} onClose={() => setAddingToNav(false)} title="Add app to nav">
+        <AddToNavForm apps={apps} onAdd={handleAddToNav} onDone={() => setAddingToNav(false)} />
       </Modal>
 
       <Modal open={!!editingApp} onClose={() => setEditingApp(null)} title="Edit app">

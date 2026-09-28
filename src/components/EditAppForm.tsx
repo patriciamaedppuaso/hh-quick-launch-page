@@ -3,7 +3,7 @@ import type { AppTile } from "../types";
 
 interface Props {
   app: AppTile;
-  onSave: (patch: { name: string; description?: string; visible: boolean }) => void;
+  onSave: (patch: { name: string; description?: string; visible: boolean; showInNav: boolean }) => void;
   onDelete: () => void;
   onCancel: () => void;
 }
@@ -12,6 +12,7 @@ export function EditAppForm({ app, onSave, onDelete, onCancel }: Props) {
   const [name, setName] = useState(app.name);
   const [description, setDescription] = useState(app.description ?? "");
   const [visible, setVisible] = useState(app.visible !== false);
+  const [showInNav, setShowInNav] = useState(app.showInNav ?? app.type === "list");
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [error, setError] = useState("");
 
@@ -22,7 +23,7 @@ export function EditAppForm({ app, onSave, onDelete, onCancel }: Props) {
       return;
     }
     setError("");
-    onSave({ name: trimmedName, description: description.trim() || undefined, visible });
+    onSave({ name: trimmedName, description: description.trim() || undefined, visible, showInNav });
   }
 
   return (
@@ -60,6 +61,31 @@ export function EditAppForm({ app, onSave, onDelete, onCancel }: Props) {
           </button>
         </div>
         <p className="form-hint">Admins always see every app. Hidden apps stay editable, just off staff's dashboard.</p>
+      </div>
+
+      <div className="form-row">
+        <label>Sidebar navigation</label>
+        <div className="type-toggle" role="group" aria-label="Sidebar navigation">
+          <button
+            type="button"
+            className={`type-btn${showInNav ? " active" : ""}`}
+            onClick={() => setShowInNav(true)}
+          >
+            Show in nav
+          </button>
+          <button
+            type="button"
+            className={`type-btn${!showInNav ? " active" : ""}`}
+            onClick={() => setShowInNav(false)}
+          >
+            Hide from nav
+          </button>
+        </div>
+        <p className="form-hint">
+          {app.type === "link"
+            ? "Link apps aren't in the sidebar by default. Turning this on adds a shortcut there that opens the link directly."
+            : "This app still shows on the dashboard grid either way -- this only controls the sidebar list."}
+        </p>
       </div>
 
       <div className="danger-zone">

@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from "react";
 import type { AppTile, Role, Theme } from "../types";
 import { Icon } from "../icons";
-import { initialOf, isAppVisible } from "../utils";
+import { initialOf, isAppVisible, isInNav, openTarget } from "../utils";
 import { useClickOutside } from "../hooks/useClickOutside";
 import { useIsMobile } from "../hooks/useIsMobile";
 
@@ -13,7 +13,9 @@ interface Props {
   theme: Theme;
   onThemeChange: (theme: Theme) => void;
   onNavigate: (appId: string | null) => void;
-  onRequestAdd: () => void;
+  onRequestAddToNav: () => void;
+  onRemoveFromNav: (appId: string) => void;
+  onReorderNav: (apps: AppTile[]) => void;
   onSignOut: () => void;
   mobileOpen: boolean;
   onCloseMobile: () => void;
@@ -31,7 +33,9 @@ export function Sidebar({
   theme,
   onThemeChange,
   onNavigate,
-  onRequestAdd,
+  onRequestAddToNav,
+  onRemoveFromNav,
+  onReorderNav,
   onSignOut,
   mobileOpen,
   onCloseMobile,
@@ -40,6 +44,9 @@ export function Sidebar({
 }: Props) {
   const [query, setQuery] = useState("");
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [navEditMode, setNavEditMode] = useState(false);
+  const [draggedId, setDraggedId] = useState<string | null>(null);
+  const [overId, setOverId] = useState<string | null>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
   useClickOutside(userMenuRef, () => setUserMenuOpen(false));
 
@@ -49,13 +56,15 @@ export function Sidebar({
   const isCollapsed = collapsed && !isMobile;
 
   const pages = useMemo(() => {
-    const listApps = apps.filter((a) => a.type === "list" && isAppVisible(a, role));
+    const navApps = apps.filter((a) => isAppVisible(a, role) && isInNav(a));
     const q = query.trim().toLowerCase();
-    if (!q) return listApps;
-    return listApps.filter((a) => a.name.toLowerCase().includes(q));
+    if (!q) return navApps;
+    return navApps.filter((a) => a.name.toLowerCase().includes(q));
   }, [apps, query, role]);
 
   const canAdd = role === "admin";
+  const canManageNav = canAdd && navEditMode;
+  const canReorder = canManageNav && !isMobile && !query.trim();
   const isDarkActive =
     theme === "dark" || (theme === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
 
@@ -66,6 +75,21 @@ export function Sidebar({
   function navigate(appId: string | null) {
     onNavigate(appId);
     onCloseMobile();
+  }
+
+  function handleDrop(targetId: string) {
+    if (draggedId && draggedId !== targetId) {
+      const fromIndex = apps.findIndex((a) => a.id === draggedId);
+      const toIndex = apps.findIndex((a) => a.id === targetId);
+      if (fromIndex !== -1 && toIndex !== -1) {
+        const next = [...apps];
+        const [moved] = next.splice(fromIndex, 1);
+        next.splice(toIndex, 0, moved);
+        onReorderNav(next);
+      }
+    }
+    setDraggedId(null);
+    setOverId(null);
   }
 
   return (
@@ -112,28 +136,94 @@ export function Sidebar({
           {isCollapsed ? (
             <div className="sidebar-divider" />
           ) : (
-            <div className="sidebar-section-label">Apps</div>
+            <div className="sidebar-section-label sidebar-section-label--row">
+              <span>Apps</span>
+              {canAdd && (
+                <button
+                  type="button"
+                  className={`sidebar-edit-toggle${navEditMode ? " active" : ""}`}
+                  onClick={() => setNavEditMode((v) => !v)}
+                  title={navEditMode ? "Done editing nav" : "Edit nav"}
+                  aria-label={navEditMode ? "Done editing nav" : "Edit nav"}
+                  aria-pressed={navEditMode}
+                >
+                  <Icon name="edit" />
+                </button>
+              )}
+            </div>
           )}
 
           {pages.map((app) => {
             const tint = app.tint ?? FALLBACK_TINT;
             return (
-              <button
+              <div
+                className={`sidebar-item-row${draggedId === app.id ? " dragging" : ""}${
+                  overId === app.id && draggedId && draggedId !== app.id ? " drag-over" : ""
+                }`}
                 key={app.id}
-                type="button"
-                className={`sidebar-item${activeAppId === app.id ? " active" : ""}`}
-                onClick={() => navigate(app.id)}
-                title={app.name}
+                draggable={canReorder}
+                onDragStart={() => setDraggedId(app.id)}
+                onDragOver={(e) => {
+                  if (!draggedId) return;
+                  e.preventDefault();
+                  if (overId !== app.id) setOverId(app.id);
+                }}
+                onDragLeave={() => setOverId((cur) => (cur === app.id ? null : cur))}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  handleDrop(app.id);
+                }}
+                onDragEnd={() => {
+                  setDraggedId(null);
+                  setOverId(null);
+                }}
               >
-                <span className="sidebar-item-icon" style={{ background: tint.bg, color: tint.fg }}>
-                  {app.icon ? (
-                    <Icon name={app.icon} />
-                  ) : (
-                    <span className="badge-letter">{app.initial || initialOf(app.name)}</span>
-                  )}
-                </span>
-                {!isCollapsed && <span className="sidebar-item-label">{app.name}</span>}
-              </button>
+                {canReorder && (
+                  <span className="sidebar-item-handle" aria-hidden="true">
+                    <Icon name="grip" />
+                  </span>
+                )}
+                <button
+                  type="button"
+                  className={`sidebar-item${activeAppId === app.id ? " active" : ""}`}
+                  onClick={() => {
+                    if (navEditMode) return;
+                    if (app.type === "link") {
+                      openTarget(app.url, app.isFile, app.fileName);
+                      onCloseMobile();
+                    } else {
+                      navigate(app.id);
+                    }
+                  }}
+                  title={app.name}
+                >
+                  <span className="sidebar-item-icon" style={{ background: tint.bg, color: tint.fg }}>
+                    {app.icon ? (
+                      <Icon name={app.icon} />
+                    ) : (
+                      <span className="badge-letter">{app.initial || initialOf(app.name)}</span>
+                    )}
+                  </span>
+                  {!isCollapsed && <span className="sidebar-item-label">{app.name}</span>}
+                </button>
+                {!isCollapsed && canManageNav && (
+                  <button
+                    type="button"
+                    className="sidebar-item-remove"
+                    title={`Remove ${app.name} from nav`}
+                    aria-label={`Remove ${app.name} from nav`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onRemoveFromNav(app.id);
+                    }}
+                  >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                      <path d="M18 6 6 18" />
+                      <path d="M6 6l12 12" />
+                    </svg>
+                  </button>
+                )}
+              </div>
             );
           })}
 
@@ -141,20 +231,20 @@ export function Sidebar({
             <p className="sidebar-empty">No apps match &quot;{query}&quot;</p>
           )}
 
-          {canAdd && (
+          {canManageNav && (
             <button
               type="button"
               className="sidebar-item sidebar-add"
               onClick={() => {
-                onRequestAdd();
+                onRequestAddToNav();
                 onCloseMobile();
               }}
-              title="Add app"
+              title="Add app to nav"
             >
               <span className="sidebar-item-icon sidebar-item-icon--add">
                 <Icon name="plus" />
               </span>
-              {!isCollapsed && "Add app"}
+              {!isCollapsed && "Add app to nav"}
             </button>
           )}
         </div>

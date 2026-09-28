@@ -368,6 +368,133 @@ body {
   white-space: nowrap;
 }
 
+.sidebar-item-row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  border-radius: 10px;
+}
+.sidebar-item-row .sidebar-item {
+  flex: 1;
+  min-width: 0;
+}
+.sidebar-item-row[draggable="true"] {
+  cursor: grab;
+}
+.sidebar-item-row[draggable="true"]:active {
+  cursor: grabbing;
+}
+.sidebar-item-row.dragging {
+  opacity: 0.4;
+}
+.sidebar-item-row.drag-over {
+  outline: 2px dashed var(--teal);
+  outline-offset: 2px;
+}
+
+.sidebar-item-handle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 26px;
+  flex-shrink: 0;
+  color: var(--text-secondary);
+}
+.sidebar-item-handle svg {
+  width: 14px;
+  height: 14px;
+}
+
+.sidebar-section-label--row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-right: 4px;
+}
+
+.sidebar-edit-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+.sidebar-edit-toggle svg {
+  width: 13px;
+  height: 13px;
+}
+.sidebar-edit-toggle:hover {
+  background: var(--surface-soft);
+  color: var(--text);
+}
+.sidebar-edit-toggle.active {
+  background: var(--teal);
+  color: #fff;
+}
+
+.sidebar-item-remove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+.sidebar-item-remove svg {
+  width: 13px;
+  height: 13px;
+}
+.sidebar-item-remove:hover,
+.sidebar-item-remove:focus-visible {
+  background: var(--surface-soft);
+  color: #c0392b;
+}
+
+.nav-candidate-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 340px;
+  overflow-y: auto;
+}
+.nav-candidate-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.nav-candidate-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.nav-candidate-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.nav-candidate-type {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
 .sidebar-section-label {
   font-size: 10.5px;
   font-weight: 700;

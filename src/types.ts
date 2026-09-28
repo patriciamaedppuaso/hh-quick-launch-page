@@ -199,6 +199,8 @@ interface AppBase {
   statusOptions?: string[];
   /** Whether staff can see this app. Admins always see every app regardless. Defaults to true. */
   visible?: boolean;
+  /** Whether this app shows in the sidebar nav list. Undefined = default (list apps yes, link apps no). */
+  showInNav?: boolean;
   contacts?: ContactRecord[];
   leads?: LeadRecord[];
   announcements?: AnnouncementRecord[];
