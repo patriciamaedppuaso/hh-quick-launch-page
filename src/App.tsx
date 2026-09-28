@@ -28,6 +28,7 @@ import { TasksPage } from "./components/TasksPage";
 import { TimeClockPage } from "./components/TimeClockPage";
 import { UsersPage } from "./components/UsersPage";
 import { ReceivablesPayablesPage } from "./components/ReceivablesPayablesPage";
+import { AccountsPage } from "./components/AccountsPage";
 import { BlogPage } from "./components/BlogPage";
 import { Footer } from "./components/Footer";
 import { useToast } from "./components/ToastProvider";
@@ -47,6 +48,7 @@ const FIELD_LABELS: Record<string, string> = {
   timeEntries: "Time entry",
   receivablesPayables: "Entry",
   blogPosts: "Post",
+  accounts: "Account",
   statusOptions: "List",
   name: "App",
   visible: "App",
@@ -386,7 +388,13 @@ export default function App() {
     setAddingApp(false);
   }
 
-  function handleEditApp(patch: { name: string; description?: string; visible: boolean; showInNav: boolean }) {
+  function handleEditApp(patch: {
+    name: string;
+    description?: string;
+    visible: boolean;
+    showInNav: boolean;
+    staffCanManage: boolean;
+  }) {
     if (!editingApp) return;
     updateApp(editingApp.id, patch);
     setEditingApp(null);
@@ -474,6 +482,16 @@ export default function App() {
             role={role}
             onBack={closeItems}
             onUpdate={(blogPosts) => updateApp(app.id, { blogPosts })}
+          />
+        );
+      case "accounts":
+        return (
+          <AccountsPage
+            app={app}
+            role={role}
+            onBack={closeItems}
+            onUpdate={(accounts) => updateApp(app.id, { accounts })}
+            onUpdateStatusOptions={(statusOptions) => updateApp(app.id, { statusOptions })}
           />
         );
       default:

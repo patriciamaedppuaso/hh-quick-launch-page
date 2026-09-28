@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import type { AppTile, BlogPostRecord, Role } from "../types";
 import { Icon } from "../icons";
-import { formatDate, initialOf } from "../utils";
+import { canManageApp, formatDate, initialOf } from "../utils";
 import { Modal } from "./Modal";
 import { BlogPostForm } from "./BlogPostForm";
 
@@ -30,7 +30,7 @@ export function BlogPage({ app, role, onBack, onUpdate }: Props) {
   const [adding, setAdding] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
-  const canManage = role === "admin";
+  const canManage = canManageApp(app, role);
   const tint = app.tint ?? FALLBACK_TINT;
 
   const existingSlugs = useMemo(() => records.map((r) => r.slug), [records]);

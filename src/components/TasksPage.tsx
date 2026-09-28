@@ -5,6 +5,7 @@ import {
   DEFAULT_TASK_STATUSES,
   DONE_STATUS,
   TEAM_MEMBERS,
+  canManageApp,
   colorForStatus,
   formatDate,
   initialOf,
@@ -57,7 +58,7 @@ export function TasksPage({
   const [managingStatuses, setManagingStatuses] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
-  const canManage = role === "admin";
+  const canManage = canManageApp(app, role);
   const tint = app.tint ?? FALLBACK_TINT;
 
   const FILTERS: { value: StatusFilter; label: string }[] = useMemo(

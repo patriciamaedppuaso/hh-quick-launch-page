@@ -1,5 +1,6 @@
 import { supabase } from "./supabaseClient";
 import type {
+  AccountRecord,
   AnnouncementAttachment,
   AnnouncementRecord,
   AppTile,
@@ -46,6 +47,7 @@ export async function fetchAllApps(): Promise<AppTile[]> {
     breaks,
     receivablesPayables,
     blogPosts,
+    accounts,
   ] = await Promise.all([
     supabase.from("apps").select("*").order("sort_order"),
     supabase.from("list_items").select("*").order("sort_order"),
@@ -60,6 +62,7 @@ export async function fetchAllApps(): Promise<AppTile[]> {
     supabase.from("time_entry_breaks").select("*"),
     supabase.from("receivables_payables").select("*"),
     supabase.from("hh_blog_posts").select("*").order("published_at", { ascending: false }),
+    supabase.from("account_credentials").select("*"),
   ]);
 
   for (const res of [
@@ -76,6 +79,7 @@ export async function fetchAllApps(): Promise<AppTile[]> {
     breaks,
     receivablesPayables,
     blogPosts,
+    accounts,
   ]) {
     if (res.error) throw res.error;
   }
@@ -92,6 +96,7 @@ export async function fetchAllApps(): Promise<AppTile[]> {
   const breaksByEntry = groupBy(breaks.data ?? [], (r) => r.time_entry_id);
   const receivablesPayablesByApp = groupBy(receivablesPayables.data ?? [], (r) => r.app_id);
   const blogPostsByApp = groupBy(blogPosts.data ?? [], (r) => r.app_id);
+  const accountsByApp = groupBy(accounts.data ?? [], (r) => r.app_id);
 
   return (apps.data ?? []).map((row): AppTile => {
     const base = {
@@ -106,6 +111,7 @@ export async function fetchAllApps(): Promise<AppTile[]> {
       statusOptions: (row.status_options as string[] | null) ?? undefined,
       visible: (row.visible as boolean | null) ?? true,
       showInNav: (row.show_in_nav as boolean | null) ?? undefined,
+      staffCanManage: (row.staff_can_manage as boolean | null) ?? false,
       contacts: (contactsByApp.get(row.id) ?? []).map(rowToContact),
       leads: (leadsByApp.get(row.id) ?? []).map(rowToLead),
       announcements: (announcementsByApp.get(row.id) ?? []).map((a) =>
@@ -116,6 +122,7 @@ export async function fetchAllApps(): Promise<AppTile[]> {
       timeEntries: (timeEntriesByApp.get(row.id) ?? []).map((e) => rowToTimeEntry(e, breaksByEntry.get(e.id) ?? [])),
       receivablesPayables: (receivablesPayablesByApp.get(row.id) ?? []).map(rowToReceivablePayable),
       blogPosts: (blogPostsByApp.get(row.id) ?? []).map(rowToBlogPost),
+      accounts: (accountsByApp.get(row.id) ?? []).map(rowToAccount),
     };
 
     if (row.type === "link") {
@@ -213,6 +220,19 @@ function rowToReceivablePayable(row: Record<string, unknown>): ReceivablePayable
     dueDate: (row.due_date as string) ?? undefined,
     notes: (row.notes as string) ?? undefined,
     createdAt: (row.created_at as string) ?? undefined,
+  };
+}
+
+function rowToAccount(row: Record<string, unknown>): AccountRecord {
+  return {
+    id: row.id as string,
+    name: row.name as string,
+    category: (row.category as string) ?? undefined,
+    email: row.email as string,
+    password: row.password as string,
+    url: (row.url as string) ?? undefined,
+    notes: (row.notes as string) ?? undefined,
+    updatedAt: (row.updated_at as string) ?? undefined,
   };
 }
 
@@ -330,6 +350,7 @@ function appToRow(app: AppTile, sortOrder: number) {
     status_options: app.statusOptions ?? null,
     visible: app.visible ?? true,
     show_in_nav: app.showInNav ?? null,
+    staff_can_manage: app.staffCanManage ?? false,
     sort_order: sortOrder,
     url: isLink ? app.url : null,
     subtitle: isLink ? (app.subtitle ?? null) : null,
@@ -454,6 +475,27 @@ async function syncAppCollections(app: AppTile): Promise<void> {
           due_date: r.dueDate ?? null,
           notes: r.notes ?? null,
           created_at: r.createdAt ?? null,
+        })),
+      ),
+    );
+  }
+
+  if (app.accounts) {
+    work.push(
+      replaceRows(
+        "account_credentials",
+        "app_id",
+        app.id,
+        app.accounts.map((a) => ({
+          id: a.id,
+          app_id: app.id,
+          name: a.name,
+          category: a.category ?? null,
+          email: a.email,
+          password: a.password,
+          url: a.url ?? null,
+          notes: a.notes ?? null,
+          updated_at: a.updatedAt ?? null,
         })),
       ),
     );

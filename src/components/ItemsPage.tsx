@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import type { ListApp, ListItem, Role } from "../types";
 import { Icon } from "../icons";
-import { formatDate, initialOf, isOverdue, isPdfFile, openTarget } from "../utils";
+import { canManageApp, formatDate, initialOf, isOverdue, isPdfFile, openTarget } from "../utils";
 import { Modal } from "./Modal";
 import { ItemForm } from "./ItemForm";
 import { FilePreviewModal } from "./FilePreviewModal";
@@ -42,7 +42,7 @@ export function ItemsPage({ app, role, onBack, onUpdateItems, onUpdateStatusOpti
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [previewItem, setPreviewItem] = useState<ListItem | null>(null);
 
-  const canManage = role === "admin";
+  const canManage = canManageApp(app, role);
   const tint = app.tint ?? FALLBACK_TINT;
   const folderOptions = app.statusOptions ?? [];
   const hasFolders = folderOptions.length > 0;

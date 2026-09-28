@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { AnnouncementAttachment, AnnouncementRecord, AppTile, Role } from "../types";
 import { Icon } from "../icons";
-import { formatDate, initialOf } from "../utils";
+import { canManageApp, formatDate, initialOf } from "../utils";
 import { Modal } from "./Modal";
 import { AnnouncementForm } from "./AnnouncementForm";
 import { FilePreviewModal } from "./FilePreviewModal";
@@ -32,7 +32,7 @@ export function AnnouncementsPage({ app, role, onBack, onUpdate, readIds, onMark
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [records]);
 
-  const canManage = role === "admin";
+  const canManage = canManageApp(app, role);
   const tint = app.tint ?? FALLBACK_TINT;
 
   const sorted = useMemo(() => [...records].sort((a, b) => b.date.localeCompare(a.date)), [records]);

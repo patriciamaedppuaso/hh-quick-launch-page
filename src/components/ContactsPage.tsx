@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import type { AppTile, ContactRecord, Role } from "../types";
 import { Icon } from "../icons";
-import { DEFAULT_CONTACT_CATEGORIES, colorForStatus, initialOf } from "../utils";
+import { DEFAULT_CONTACT_CATEGORIES, canManageApp, colorForStatus, initialOf } from "../utils";
 import { Modal } from "./Modal";
 import { ContactForm } from "./ContactForm";
 import { ManageStatusesForm } from "./ManageStatusesForm";
@@ -26,7 +26,7 @@ export function ContactsPage({ app, role, onBack, onUpdate, onUpdateStatusOption
   const [managingCategories, setManagingCategories] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
-  const canManage = role === "admin";
+  const canManage = canManageApp(app, role);
   const tint = app.tint ?? FALLBACK_TINT;
 
   const categoryUsageCounts = useMemo(() => {

@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import type { AppTile, LeadRecord, Role } from "../types";
 import { Icon } from "../icons";
-import { DEFAULT_LEAD_STATUSES, colorForStatus, formatCurrency, formatDate, initialOf } from "../utils";
+import { DEFAULT_LEAD_STATUSES, canManageApp, colorForStatus, formatCurrency, formatDate, initialOf } from "../utils";
 import { Modal } from "./Modal";
 import { LeadForm } from "./LeadForm";
 import { ManageStatusesForm } from "./ManageStatusesForm";
@@ -28,7 +28,7 @@ export function LeadsPage({ app, role, onBack, onUpdate, onUpdateStatusOptions }
   const [managingStatuses, setManagingStatuses] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
-  const canManage = role === "admin";
+  const canManage = canManageApp(app, role);
   const tint = app.tint ?? FALLBACK_TINT;
 
   const FILTERS: { value: StatusFilter; label: string }[] = useMemo(

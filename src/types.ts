@@ -37,7 +37,12 @@ export type IconName =
   | "folder"
   | "chevron-right"
   | "alert-circle"
-  | "newspaper";
+  | "newspaper"
+  | "key"
+  | "eye"
+  | "eye-off"
+  | "copy"
+  | "external-link";
 
 export interface Tint {
   bg: string;
@@ -65,7 +70,8 @@ export type BuiltinKind =
   | "timeclock"
   | "users"
   | "receivables"
-  | "blog";
+  | "blog"
+  | "accounts";
 
 export interface ContactRecord {
   id: string;
@@ -132,6 +138,17 @@ export interface ReceivablePayableRecord {
   dueDate?: string;
   notes?: string;
   createdAt?: string;
+}
+
+export interface AccountRecord {
+  id: string;
+  name: string;
+  category?: string;
+  email: string;
+  password: string;
+  url?: string;
+  notes?: string;
+  updatedAt?: string;
 }
 
 export interface BlogPostRecord {
@@ -201,6 +218,8 @@ interface AppBase {
   visible?: boolean;
   /** Whether this app shows in the sidebar nav list. Undefined = default (list apps yes, link apps no). */
   showInNav?: boolean;
+  /** Whether staff (non-admin) can add/edit/delete this app's content. Admins always can. Defaults to false. */
+  staffCanManage?: boolean;
   contacts?: ContactRecord[];
   leads?: LeadRecord[];
   announcements?: AnnouncementRecord[];
@@ -209,6 +228,7 @@ interface AppBase {
   timeEntries?: TimeEntry[];
   receivablesPayables?: ReceivablePayableRecord[];
   blogPosts?: BlogPostRecord[];
+  accounts?: AccountRecord[];
 }
 
 export interface LinkApp extends AppBase {

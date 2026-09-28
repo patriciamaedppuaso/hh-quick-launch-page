@@ -3,7 +3,13 @@ import type { AppTile } from "../types";
 
 interface Props {
   app: AppTile;
-  onSave: (patch: { name: string; description?: string; visible: boolean; showInNav: boolean }) => void;
+  onSave: (patch: {
+    name: string;
+    description?: string;
+    visible: boolean;
+    showInNav: boolean;
+    staffCanManage: boolean;
+  }) => void;
   onDelete: () => void;
   onCancel: () => void;
 }
@@ -13,6 +19,7 @@ export function EditAppForm({ app, onSave, onDelete, onCancel }: Props) {
   const [description, setDescription] = useState(app.description ?? "");
   const [visible, setVisible] = useState(app.visible !== false);
   const [showInNav, setShowInNav] = useState(app.showInNav ?? app.type === "list");
+  const [staffCanManage, setStaffCanManage] = useState(app.staffCanManage ?? false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [error, setError] = useState("");
 
@@ -23,7 +30,13 @@ export function EditAppForm({ app, onSave, onDelete, onCancel }: Props) {
       return;
     }
     setError("");
-    onSave({ name: trimmedName, description: description.trim() || undefined, visible, showInNav });
+    onSave({
+      name: trimmedName,
+      description: description.trim() || undefined,
+      visible,
+      showInNav,
+      staffCanManage,
+    });
   }
 
   return (
@@ -87,6 +100,31 @@ export function EditAppForm({ app, onSave, onDelete, onCancel }: Props) {
             : "This app still shows on the dashboard grid either way -- this only controls the sidebar list."}
         </p>
       </div>
+
+      {app.type === "list" && (
+        <div className="form-row">
+          <label>Staff permissions</label>
+          <div className="type-toggle" role="group" aria-label="Staff permissions">
+            <button
+              type="button"
+              className={`type-btn${!staffCanManage ? " active" : ""}`}
+              onClick={() => setStaffCanManage(false)}
+            >
+              View only
+            </button>
+            <button
+              type="button"
+              className={`type-btn${staffCanManage ? " active" : ""}`}
+              onClick={() => setStaffCanManage(true)}
+            >
+              Can add / edit / delete
+            </button>
+          </div>
+          <p className="form-hint">
+            Admins can always add, edit, and delete. This controls whether staff can too, or just view.
+          </p>
+        </div>
+      )}
 
       <div className="danger-zone">
         <div>

@@ -1,7 +1,15 @@
 import { useMemo, useState } from "react";
 import type { AppTile, ReceivablePayableRecord, Role, RpKind } from "../types";
 import { Icon } from "../icons";
-import { DEFAULT_RP_STATUSES, colorForStatus, formatCurrency, formatDate, initialOf, isOverdue } from "../utils";
+import {
+  DEFAULT_RP_STATUSES,
+  canManageApp,
+  colorForStatus,
+  formatCurrency,
+  formatDate,
+  initialOf,
+  isOverdue,
+} from "../utils";
 import { Modal } from "./Modal";
 import { ReceivablePayableForm } from "./ReceivablePayableForm";
 import { ManageStatusesForm } from "./ManageStatusesForm";
@@ -35,7 +43,7 @@ export function ReceivablesPayablesPage({ app, role, onBack, onUpdate, onUpdateS
   const [managingStatuses, setManagingStatuses] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
-  const canManage = role === "admin";
+  const canManage = canManageApp(app, role);
   const tint = app.tint ?? FALLBACK_TINT;
 
   const statusUsageCounts = useMemo(() => {

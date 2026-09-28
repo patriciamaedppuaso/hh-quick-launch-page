@@ -14,6 +14,11 @@ export function isAppVisible(app: AppTile, role: Role): boolean {
   return role === "admin" || app.visible !== false;
 }
 
+/** Admins can always add/edit/delete an app's content; staff can only if the app allows it. */
+export function canManageApp(app: AppTile, role: Role): boolean {
+  return role === "admin" || !!app.staffCanManage;
+}
+
 /** Whether an app currently shows in the sidebar nav list (independent of who's viewing). */
 export function isInNav(app: AppTile): boolean {
   if (app.showInNav === true) return true;
@@ -66,6 +71,14 @@ export const DEFAULT_TASK_STATUSES = ["To do", "In progress"];
 export const DEFAULT_CONTACT_CATEGORIES = ["Client", "Employee", "Vendor"];
 
 export const DEFAULT_RP_STATUSES = ["Unpaid", "Partially Paid", "Paid", "Overdue"];
+
+export const DEFAULT_ACCOUNT_CATEGORIES = ["Software", "Hosting", "Social Media", "Email", "Finance", "Other"];
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+export function isValidEmail(email: string): boolean {
+  return EMAIL_RE.test(email);
+}
 
 export function slugify(text: string): string {
   return text
