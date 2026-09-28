@@ -234,6 +234,13 @@ const PATHS: Record<IconName, ReactNode> = {
       <path d="M8.5 8h7M8.5 11.5h7M8.5 15h4.5" />
     </>
   ),
+  clipboard: (
+    <>
+      <rect x="5" y="4.5" width="14" height="17" rx="2" />
+      <path d="M9 4.5V3.5a1.5 1.5 0 0 1 1.5-1.5h3A1.5 1.5 0 0 1 15 3.5v1" />
+      <path d="M8.5 11h7M8.5 14.5h7M8.5 18h4" />
+    </>
+  ),
 };
 
 export function Icon({ name, className }: Props) {

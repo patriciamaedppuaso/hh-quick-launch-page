@@ -45,7 +45,8 @@ export type IconName =
   | "external-link"
   | "truck"
   | "lungs"
-  | "receipt";
+  | "receipt"
+  | "clipboard";
 
 export interface Tint {
   bg: string;
@@ -77,7 +78,8 @@ export type BuiltinKind =
   | "accounts"
   | "routes"
   | "respiratory"
-  | "invoices";
+  | "invoices"
+  | "purchaseOrders";
 
 export interface ContactRecord {
   id: string;
@@ -209,6 +211,19 @@ export interface InvoiceRecord {
   date: string;
 }
 
+export type PurchaseOrderStatus = "unpaid" | "paid";
+
+export interface PurchaseOrderRecord {
+  id: string;
+  /** Which folder this invoice sits in, when the app has folders enabled. Undefined = no folder. */
+  folder?: string;
+  name: string;
+  url?: string;
+  isFile?: boolean;
+  fileName?: string;
+  status: PurchaseOrderStatus;
+}
+
 export interface BlogPostRecord {
   id: string;
   slug: string;
@@ -290,6 +305,7 @@ interface AppBase {
   routeStops?: RouteStopRecord[];
   respiratoryPatients?: RespiratoryPatientRecord[];
   invoices?: InvoiceRecord[];
+  purchaseOrders?: PurchaseOrderRecord[];
 }
 
 export interface LinkApp extends AppBase {

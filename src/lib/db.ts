@@ -11,6 +11,7 @@ import type {
   InvoiceRecord,
   LeadRecord,
   ListItem,
+  PurchaseOrderRecord,
   ReadAnnouncements,
   ReceivablePayableRecord,
   RespiratoryEquipmentEntry,
@@ -56,6 +57,7 @@ export async function fetchAllApps(): Promise<AppTile[]> {
     respiratoryPatients,
     respiratoryEquipment,
     invoices,
+    purchaseOrders,
   ] = await Promise.all([
     supabase.from("apps").select("*").order("sort_order"),
     supabase.from("list_items").select("*").order("sort_order"),
@@ -75,6 +77,7 @@ export async function fetchAllApps(): Promise<AppTile[]> {
     supabase.from("respiratory_patients").select("*"),
     supabase.from("respiratory_equipment").select("*"),
     supabase.from("printed_invoices").select("*"),
+    supabase.from("purchase_order_invoices").select("*"),
   ]);
 
   for (const res of [
@@ -96,6 +99,7 @@ export async function fetchAllApps(): Promise<AppTile[]> {
     respiratoryPatients,
     respiratoryEquipment,
     invoices,
+    purchaseOrders,
   ]) {
     if (res.error) throw res.error;
   }
@@ -117,6 +121,7 @@ export async function fetchAllApps(): Promise<AppTile[]> {
   const respiratoryPatientsByApp = groupBy(respiratoryPatients.data ?? [], (r) => r.app_id);
   const respiratoryEquipmentByPatient = groupBy(respiratoryEquipment.data ?? [], (r) => r.patient_id);
   const invoicesByApp = groupBy(invoices.data ?? [], (r) => r.app_id);
+  const purchaseOrdersByApp = groupBy(purchaseOrders.data ?? [], (r) => r.app_id);
 
   return (apps.data ?? []).map((row): AppTile => {
     const base = {
@@ -148,6 +153,7 @@ export async function fetchAllApps(): Promise<AppTile[]> {
         rowToRespiratoryPatient(p, respiratoryEquipmentByPatient.get(p.id as string) ?? []),
       ),
       invoices: (invoicesByApp.get(row.id) ?? []).map(rowToInvoice),
+      purchaseOrders: (purchaseOrdersByApp.get(row.id) ?? []).map(rowToPurchaseOrder),
     };
 
     if (row.type === "link") {
@@ -314,6 +320,18 @@ function rowToInvoice(row: Record<string, unknown>): InvoiceRecord {
     notes: (row.notes as string) ?? undefined,
     status: row.status as InvoiceRecord["status"],
     date: row.date as string,
+  };
+}
+
+function rowToPurchaseOrder(row: Record<string, unknown>): PurchaseOrderRecord {
+  return {
+    id: row.id as string,
+    folder: (row.folder as string) ?? undefined,
+    name: row.name as string,
+    url: (row.url as string) ?? undefined,
+    isFile: (row.is_file as boolean) ?? undefined,
+    fileName: (row.file_name as string) ?? undefined,
+    status: row.status as PurchaseOrderRecord["status"],
   };
 }
 
@@ -630,6 +648,26 @@ async function syncAppCollections(app: AppTile): Promise<void> {
           notes: inv.notes ?? null,
           status: inv.status,
           date: inv.date,
+        })),
+      ),
+    );
+  }
+
+  if (app.purchaseOrders) {
+    work.push(
+      replaceRows(
+        "purchase_order_invoices",
+        "app_id",
+        app.id,
+        app.purchaseOrders.map((po) => ({
+          id: po.id,
+          app_id: app.id,
+          folder: po.folder ?? null,
+          name: po.name,
+          url: po.url ?? null,
+          is_file: po.isFile ?? null,
+          file_name: po.fileName ?? null,
+          status: po.status,
         })),
       ),
     );
