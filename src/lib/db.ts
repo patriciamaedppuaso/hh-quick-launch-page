@@ -12,6 +12,8 @@ import type {
   ListItem,
   ReadAnnouncements,
   ReceivablePayableRecord,
+  RespiratoryEquipmentEntry,
+  RespiratoryPatientRecord,
   Role,
   RouteStopRecord,
   TaskRecord,
@@ -50,6 +52,8 @@ export async function fetchAllApps(): Promise<AppTile[]> {
     blogPosts,
     accounts,
     routeStops,
+    respiratoryPatients,
+    respiratoryEquipment,
   ] = await Promise.all([
     supabase.from("apps").select("*").order("sort_order"),
     supabase.from("list_items").select("*").order("sort_order"),
@@ -66,6 +70,8 @@ export async function fetchAllApps(): Promise<AppTile[]> {
     supabase.from("hh_blog_posts").select("*").order("published_at", { ascending: false }),
     supabase.from("account_credentials").select("*"),
     supabase.from("route_stops").select("*"),
+    supabase.from("respiratory_patients").select("*"),
+    supabase.from("respiratory_equipment").select("*"),
   ]);
 
   for (const res of [
@@ -84,6 +90,8 @@ export async function fetchAllApps(): Promise<AppTile[]> {
     blogPosts,
     accounts,
     routeStops,
+    respiratoryPatients,
+    respiratoryEquipment,
   ]) {
     if (res.error) throw res.error;
   }
@@ -102,6 +110,8 @@ export async function fetchAllApps(): Promise<AppTile[]> {
   const blogPostsByApp = groupBy(blogPosts.data ?? [], (r) => r.app_id);
   const accountsByApp = groupBy(accounts.data ?? [], (r) => r.app_id);
   const routeStopsByApp = groupBy(routeStops.data ?? [], (r) => r.app_id);
+  const respiratoryPatientsByApp = groupBy(respiratoryPatients.data ?? [], (r) => r.app_id);
+  const respiratoryEquipmentByPatient = groupBy(respiratoryEquipment.data ?? [], (r) => r.patient_id);
 
   return (apps.data ?? []).map((row): AppTile => {
     const base = {
@@ -129,6 +139,9 @@ export async function fetchAllApps(): Promise<AppTile[]> {
       blogPosts: (blogPostsByApp.get(row.id) ?? []).map(rowToBlogPost),
       accounts: (accountsByApp.get(row.id) ?? []).map(rowToAccount),
       routeStops: (routeStopsByApp.get(row.id) ?? []).map(rowToRouteStop),
+      respiratoryPatients: (respiratoryPatientsByApp.get(row.id) ?? []).map((p) =>
+        rowToRespiratoryPatient(p, respiratoryEquipmentByPatient.get(p.id as string) ?? []),
+      ),
     };
 
     if (row.type === "link") {
@@ -258,6 +271,29 @@ function rowToRouteStop(row: Record<string, unknown>): RouteStopRecord {
     servicePerformed: (row.service_performed as string) ?? undefined,
     note: (row.note as string) ?? undefined,
     flagged: (row.flagged as boolean) ?? undefined,
+  };
+}
+
+function rowToEquipment(row: Record<string, unknown>): RespiratoryEquipmentEntry {
+  return {
+    id: row.id as string,
+    name: row.name as string,
+    status: row.status as RespiratoryEquipmentEntry["status"],
+  };
+}
+
+function rowToRespiratoryPatient(
+  row: Record<string, unknown>,
+  equipmentRows: Record<string, unknown>[],
+): RespiratoryPatientRecord {
+  return {
+    id: row.id as string,
+    folder: (row.folder as string) ?? undefined,
+    patientName: row.patient_name as string,
+    city: (row.city as string) ?? undefined,
+    equipment: equipmentRows.map(rowToEquipment),
+    dueDate: (row.due_date as string) ?? undefined,
+    logDate: (row.log_date as string) ?? undefined,
   };
 }
 
@@ -553,6 +589,10 @@ async function syncAppCollections(app: AppTile): Promise<void> {
     );
   }
 
+  if (app.respiratoryPatients) {
+    work.push(syncRespiratoryPatients(app.id, app.respiratoryPatients));
+  }
+
   if (app.blogPosts) {
     work.push(
       replaceRows(
@@ -632,6 +672,33 @@ async function syncTasks(appId: string, tasks: TaskRecord[]): Promise<void> {
         "task_id",
         t.id,
         (t.assignees ?? []).map((name) => ({ task_id: t.id, assignee_name: name })),
+      ),
+    ),
+  );
+}
+
+async function syncRespiratoryPatients(appId: string, patients: RespiratoryPatientRecord[]): Promise<void> {
+  await replaceRows(
+    "respiratory_patients",
+    "app_id",
+    appId,
+    patients.map((p) => ({
+      id: p.id,
+      app_id: appId,
+      folder: p.folder ?? null,
+      patient_name: p.patientName,
+      city: p.city ?? null,
+      due_date: p.dueDate ?? null,
+      log_date: p.logDate ?? null,
+    })),
+  );
+  await Promise.all(
+    patients.map((p) =>
+      replaceRows(
+        "respiratory_equipment",
+        "patient_id",
+        p.id,
+        p.equipment.map((e) => ({ id: e.id, patient_id: p.id, name: e.name, status: e.status })),
       ),
     ),
   );

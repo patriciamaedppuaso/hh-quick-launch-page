@@ -43,7 +43,8 @@ export type IconName =
   | "eye-off"
   | "copy"
   | "external-link"
-  | "truck";
+  | "truck"
+  | "lungs";
 
 export interface Tint {
   bg: string;
@@ -73,7 +74,8 @@ export type BuiltinKind =
   | "receivables"
   | "blog"
   | "accounts"
-  | "routes";
+  | "routes"
+  | "respiratory";
 
 export interface ContactRecord {
   id: string;
@@ -170,6 +172,25 @@ export interface RouteStopRecord {
   flagged?: boolean;
 }
 
+export type EquipmentStatus = "ongoing" | "returned";
+
+export interface RespiratoryEquipmentEntry {
+  id: string;
+  name: string;
+  status: EquipmentStatus;
+}
+
+export interface RespiratoryPatientRecord {
+  id: string;
+  /** Which folder this patient sits in, when the app has folders enabled. Undefined = no folder. */
+  folder?: string;
+  patientName: string;
+  city?: string;
+  equipment: RespiratoryEquipmentEntry[];
+  dueDate?: string;
+  logDate?: string;
+}
+
 export interface BlogPostRecord {
   id: string;
   slug: string;
@@ -249,6 +270,7 @@ interface AppBase {
   blogPosts?: BlogPostRecord[];
   accounts?: AccountRecord[];
   routeStops?: RouteStopRecord[];
+  respiratoryPatients?: RespiratoryPatientRecord[];
 }
 
 export interface LinkApp extends AppBase {

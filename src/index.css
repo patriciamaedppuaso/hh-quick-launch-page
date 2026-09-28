@@ -476,6 +476,44 @@ body {
   color: #c0392b;
 }
 
+.equipment-status-btn {
+  border: none;
+  border-radius: 999px;
+  padding: 3px 9px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.equipment-status-btn--ongoing {
+  background: color-mix(in srgb, var(--gold) 25%, var(--surface-soft));
+  color: color-mix(in srgb, var(--gold) 70%, var(--text));
+}
+.equipment-status-btn--returned {
+  background: color-mix(in srgb, var(--success) 20%, var(--surface-soft));
+  color: color-mix(in srgb, var(--success) 70%, var(--text));
+}
+
+.equipment-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 999px;
+  padding: 3px 10px;
+  white-space: nowrap;
+}
+.equipment-pill--ongoing {
+  background: color-mix(in srgb, var(--gold) 20%, var(--surface-soft));
+  color: color-mix(in srgb, var(--gold) 70%, var(--text));
+}
+.equipment-pill--returned {
+  background: color-mix(in srgb, var(--success) 18%, var(--surface-soft));
+  color: color-mix(in srgb, var(--success) 70%, var(--text));
+}
+
 .nav-candidate-list {
   display: flex;
   flex-direction: column;
