@@ -1,15 +1,17 @@
 import { useState } from "react";
 import type { LeadRecord, LeadStatus } from "../types";
 import { newId, todayIso } from "../utils";
+import { PersonSearchInput } from "./PersonSearchInput";
 
 interface Props {
   initial?: LeadRecord;
   statusOptions: string[];
+  repOptions: string[];
   onSave: (record: LeadRecord) => void;
   onCancel: () => void;
 }
 
-export function LeadForm({ initial, statusOptions, onSave, onCancel }: Props) {
+export function LeadForm({ initial, statusOptions, repOptions, onSave, onCancel }: Props) {
   const [name, setName] = useState(initial?.name ?? "");
   const [company, setCompany] = useState(initial?.company ?? "");
   const [status, setStatus] = useState<LeadStatus>(initial?.status ?? statusOptions[0]);
@@ -78,12 +80,12 @@ export function LeadForm({ initial, statusOptions, onSave, onCancel }: Props) {
       </div>
       <div className="form-row">
         <label htmlFor="lRep">Rep (optional)</label>
-        <input
+        <PersonSearchInput
           id="lRep"
-          type="text"
-          placeholder="Who's working this lead?"
           value={rep}
-          onChange={(e) => setRep(e.target.value)}
+          onChange={setRep}
+          options={repOptions}
+          placeholder="Who's working this lead?"
         />
       </div>
       <div className="form-row">

@@ -9,6 +9,7 @@ import { ManageStatusesForm } from "./ManageStatusesForm";
 interface Props {
   app: AppTile;
   role: Role;
+  registeredUserNames: string[];
   onBack: () => void;
   onUpdate: (records: LeadRecord[]) => void;
   onUpdateStatusOptions: (options: string[]) => void;
@@ -18,7 +19,7 @@ const FALLBACK_TINT = { bg: "#EDF7F6", fg: "#479CA4" };
 
 type StatusFilter = "all" | string;
 
-export function LeadsPage({ app, role, onBack, onUpdate, onUpdateStatusOptions }: Props) {
+export function LeadsPage({ app, role, registeredUserNames, onBack, onUpdate, onUpdateStatusOptions }: Props) {
   const records = app.leads ?? [];
   const statusOptions = app.statusOptions ?? DEFAULT_LEAD_STATUSES;
   const [query, setQuery] = useState("");
@@ -186,7 +187,12 @@ export function LeadsPage({ app, role, onBack, onUpdate, onUpdateStatusOptions }
       )}
 
       <Modal open={adding} onClose={() => setAdding(false)} title="Add lead">
-        <LeadForm statusOptions={statusOptions} onSave={handleAddSave} onCancel={() => setAdding(false)} />
+        <LeadForm
+          statusOptions={statusOptions}
+          repOptions={registeredUserNames}
+          onSave={handleAddSave}
+          onCancel={() => setAdding(false)}
+        />
       </Modal>
 
       <Modal open={!!editing} onClose={() => setEditing(null)} title="Edit lead">
@@ -194,6 +200,7 @@ export function LeadsPage({ app, role, onBack, onUpdate, onUpdateStatusOptions }
           <LeadForm
             initial={editing}
             statusOptions={statusOptions}
+            repOptions={registeredUserNames}
             onSave={handleEditSave}
             onCancel={() => setEditing(null)}
           />

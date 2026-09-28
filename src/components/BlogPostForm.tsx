@@ -2,15 +2,17 @@ import { useState } from "react";
 import type { BlogPostRecord } from "../types";
 import { newId, slugify, todayIso } from "../utils";
 import { AvatarPicker } from "./AvatarPicker";
+import { PersonSearchInput } from "./PersonSearchInput";
 
 interface Props {
   initial?: BlogPostRecord;
   existingSlugs: string[];
+  authorOptions: string[];
   onSave: (record: BlogPostRecord) => void;
   onCancel: () => void;
 }
 
-export function BlogPostForm({ initial, existingSlugs, onSave, onCancel }: Props) {
+export function BlogPostForm({ initial, existingSlugs, authorOptions, onSave, onCancel }: Props) {
   const [title, setTitle] = useState(initial?.title ?? "");
   const [slug, setSlug] = useState(initial?.slug ?? "");
   const [slugTouched, setSlugTouched] = useState(!!initial);
@@ -119,12 +121,7 @@ export function BlogPostForm({ initial, existingSlugs, onSave, onCancel }: Props
       </div>
       <div className="form-row">
         <label htmlFor="bpAuthor">Author name</label>
-        <input
-          id="bpAuthor"
-          type="text"
-          value={authorName}
-          onChange={(e) => setAuthorName(e.target.value)}
-        />
+        <PersonSearchInput id="bpAuthor" value={authorName} onChange={setAuthorName} options={authorOptions} />
       </div>
       <div className="form-row">
         <label htmlFor="bpDate">Published date</label>

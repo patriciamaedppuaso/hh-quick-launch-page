@@ -2558,6 +2558,41 @@ body {
   box-shadow: var(--shadow);
 }
 
+.person-search {
+  position: relative;
+}
+.person-search-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  max-height: 200px;
+  overflow-y: auto;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  padding: 6px;
+  z-index: 20;
+}
+.person-search-option {
+  width: 100%;
+  display: block;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font-family: "Public Sans", sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: left;
+}
+.person-search-option:hover {
+  background: var(--surface-soft);
+}
+
 .assignee-picker {
   display: flex;
   flex-wrap: wrap;
@@ -3102,6 +3137,15 @@ body {
 .items-row-icon--folder {
   background: color-mix(in srgb, var(--gold) 20%, var(--surface-soft));
   color: color-mix(in srgb, var(--gold) 75%, var(--text));
+}
+.items-row-icon--flag {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.items-row--flagged {
+  background: var(--danger-soft);
+  border-radius: 12px;
 }
 
 .folder-row {

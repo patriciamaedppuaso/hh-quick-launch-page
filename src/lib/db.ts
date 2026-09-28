@@ -13,6 +13,7 @@ import type {
   ReadAnnouncements,
   ReceivablePayableRecord,
   Role,
+  RouteStopRecord,
   TaskRecord,
   TimeEntry,
 } from "../types";
@@ -48,6 +49,7 @@ export async function fetchAllApps(): Promise<AppTile[]> {
     receivablesPayables,
     blogPosts,
     accounts,
+    routeStops,
   ] = await Promise.all([
     supabase.from("apps").select("*").order("sort_order"),
     supabase.from("list_items").select("*").order("sort_order"),
@@ -63,6 +65,7 @@ export async function fetchAllApps(): Promise<AppTile[]> {
     supabase.from("receivables_payables").select("*"),
     supabase.from("hh_blog_posts").select("*").order("published_at", { ascending: false }),
     supabase.from("account_credentials").select("*"),
+    supabase.from("route_stops").select("*"),
   ]);
 
   for (const res of [
@@ -80,6 +83,7 @@ export async function fetchAllApps(): Promise<AppTile[]> {
     receivablesPayables,
     blogPosts,
     accounts,
+    routeStops,
   ]) {
     if (res.error) throw res.error;
   }
@@ -97,6 +101,7 @@ export async function fetchAllApps(): Promise<AppTile[]> {
   const receivablesPayablesByApp = groupBy(receivablesPayables.data ?? [], (r) => r.app_id);
   const blogPostsByApp = groupBy(blogPosts.data ?? [], (r) => r.app_id);
   const accountsByApp = groupBy(accounts.data ?? [], (r) => r.app_id);
+  const routeStopsByApp = groupBy(routeStops.data ?? [], (r) => r.app_id);
 
   return (apps.data ?? []).map((row): AppTile => {
     const base = {
@@ -123,6 +128,7 @@ export async function fetchAllApps(): Promise<AppTile[]> {
       receivablesPayables: (receivablesPayablesByApp.get(row.id) ?? []).map(rowToReceivablePayable),
       blogPosts: (blogPostsByApp.get(row.id) ?? []).map(rowToBlogPost),
       accounts: (accountsByApp.get(row.id) ?? []).map(rowToAccount),
+      routeStops: (routeStopsByApp.get(row.id) ?? []).map(rowToRouteStop),
     };
 
     if (row.type === "link") {
@@ -233,6 +239,25 @@ function rowToAccount(row: Record<string, unknown>): AccountRecord {
     url: (row.url as string) ?? undefined,
     notes: (row.notes as string) ?? undefined,
     updatedAt: (row.updated_at as string) ?? undefined,
+  };
+}
+
+function rowToRouteStop(row: Record<string, unknown>): RouteStopRecord {
+  return {
+    id: row.id as string,
+    driver: row.driver as string,
+    date: row.date as string,
+    startTime: (row.start_time as string) ?? undefined,
+    endTime: (row.end_time as string) ?? undefined,
+    mileage: (row.mileage as number) ?? undefined,
+    customerName: row.customer_name as string,
+    street: (row.street as string) ?? undefined,
+    city: (row.city as string) ?? undefined,
+    driverEta: (row.driver_eta as string) ?? undefined,
+    scheduleEta: (row.schedule_eta as string) ?? undefined,
+    servicePerformed: (row.service_performed as string) ?? undefined,
+    note: (row.note as string) ?? undefined,
+    flagged: (row.flagged as boolean) ?? undefined,
   };
 }
 
@@ -496,6 +521,33 @@ async function syncAppCollections(app: AppTile): Promise<void> {
           url: a.url ?? null,
           notes: a.notes ?? null,
           updated_at: a.updatedAt ?? null,
+        })),
+      ),
+    );
+  }
+
+  if (app.routeStops) {
+    work.push(
+      replaceRows(
+        "route_stops",
+        "app_id",
+        app.id,
+        app.routeStops.map((s) => ({
+          id: s.id,
+          app_id: app.id,
+          driver: s.driver,
+          date: s.date,
+          start_time: s.startTime ?? null,
+          end_time: s.endTime ?? null,
+          mileage: s.mileage ?? null,
+          customer_name: s.customerName,
+          street: s.street ?? null,
+          city: s.city ?? null,
+          driver_eta: s.driverEta ?? null,
+          schedule_eta: s.scheduleEta ?? null,
+          service_performed: s.servicePerformed ?? null,
+          note: s.note ?? null,
+          flagged: s.flagged ?? false,
         })),
       ),
     );

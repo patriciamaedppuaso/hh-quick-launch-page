@@ -29,6 +29,7 @@ import { TimeClockPage } from "./components/TimeClockPage";
 import { UsersPage } from "./components/UsersPage";
 import { ReceivablesPayablesPage } from "./components/ReceivablesPayablesPage";
 import { AccountsPage } from "./components/AccountsPage";
+import { RoutesPage } from "./components/RoutesPage";
 import { BlogPage } from "./components/BlogPage";
 import { Footer } from "./components/Footer";
 import { useToast } from "./components/ToastProvider";
@@ -49,6 +50,7 @@ const FIELD_LABELS: Record<string, string> = {
   receivablesPayables: "Entry",
   blogPosts: "Post",
   accounts: "Account",
+  routeStops: "Stop",
   statusOptions: "List",
   name: "App",
   visible: "App",
@@ -425,6 +427,7 @@ export default function App() {
           <LeadsPage
             app={app}
             role={role}
+            registeredUserNames={registeredUserNames}
             onBack={closeItems}
             onUpdate={(leads) => updateApp(app.id, { leads })}
             onUpdateStatusOptions={(statusOptions) => updateApp(app.id, { statusOptions })}
@@ -435,6 +438,7 @@ export default function App() {
           <AnnouncementsPage
             app={app}
             role={role}
+            registeredUserNames={registeredUserNames}
             onBack={closeItems}
             onUpdate={(announcements) => updateApp(app.id, { announcements })}
             readIds={readAnnouncements[role] ?? []}
@@ -480,6 +484,7 @@ export default function App() {
           <BlogPage
             app={app}
             role={role}
+            registeredUserNames={registeredUserNames}
             onBack={closeItems}
             onUpdate={(blogPosts) => updateApp(app.id, { blogPosts })}
           />
@@ -492,6 +497,17 @@ export default function App() {
             onBack={closeItems}
             onUpdate={(accounts) => updateApp(app.id, { accounts })}
             onUpdateStatusOptions={(statusOptions) => updateApp(app.id, { statusOptions })}
+          />
+        );
+      case "routes":
+        return (
+          <RoutesPage
+            app={app}
+            role={role}
+            currentUserName={currentUserName}
+            registeredUserNames={registeredUserNames}
+            onBack={closeItems}
+            onUpdate={(routeStops) => updateApp(app.id, { routeStops })}
           />
         );
       default:

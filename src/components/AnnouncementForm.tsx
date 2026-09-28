@@ -2,14 +2,16 @@ import { useState } from "react";
 import type { AnnouncementAttachment, AnnouncementRecord } from "../types";
 import { newId, todayIso } from "../utils";
 import { AttachmentPicker } from "./AttachmentPicker";
+import { PersonSearchInput } from "./PersonSearchInput";
 
 interface Props {
   initial?: AnnouncementRecord;
+  authorOptions: string[];
   onSave: (record: AnnouncementRecord) => void;
   onCancel: () => void;
 }
 
-export function AnnouncementForm({ initial, onSave, onCancel }: Props) {
+export function AnnouncementForm({ initial, authorOptions, onSave, onCancel }: Props) {
   const [title, setTitle] = useState(initial?.title ?? "");
   const [message, setMessage] = useState(initial?.message ?? "");
   const [date, setDate] = useState(initial?.date ?? todayIso());
@@ -67,13 +69,7 @@ export function AnnouncementForm({ initial, onSave, onCancel }: Props) {
       </div>
       <div className="form-row">
         <label htmlFor="aAuthor">Posted by (optional)</label>
-        <input
-          id="aAuthor"
-          type="text"
-          placeholder="Name"
-          value={author}
-          onChange={(e) => setAuthor(e.target.value)}
-        />
+        <PersonSearchInput id="aAuthor" value={author} onChange={setAuthor} options={authorOptions} placeholder="Name" />
       </div>
       <div className="form-row">
         <label>Attachments (optional)</label>

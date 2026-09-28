@@ -8,6 +8,7 @@ import { BlogPostForm } from "./BlogPostForm";
 interface Props {
   app: AppTile;
   role: Role;
+  registeredUserNames: string[];
   onBack: () => void;
   onUpdate: (records: BlogPostRecord[]) => void;
 }
@@ -22,7 +23,7 @@ const FILTERS: { value: StatusFilter; label: string }[] = [
   { value: "draft", label: "Draft" },
 ];
 
-export function BlogPage({ app, role, onBack, onUpdate }: Props) {
+export function BlogPage({ app, role, registeredUserNames, onBack, onUpdate }: Props) {
   const records = app.blogPosts ?? [];
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
@@ -181,7 +182,12 @@ export function BlogPage({ app, role, onBack, onUpdate }: Props) {
       )}
 
       <Modal open={adding} onClose={() => setAdding(false)} title="New Blog Post" wide>
-        <BlogPostForm existingSlugs={existingSlugs} onSave={handleAddSave} onCancel={() => setAdding(false)} />
+        <BlogPostForm
+          existingSlugs={existingSlugs}
+          authorOptions={registeredUserNames}
+          onSave={handleAddSave}
+          onCancel={() => setAdding(false)}
+        />
       </Modal>
 
       <Modal open={!!editing} onClose={() => setEditing(null)} title="Edit Blog Post" wide>
@@ -189,6 +195,7 @@ export function BlogPage({ app, role, onBack, onUpdate }: Props) {
           <BlogPostForm
             initial={editing}
             existingSlugs={existingSlugs}
+            authorOptions={registeredUserNames}
             onSave={handleEditSave}
             onCancel={() => setEditing(null)}
           />

@@ -42,7 +42,8 @@ export type IconName =
   | "eye"
   | "eye-off"
   | "copy"
-  | "external-link";
+  | "external-link"
+  | "truck";
 
 export interface Tint {
   bg: string;
@@ -71,7 +72,8 @@ export type BuiltinKind =
   | "users"
   | "receivables"
   | "blog"
-  | "accounts";
+  | "accounts"
+  | "routes";
 
 export interface ContactRecord {
   id: string;
@@ -149,6 +151,23 @@ export interface AccountRecord {
   url?: string;
   notes?: string;
   updatedAt?: string;
+}
+
+export interface RouteStopRecord {
+  id: string;
+  driver: string;
+  date: string;
+  startTime?: string;
+  endTime?: string;
+  mileage?: number;
+  customerName: string;
+  street?: string;
+  city?: string;
+  driverEta?: string;
+  scheduleEta?: string;
+  servicePerformed?: string;
+  note?: string;
+  flagged?: boolean;
 }
 
 export interface BlogPostRecord {
@@ -229,6 +248,7 @@ interface AppBase {
   receivablesPayables?: ReceivablePayableRecord[];
   blogPosts?: BlogPostRecord[];
   accounts?: AccountRecord[];
+  routeStops?: RouteStopRecord[];
 }
 
 export interface LinkApp extends AppBase {

@@ -9,6 +9,7 @@ import { FilePreviewModal } from "./FilePreviewModal";
 interface Props {
   app: AppTile;
   role: Role;
+  registeredUserNames: string[];
   onBack: () => void;
   onUpdate: (records: AnnouncementRecord[]) => void;
   readIds: string[];
@@ -17,7 +18,7 @@ interface Props {
 
 const FALLBACK_TINT = { bg: "#EDF7F6", fg: "#479CA4" };
 
-export function AnnouncementsPage({ app, role, onBack, onUpdate, readIds, onMarkRead }: Props) {
+export function AnnouncementsPage({ app, role, registeredUserNames, onBack, onUpdate, readIds, onMarkRead }: Props) {
   const records = app.announcements ?? [];
   const [query, setQuery] = useState("");
   const [editing, setEditing] = useState<AnnouncementRecord | null>(null);
@@ -169,12 +170,17 @@ export function AnnouncementsPage({ app, role, onBack, onUpdate, readIds, onMark
       )}
 
       <Modal open={adding} onClose={() => setAdding(false)} title="New announcement">
-        <AnnouncementForm onSave={handleAddSave} onCancel={() => setAdding(false)} />
+        <AnnouncementForm authorOptions={registeredUserNames} onSave={handleAddSave} onCancel={() => setAdding(false)} />
       </Modal>
 
       <Modal open={!!editing} onClose={() => setEditing(null)} title="Edit announcement">
         {editing && (
-          <AnnouncementForm initial={editing} onSave={handleEditSave} onCancel={() => setEditing(null)} />
+          <AnnouncementForm
+            initial={editing}
+            authorOptions={registeredUserNames}
+            onSave={handleEditSave}
+            onCancel={() => setEditing(null)}
+          />
         )}
       </Modal>
 
