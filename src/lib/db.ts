@@ -8,6 +8,7 @@ import type {
   BreakEntry,
   ClockRecord,
   ContactRecord,
+  InvoiceRecord,
   LeadRecord,
   ListItem,
   ReadAnnouncements,
@@ -54,6 +55,7 @@ export async function fetchAllApps(): Promise<AppTile[]> {
     routeStops,
     respiratoryPatients,
     respiratoryEquipment,
+    invoices,
   ] = await Promise.all([
     supabase.from("apps").select("*").order("sort_order"),
     supabase.from("list_items").select("*").order("sort_order"),
@@ -72,6 +74,7 @@ export async function fetchAllApps(): Promise<AppTile[]> {
     supabase.from("route_stops").select("*"),
     supabase.from("respiratory_patients").select("*"),
     supabase.from("respiratory_equipment").select("*"),
+    supabase.from("printed_invoices").select("*"),
   ]);
 
   for (const res of [
@@ -92,6 +95,7 @@ export async function fetchAllApps(): Promise<AppTile[]> {
     routeStops,
     respiratoryPatients,
     respiratoryEquipment,
+    invoices,
   ]) {
     if (res.error) throw res.error;
   }
@@ -112,6 +116,7 @@ export async function fetchAllApps(): Promise<AppTile[]> {
   const routeStopsByApp = groupBy(routeStops.data ?? [], (r) => r.app_id);
   const respiratoryPatientsByApp = groupBy(respiratoryPatients.data ?? [], (r) => r.app_id);
   const respiratoryEquipmentByPatient = groupBy(respiratoryEquipment.data ?? [], (r) => r.patient_id);
+  const invoicesByApp = groupBy(invoices.data ?? [], (r) => r.app_id);
 
   return (apps.data ?? []).map((row): AppTile => {
     const base = {
@@ -142,6 +147,7 @@ export async function fetchAllApps(): Promise<AppTile[]> {
       respiratoryPatients: (respiratoryPatientsByApp.get(row.id) ?? []).map((p) =>
         rowToRespiratoryPatient(p, respiratoryEquipmentByPatient.get(p.id as string) ?? []),
       ),
+      invoices: (invoicesByApp.get(row.id) ?? []).map(rowToInvoice),
     };
 
     if (row.type === "link") {
@@ -294,6 +300,20 @@ function rowToRespiratoryPatient(
     equipment: equipmentRows.map(rowToEquipment),
     dueDate: (row.due_date as string) ?? undefined,
     logDate: (row.log_date as string) ?? undefined,
+  };
+}
+
+function rowToInvoice(row: Record<string, unknown>): InvoiceRecord {
+  return {
+    id: row.id as string,
+    folder: (row.folder as string) ?? undefined,
+    patientName: row.patient_name as string,
+    address: (row.address as string) ?? undefined,
+    hospice: (row.hospice as string) ?? undefined,
+    orderType: row.order_type as InvoiceRecord["orderType"],
+    notes: (row.notes as string) ?? undefined,
+    status: row.status as InvoiceRecord["status"],
+    date: row.date as string,
   };
 }
 
@@ -591,6 +611,28 @@ async function syncAppCollections(app: AppTile): Promise<void> {
 
   if (app.respiratoryPatients) {
     work.push(syncRespiratoryPatients(app.id, app.respiratoryPatients));
+  }
+
+  if (app.invoices) {
+    work.push(
+      replaceRows(
+        "printed_invoices",
+        "app_id",
+        app.id,
+        app.invoices.map((inv) => ({
+          id: inv.id,
+          app_id: app.id,
+          folder: inv.folder ?? null,
+          patient_name: inv.patientName,
+          address: inv.address ?? null,
+          hospice: inv.hospice ?? null,
+          order_type: inv.orderType,
+          notes: inv.notes ?? null,
+          status: inv.status,
+          date: inv.date,
+        })),
+      ),
+    );
   }
 
   if (app.blogPosts) {

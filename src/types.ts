@@ -44,7 +44,8 @@ export type IconName =
   | "copy"
   | "external-link"
   | "truck"
-  | "lungs";
+  | "lungs"
+  | "receipt";
 
 export interface Tint {
   bg: string;
@@ -75,7 +76,8 @@ export type BuiltinKind =
   | "blog"
   | "accounts"
   | "routes"
-  | "respiratory";
+  | "respiratory"
+  | "invoices";
 
 export interface ContactRecord {
   id: string;
@@ -191,6 +193,22 @@ export interface RespiratoryPatientRecord {
   logDate?: string;
 }
 
+export type OrderType = "Delivery" | "Pickup" | "Swapout" | "Sale" | "Service";
+export type InvoiceStatus = "printed" | "to_be_printed";
+
+export interface InvoiceRecord {
+  id: string;
+  /** Which folder this invoice sits in, when the app has folders enabled. Undefined = no folder. */
+  folder?: string;
+  patientName: string;
+  address?: string;
+  hospice?: string;
+  orderType: OrderType;
+  notes?: string;
+  status: InvoiceStatus;
+  date: string;
+}
+
 export interface BlogPostRecord {
   id: string;
   slug: string;
@@ -271,6 +289,7 @@ interface AppBase {
   accounts?: AccountRecord[];
   routeStops?: RouteStopRecord[];
   respiratoryPatients?: RespiratoryPatientRecord[];
+  invoices?: InvoiceRecord[];
 }
 
 export interface LinkApp extends AppBase {

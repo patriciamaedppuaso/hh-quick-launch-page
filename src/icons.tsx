@@ -228,6 +228,12 @@ const PATHS: Record<IconName, ReactNode> = {
       <path d="M17.5 9.5 19 7M6.5 9.5 5 7" />
     </>
   ),
+  receipt: (
+    <>
+      <path d="M6 3h12v18l-2.5-1.5L13 21l-2.5-1.5L8 21l-2-1.5Z" />
+      <path d="M8.5 8h7M8.5 11.5h7M8.5 15h4.5" />
+    </>
+  ),
 };
 
 export function Icon({ name, className }: Props) {

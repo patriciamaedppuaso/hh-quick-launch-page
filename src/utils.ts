@@ -1,4 +1,4 @@
-import type { AppTile, BreakEntry, Role, TimeEntry } from "./types";
+import type { AppTile, BreakEntry, OrderType, Role, TimeEntry } from "./types";
 
 export const TEAM_MEMBERS: string[] = [];
 
@@ -73,6 +73,8 @@ export const DEFAULT_CONTACT_CATEGORIES = ["Client", "Employee", "Vendor"];
 export const DEFAULT_RP_STATUSES = ["Unpaid", "Partially Paid", "Paid", "Overdue"];
 
 export const DEFAULT_ACCOUNT_CATEGORIES = ["Software", "Hosting", "Social Media", "Email", "Finance", "Other"];
+
+export const ORDER_TYPES: OrderType[] = ["Delivery", "Pickup", "Swapout", "Sale", "Service"];
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
