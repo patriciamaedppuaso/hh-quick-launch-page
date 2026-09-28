@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { AppTile } from "../types";
-import { builtinCount, domainOf, isPdfFile, openTarget } from "../utils";
+import { builtinCount, domainOf, isPdfFile, openTarget, recordAppUsage } from "../utils";
 import { Icon } from "../icons";
 import { AppLogo } from "./AppLogo";
 import { FilePreviewModal } from "./FilePreviewModal";
@@ -28,6 +28,7 @@ export function AppCard({ app, onOpenItems, showHandle, canEdit, onEdit }: Props
 
   function handleOpen() {
     if (!linkApp) return;
+    recordAppUsage(linkApp.id);
     if (canPreview) {
       setPreviewOpen(true);
     } else {

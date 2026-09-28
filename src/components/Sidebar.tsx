@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from "react";
 import type { AppTile, Role, Theme } from "../types";
 import { Icon } from "../icons";
-import { initialOf, isAppVisible, isInNav, openTarget } from "../utils";
+import { initialOf, isAppVisible, isInNav, openTarget, recordAppUsage } from "../utils";
 import { useClickOutside } from "../hooks/useClickOutside";
 import { useIsMobile } from "../hooks/useIsMobile";
 import { Modal } from "./Modal";
@@ -193,6 +193,7 @@ export function Sidebar({
                   onClick={() => {
                     if (navEditMode) return;
                     if (app.type === "link") {
+                      recordAppUsage(app.id);
                       openTarget(app.url, app.isFile, app.fileName);
                       onCloseMobile();
                     } else {

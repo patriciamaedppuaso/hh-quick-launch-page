@@ -7,7 +7,7 @@ import { fetchUsers } from "./lib/users";
 import { supabase } from "./lib/supabaseClient";
 import { type CurrentUser, fetchCurrentUser, signOut } from "./lib/auth";
 import { computeMetrics } from "./metrics";
-import { todayIso } from "./utils";
+import { recordAppUsage, todayIso } from "./utils";
 import { LoginScreen } from "./components/LoginScreen";
 import { Sidebar } from "./components/Sidebar";
 import { MobileTopBar } from "./components/MobileTopBar";
@@ -18,6 +18,7 @@ import { WidgetsPanel } from "./components/WidgetsPanel";
 import { Modal } from "./components/Modal";
 import { AddAppForm } from "./components/AddAppForm";
 import { AddToNavForm } from "./components/AddToNavForm";
+import { MostUsedApps } from "./components/MostUsedApps";
 import { EditAppForm } from "./components/EditAppForm";
 import { ItemsPage } from "./components/ItemsPage";
 import { ContactsPage } from "./components/ContactsPage";
@@ -343,6 +344,7 @@ export default function App() {
   }, [announcementsApp, readAnnouncements, role]);
 
   function openItems(appId: string) {
+    recordAppUsage(appId);
     window.location.hash = `items/${appId}`;
   }
 
@@ -550,7 +552,7 @@ export default function App() {
           renderActiveApp(activeApp)
         ) : (
           <>
-            <Greeting />
+            <Greeting name={currentUserName} />
             {todaysAnnouncement && announcementsApp && (
               <AnnouncementBanner
                 announcement={todaysAnnouncement}
@@ -558,6 +560,7 @@ export default function App() {
                 onOpen={() => openItems(announcementsApp.id)}
               />
             )}
+            <MostUsedApps apps={apps} role={role} onOpenItems={openItems} />
             <AppGrid
               apps={apps}
               role={role}

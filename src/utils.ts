@@ -2,6 +2,13 @@ import type { AppTile, BreakEntry, Role, TimeEntry } from "./types";
 
 export const TEAM_MEMBERS: string[] = [];
 
+/** First token of a display name; falls back to the full string for emails or single words. */
+export function firstNameOf(name: string): string {
+  const trimmed = name.trim();
+  if (!trimmed || trimmed.includes("@")) return trimmed;
+  return trimmed.split(/\s+/)[0];
+}
+
 /** Admins always see every app; staff only see the ones marked visible. */
 export function isAppVisible(app: AppTile, role: Role): boolean {
   return role === "admin" || app.visible !== false;
@@ -12,6 +19,36 @@ export function isInNav(app: AppTile): boolean {
   if (app.showInNav === true) return true;
   if (app.showInNav === false) return false;
   return app.type === "list";
+}
+
+const USAGE_STORAGE_KEY = "hh-app-usage-v1";
+
+function loadUsageCounts(): Record<string, number> {
+  try {
+    const raw = localStorage.getItem(USAGE_STORAGE_KEY);
+    return raw ? (JSON.parse(raw) as Record<string, number>) : {};
+  } catch {
+    return {};
+  }
+}
+
+/** Per-browser open count, used to surface each person's own "most used" apps. */
+export function recordAppUsage(appId: string): void {
+  try {
+    const counts = loadUsageCounts();
+    counts[appId] = (counts[appId] ?? 0) + 1;
+    localStorage.setItem(USAGE_STORAGE_KEY, JSON.stringify(counts));
+  } catch {
+    // localStorage unavailable (private mode, storage full, etc.) -- tracking is best-effort
+  }
+}
+
+export function getMostUsedApps(apps: AppTile[], limit = 6): AppTile[] {
+  const counts = loadUsageCounts();
+  return apps
+    .filter((a) => (counts[a.id] ?? 0) > 0)
+    .sort((a, b) => (counts[b.id] ?? 0) - (counts[a.id] ?? 0))
+    .slice(0, limit);
 }
 
 export const DEFAULT_LEAD_STATUSES = [

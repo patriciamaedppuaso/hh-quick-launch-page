@@ -2,7 +2,7 @@ import { useState } from "react";
 import type { AppTile } from "../types";
 import { Icon } from "../icons";
 import { AppLogo } from "./AppLogo";
-import { isPdfFile, openTarget } from "../utils";
+import { isPdfFile, openTarget, recordAppUsage } from "../utils";
 import { FilePreviewModal } from "./FilePreviewModal";
 
 interface Props {
@@ -29,6 +29,7 @@ export function AppRow({ app, onOpenItems, showHandle, layout = "row", canEdit, 
     if (isList) {
       onOpenItems();
     } else if (linkApp) {
+      recordAppUsage(linkApp.id);
       if (canPreview) {
         setPreviewOpen(true);
       } else {

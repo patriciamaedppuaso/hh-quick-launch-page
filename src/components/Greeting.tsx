@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Icon } from "../icons";
-import { toZonedDate } from "../utils";
+import { firstNameOf, toZonedDate } from "../utils";
 
 function formatTime(date: Date): string {
   const hours = date.getHours();
@@ -16,10 +16,15 @@ function greetingFor(hours: number): string {
   return "Good evening";
 }
 
-export function Greeting() {
+interface Props {
+  name?: string;
+}
+
+export function Greeting({ name }: Props) {
   // Pacific time regardless of the viewer's own device timezone -- this is a
   // single-location business (see the fixed "Whittier, California" below).
   const [now, setNow] = useState(() => toZonedDate(new Date()));
+  const firstName = firstNameOf(name ?? "");
 
   useEffect(() => {
     const id = setInterval(() => setNow(toZonedDate(new Date())), 15000);
@@ -32,6 +37,7 @@ export function Greeting() {
         <p className="eyebrow">Start of work</p>
         <h1>
           {greetingFor(now.getHours())}
+          {firstName && `, ${firstName}`}
           <span className="wave">👋</span>
         </h1>
         <p className="hero-sub">Everything you need for today's work, organized in one place.</p>
