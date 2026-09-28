@@ -4,6 +4,7 @@ import { Icon } from "../icons";
 import { initialOf, isAppVisible, isInNav, openTarget } from "../utils";
 import { useClickOutside } from "../hooks/useClickOutside";
 import { useIsMobile } from "../hooks/useIsMobile";
+import { Modal } from "./Modal";
 
 interface Props {
   apps: AppTile[];
@@ -45,6 +46,7 @@ export function Sidebar({
   const [query, setQuery] = useState("");
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [navEditMode, setNavEditMode] = useState(false);
+  const [confirmSignOut, setConfirmSignOut] = useState(false);
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
@@ -62,8 +64,10 @@ export function Sidebar({
     return navApps.filter((a) => a.name.toLowerCase().includes(q));
   }, [apps, query, role]);
 
-  const canAdd = role === "admin";
-  const canManageNav = canAdd && navEditMode;
+  // nav editing (reorder / add / remove) is available to every signed-in user,
+  // not just admins -- it only touches shared app placement, not app data.
+  const canEditNav = true;
+  const canManageNav = canEditNav && navEditMode;
   const canReorder = canManageNav && !isMobile && !query.trim();
   const isDarkActive =
     theme === "dark" || (theme === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
@@ -138,7 +142,7 @@ export function Sidebar({
           ) : (
             <div className="sidebar-section-label sidebar-section-label--row">
               <span>Apps</span>
-              {canAdd && (
+              {canEditNav && (
                 <button
                   type="button"
                   className={`sidebar-edit-toggle${navEditMode ? " active" : ""}`}
@@ -301,7 +305,7 @@ export function Sidebar({
                   className="dropdown-item"
                   onClick={() => {
                     setUserMenuOpen(false);
-                    onSignOut();
+                    setConfirmSignOut(true);
                   }}
                 >
                   Sign out
@@ -311,6 +315,27 @@ export function Sidebar({
           </div>
         </div>
       </aside>
+
+      <Modal open={confirmSignOut} onClose={() => setConfirmSignOut(false)} title="Sign out">
+        <div className="form-card">
+          <p className="form-hint">Are you sure you want to sign out?</p>
+          <div className="form-buttons">
+            <button type="button" className="btn-secondary" onClick={() => setConfirmSignOut(false)}>
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="btn-danger-sm"
+              onClick={() => {
+                setConfirmSignOut(false);
+                onSignOut();
+              }}
+            >
+              Sign out
+            </button>
+          </div>
+        </div>
+      </Modal>
     </>
   );
 }
