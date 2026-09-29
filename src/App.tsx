@@ -33,6 +33,7 @@ import { RoutesPage } from "./components/RoutesPage";
 import { RespiratoryLogPage } from "./components/RespiratoryLogPage";
 import { InvoicesPage } from "./components/InvoicesPage";
 import { PurchaseOrdersPage } from "./components/PurchaseOrdersPage";
+import { VehicleInspectionsPage } from "./components/VehicleInspectionsPage";
 import { BlogPage } from "./components/BlogPage";
 import { Footer } from "./components/Footer";
 import { useToast } from "./components/ToastProvider";
@@ -57,6 +58,7 @@ const FIELD_LABELS: Record<string, string> = {
   respiratoryPatients: "Patient",
   invoices: "Invoice",
   purchaseOrders: "Invoice",
+  vehicleInspections: "Report",
   statusOptions: "List",
   name: "App",
   visible: "App",
@@ -543,6 +545,17 @@ export default function App() {
             role={role}
             onBack={closeItems}
             onUpdate={(purchaseOrders) => updateApp(app.id, { purchaseOrders })}
+            onUpdateStatusOptions={(statusOptions) => updateApp(app.id, { statusOptions })}
+          />
+        );
+      case "vehicleInspections":
+        return (
+          <VehicleInspectionsPage
+            app={app}
+            role={role}
+            registeredUserNames={registeredUserNames}
+            onBack={closeItems}
+            onUpdate={(vehicleInspections) => updateApp(app.id, { vehicleInspections })}
             onUpdateStatusOptions={(statusOptions) => updateApp(app.id, { statusOptions })}
           />
         );

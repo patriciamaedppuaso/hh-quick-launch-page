@@ -76,6 +76,25 @@ export const DEFAULT_ACCOUNT_CATEGORIES = ["Software", "Hosting", "Social Media"
 
 export const ORDER_TYPES: OrderType[] = ["Delivery", "Pickup", "Swapout", "Sale", "Service"];
 
+export const DEFAULT_INSPECTION_ITEMS = [
+  "Brakes",
+  "Parking Brake",
+  "Steering",
+  "Lights",
+  "Tires",
+  "Horn",
+  "Windshield Wipers",
+  "Mirrors",
+  "Fluid Levels",
+  "Battery",
+  "Engine",
+  "Transmission",
+  "Exhaust / Muffler",
+  "Coupling Devices",
+  "Safety Equipment",
+  "Other",
+];
+
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export function isValidEmail(email: string): boolean {

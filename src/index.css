@@ -2500,6 +2500,18 @@ body {
   cursor: pointer;
 }
 
+.inspection-checklist {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px 16px;
+  margin-top: 6px;
+}
+@media (max-width: 480px) {
+  .inspection-checklist {
+    grid-template-columns: 1fr;
+  }
+}
+
 .form-card input,
 .form-card select,
 .form-card textarea {

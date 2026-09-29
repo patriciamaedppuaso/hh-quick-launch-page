@@ -20,6 +20,7 @@ import type {
   RouteStopRecord,
   TaskRecord,
   TimeEntry,
+  VehicleInspectionRecord,
 } from "../types";
 
 // ===================================================================
@@ -58,6 +59,8 @@ export async function fetchAllApps(): Promise<AppTile[]> {
     respiratoryEquipment,
     invoices,
     purchaseOrders,
+    vehicleInspections,
+    inspectionDefects,
   ] = await Promise.all([
     supabase.from("apps").select("*").order("sort_order"),
     supabase.from("list_items").select("*").order("sort_order"),
@@ -78,6 +81,8 @@ export async function fetchAllApps(): Promise<AppTile[]> {
     supabase.from("respiratory_equipment").select("*"),
     supabase.from("printed_invoices").select("*"),
     supabase.from("purchase_order_invoices").select("*"),
+    supabase.from("vehicle_inspections").select("*").order("date", { ascending: false }),
+    supabase.from("vehicle_inspection_defects").select("*"),
   ]);
 
   for (const res of [
@@ -100,6 +105,8 @@ export async function fetchAllApps(): Promise<AppTile[]> {
     respiratoryEquipment,
     invoices,
     purchaseOrders,
+    vehicleInspections,
+    inspectionDefects,
   ]) {
     if (res.error) throw res.error;
   }
@@ -122,6 +129,8 @@ export async function fetchAllApps(): Promise<AppTile[]> {
   const respiratoryEquipmentByPatient = groupBy(respiratoryEquipment.data ?? [], (r) => r.patient_id);
   const invoicesByApp = groupBy(invoices.data ?? [], (r) => r.app_id);
   const purchaseOrdersByApp = groupBy(purchaseOrders.data ?? [], (r) => r.app_id);
+  const vehicleInspectionsByApp = groupBy(vehicleInspections.data ?? [], (r) => r.app_id);
+  const inspectionDefectsByInspection = groupBy(inspectionDefects.data ?? [], (r) => r.inspection_id);
 
   return (apps.data ?? []).map((row): AppTile => {
     const base = {
@@ -154,6 +163,9 @@ export async function fetchAllApps(): Promise<AppTile[]> {
       ),
       invoices: (invoicesByApp.get(row.id) ?? []).map(rowToInvoice),
       purchaseOrders: (purchaseOrdersByApp.get(row.id) ?? []).map(rowToPurchaseOrder),
+      vehicleInspections: (vehicleInspectionsByApp.get(row.id) ?? []).map((v) =>
+        rowToVehicleInspection(v, inspectionDefectsByInspection.get(v.id as string) ?? []),
+      ),
     };
 
     if (row.type === "link") {
@@ -332,6 +344,26 @@ function rowToPurchaseOrder(row: Record<string, unknown>): PurchaseOrderRecord {
     isFile: (row.is_file as boolean) ?? undefined,
     fileName: (row.file_name as string) ?? undefined,
     status: row.status as PurchaseOrderRecord["status"],
+  };
+}
+
+function rowToVehicleInspection(
+  row: Record<string, unknown>,
+  defectRows: Record<string, unknown>[],
+): VehicleInspectionRecord {
+  return {
+    id: row.id as string,
+    driverName: row.driver_name as string,
+    date: row.date as string,
+    tripType: row.trip_type as VehicleInspectionRecord["tripType"],
+    location: (row.location as string) ?? undefined,
+    licensePlate: (row.license_plate as string) ?? undefined,
+    vehicle: (row.vehicle as string) ?? undefined,
+    odometer: (row.odometer as number) ?? undefined,
+    defectiveItems: defectRows.map((d) => d.item_name as string),
+    remarks: (row.remarks as string) ?? undefined,
+    conditionAcceptable: row.condition_acceptable as boolean,
+    certified: row.certified as boolean,
   };
 }
 
@@ -653,6 +685,10 @@ async function syncAppCollections(app: AppTile): Promise<void> {
     );
   }
 
+  if (app.vehicleInspections) {
+    work.push(syncVehicleInspections(app.id, app.vehicleInspections));
+  }
+
   if (app.purchaseOrders) {
     work.push(
       replaceRows(
@@ -752,6 +788,38 @@ async function syncTasks(appId: string, tasks: TaskRecord[]): Promise<void> {
         "task_id",
         t.id,
         (t.assignees ?? []).map((name) => ({ task_id: t.id, assignee_name: name })),
+      ),
+    ),
+  );
+}
+
+async function syncVehicleInspections(appId: string, inspections: VehicleInspectionRecord[]): Promise<void> {
+  await replaceRows(
+    "vehicle_inspections",
+    "app_id",
+    appId,
+    inspections.map((v) => ({
+      id: v.id,
+      app_id: appId,
+      driver_name: v.driverName,
+      date: v.date,
+      trip_type: v.tripType,
+      location: v.location ?? null,
+      license_plate: v.licensePlate ?? null,
+      vehicle: v.vehicle ?? null,
+      odometer: v.odometer ?? null,
+      remarks: v.remarks ?? null,
+      condition_acceptable: v.conditionAcceptable,
+      certified: v.certified,
+    })),
+  );
+  await Promise.all(
+    inspections.map((v) =>
+      replaceRows(
+        "vehicle_inspection_defects",
+        "inspection_id",
+        v.id,
+        v.defectiveItems.map((item) => ({ inspection_id: v.id, item_name: item })),
       ),
     ),
   );

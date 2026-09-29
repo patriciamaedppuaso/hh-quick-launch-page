@@ -79,7 +79,8 @@ export type BuiltinKind =
   | "routes"
   | "respiratory"
   | "invoices"
-  | "purchaseOrders";
+  | "purchaseOrders"
+  | "vehicleInspections";
 
 export interface ContactRecord {
   id: string;
@@ -224,6 +225,23 @@ export interface PurchaseOrderRecord {
   status: PurchaseOrderStatus;
 }
 
+export type TripType = "pre_trip" | "post_trip";
+
+export interface VehicleInspectionRecord {
+  id: string;
+  driverName: string;
+  date: string;
+  tripType: TripType;
+  location?: string;
+  licensePlate?: string;
+  vehicle?: string;
+  odometer?: number;
+  defectiveItems: string[];
+  remarks?: string;
+  conditionAcceptable: boolean;
+  certified: boolean;
+}
+
 export interface BlogPostRecord {
   id: string;
   slug: string;
@@ -306,6 +324,7 @@ interface AppBase {
   respiratoryPatients?: RespiratoryPatientRecord[];
   invoices?: InvoiceRecord[];
   purchaseOrders?: PurchaseOrderRecord[];
+  vehicleInspections?: VehicleInspectionRecord[];
 }
 
 export interface LinkApp extends AppBase {
