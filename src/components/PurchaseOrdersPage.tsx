@@ -6,6 +6,7 @@ import { Modal } from "./Modal";
 import { PurchaseOrderForm } from "./PurchaseOrderForm";
 import { ManageStatusesForm } from "./ManageStatusesForm";
 import { FilePreviewModal } from "./FilePreviewModal";
+import { AddMenuButton } from "./AddMenuButton";
 
 interface Props {
   app: AppTile;
@@ -215,16 +216,17 @@ export function PurchaseOrdersPage({ app, role, onBack, onUpdate, onUpdateStatus
           <option value="paid">Paid</option>
         </select>
         {canManage && (
-          <button
-            type="button"
-            className="btn-primary items-add-btn"
-            onClick={() => {
+          <AddMenuButton
+            itemLabel="Invoice"
+            onSelectItem={() => {
               setAddKind("invoice");
               setAdding(true);
             }}
-          >
-            + Add
-          </button>
+            onSelectFolder={() => {
+              setAddKind("folder");
+              setAdding(true);
+            }}
+          />
         )}
       </div>
 
@@ -244,25 +246,6 @@ export function PurchaseOrdersPage({ app, role, onBack, onUpdate, onUpdateStatus
       )}
 
       <Modal open={adding} onClose={() => setAdding(false)} title={addKind === "invoice" ? "Add invoice" : "Manage folders"}>
-        <div className="form-row" style={{ marginBottom: 10 }}>
-          <label>Add</label>
-          <div className="type-toggle" role="group" aria-label="Add">
-            <button
-              type="button"
-              className={`type-btn${addKind === "invoice" ? " active" : ""}`}
-              onClick={() => setAddKind("invoice")}
-            >
-              Invoice
-            </button>
-            <button
-              type="button"
-              className={`type-btn${addKind === "folder" ? " active" : ""}`}
-              onClick={() => setAddKind("folder")}
-            >
-              Folder
-            </button>
-          </div>
-        </div>
         {addKind === "invoice" ? (
           <PurchaseOrderForm
             folderOptions={hasFolders ? folderOptions : undefined}

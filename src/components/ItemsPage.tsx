@@ -6,6 +6,7 @@ import { Modal } from "./Modal";
 import { ItemForm } from "./ItemForm";
 import { FilePreviewModal } from "./FilePreviewModal";
 import { ManageStatusesForm } from "./ManageStatusesForm";
+import { AddMenuButton } from "./AddMenuButton";
 
 interface Props {
   app: ListApp;
@@ -236,16 +237,17 @@ export function ItemsPage({ app, role, onBack, onUpdateItems, onUpdateStatusOpti
           ))}
         </div>
         {canManage && (
-          <button
-            type="button"
-            className="btn-primary items-add-btn"
-            onClick={() => {
+          <AddMenuButton
+            itemLabel="Item"
+            onSelectItem={() => {
               setAddKind("item");
               setAdding(true);
             }}
-          >
-            + Add
-          </button>
+            onSelectFolder={() => {
+              setAddKind("folder");
+              setAdding(true);
+            }}
+          />
         )}
       </div>
 
@@ -265,25 +267,6 @@ export function ItemsPage({ app, role, onBack, onUpdateItems, onUpdateStatusOpti
       )}
 
       <Modal open={adding} onClose={() => setAdding(false)} title={addKind === "item" ? "Add item" : "Manage folders"}>
-        <div className="form-row" style={{ marginBottom: 10 }}>
-          <label>Add</label>
-          <div className="type-toggle" role="group" aria-label="Add">
-            <button
-              type="button"
-              className={`type-btn${addKind === "item" ? " active" : ""}`}
-              onClick={() => setAddKind("item")}
-            >
-              Item
-            </button>
-            <button
-              type="button"
-              className={`type-btn${addKind === "folder" ? " active" : ""}`}
-              onClick={() => setAddKind("folder")}
-            >
-              Folder
-            </button>
-          </div>
-        </div>
         {addKind === "item" ? (
           <ItemForm
             folderOptions={hasFolders ? folderOptions : undefined}

@@ -5,6 +5,7 @@ import { canManageApp, formatDate, initialOf, isOverdue } from "../utils";
 import { Modal } from "./Modal";
 import { RespiratoryPatientForm } from "./RespiratoryPatientForm";
 import { ManageStatusesForm } from "./ManageStatusesForm";
+import { AddMenuButton } from "./AddMenuButton";
 
 interface Props {
   app: AppTile;
@@ -229,16 +230,17 @@ export function RespiratoryLogPage({ app, role, onBack, onUpdate, onUpdateStatus
           </button>
         )}
         {canManage && (
-          <button
-            type="button"
-            className="btn-primary items-add-btn"
-            onClick={() => {
+          <AddMenuButton
+            itemLabel="Patient"
+            onSelectItem={() => {
               setAddKind("patient");
               setAdding(true);
             }}
-          >
-            + Add
-          </button>
+            onSelectFolder={() => {
+              setAddKind("folder");
+              setAdding(true);
+            }}
+          />
         )}
       </div>
 
@@ -258,25 +260,6 @@ export function RespiratoryLogPage({ app, role, onBack, onUpdate, onUpdateStatus
       )}
 
       <Modal open={adding} onClose={() => setAdding(false)} title={addKind === "patient" ? "Add patient" : "Manage folders"}>
-        <div className="form-row" style={{ marginBottom: 10 }}>
-          <label>Add</label>
-          <div className="type-toggle" role="group" aria-label="Add">
-            <button
-              type="button"
-              className={`type-btn${addKind === "patient" ? " active" : ""}`}
-              onClick={() => setAddKind("patient")}
-            >
-              Patient
-            </button>
-            <button
-              type="button"
-              className={`type-btn${addKind === "folder" ? " active" : ""}`}
-              onClick={() => setAddKind("folder")}
-            >
-              Folder
-            </button>
-          </div>
-        </div>
         {addKind === "patient" ? (
           <RespiratoryPatientForm
             folderOptions={hasFolders ? folderOptions : undefined}

@@ -767,6 +767,15 @@ body {
   width: 160px;
 }
 
+.add-menu {
+  position: relative;
+  flex-shrink: 0;
+}
+.add-menu-dropdown {
+  width: 170px;
+  left: auto;
+}
+
 .dropdown-header {
   padding: 8px 10px 10px;
 }
