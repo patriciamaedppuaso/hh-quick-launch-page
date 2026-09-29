@@ -2528,6 +2528,23 @@ body {
   }
 }
 
+.checklist-item-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.checklist-item-row .checkbox-label {
+  flex: 1;
+  min-width: 0;
+}
+.checklist-item-qty {
+  width: 56px !important;
+  flex-shrink: 0;
+  padding: 4px 6px !important;
+  text-align: center;
+}
+
 .form-card input,
 .form-card select,
 .form-card textarea {

@@ -40,7 +40,7 @@ export function EquipmentChecklistsPage({
   const checklistUsageCounts = useMemo(() => {
     const counts: Record<string, number> = {};
     for (const r of records) {
-      for (const item of r.confirmedItems) counts[item] = (counts[item] ?? 0) + 1;
+      for (const item of r.confirmedItems) counts[item.name] = (counts[item.name] ?? 0) + 1;
     }
     return counts;
   }, [records]);
@@ -138,7 +138,8 @@ export function EquipmentChecklistsPage({
       ) : (
         <div className="items-list">
           {filtered.map((r) => {
-            const missing = checklistItems.filter((item) => !r.confirmedItems.includes(item));
+            const confirmedNames = new Set(r.confirmedItems.map((e) => e.name));
+            const missing = checklistItems.filter((item) => !confirmedNames.has(item));
             return (
               <div className={`items-row${missing.length > 0 ? " items-row--flagged" : ""}`} key={r.id}>
                 {missing.length > 0 && (

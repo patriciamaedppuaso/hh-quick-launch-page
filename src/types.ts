@@ -243,11 +243,16 @@ export interface VehicleInspectionRecord {
   certified: boolean;
 }
 
+export interface ChecklistItemEntry {
+  name: string;
+  quantity: number;
+}
+
 export interface EquipmentChecklistRecord {
   id: string;
   employeeName: string;
   date: string;
-  confirmedItems: string[];
+  confirmedItems: ChecklistItemEntry[];
   certified: boolean;
 }
 

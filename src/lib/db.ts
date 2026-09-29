@@ -387,7 +387,10 @@ function rowToEquipmentChecklist(
     id: row.id as string,
     employeeName: row.employee_name as string,
     date: row.date as string,
-    confirmedItems: itemRows.map((r) => r.item_name as string),
+    confirmedItems: itemRows.map((r) => ({
+      name: r.item_name as string,
+      quantity: (r.quantity as number) ?? 1,
+    })),
     certified: row.certified as boolean,
   };
 }
@@ -873,7 +876,11 @@ async function syncEquipmentChecklists(appId: string, checklists: EquipmentCheck
         "equipment_checklist_items",
         "checklist_id",
         c.id,
-        c.confirmedItems.map((item) => ({ checklist_id: c.id, item_name: item })),
+        c.confirmedItems.map((item) => ({
+          checklist_id: c.id,
+          item_name: item.name,
+          quantity: item.quantity,
+        })),
       ),
     ),
   );

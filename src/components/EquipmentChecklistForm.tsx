@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { EquipmentChecklistRecord } from "../types";
+import type { ChecklistItemEntry, EquipmentChecklistRecord } from "../types";
 import { newId, todayIso } from "../utils";
 import { PersonSearchInput } from "./PersonSearchInput";
 
@@ -22,13 +22,27 @@ export function EquipmentChecklistForm({
 }: Props) {
   const [employeeName, setEmployeeName] = useState(initial?.employeeName ?? "");
   const [date, setDate] = useState(initial?.date ?? todayIso());
-  const [confirmedItems, setConfirmedItems] = useState<string[]>(initial?.confirmedItems ?? []);
+  const [confirmedItems, setConfirmedItems] = useState<ChecklistItemEntry[]>(initial?.confirmedItems ?? []);
   const [certified, setCertified] = useState(initial?.certified ?? false);
   const [newItemName, setNewItemName] = useState("");
   const [error, setError] = useState("");
 
+  function isChecked(item: string) {
+    return confirmedItems.some((e) => e.name === item);
+  }
+
+  function quantityFor(item: string) {
+    return confirmedItems.find((e) => e.name === item)?.quantity ?? 1;
+  }
+
   function toggleItem(item: string) {
-    setConfirmedItems((prev) => (prev.includes(item) ? prev.filter((i) => i !== item) : [...prev, item]));
+    setConfirmedItems((prev) =>
+      prev.some((e) => e.name === item) ? prev.filter((e) => e.name !== item) : [...prev, { name: item, quantity: 1 }],
+    );
+  }
+
+  function setQuantity(item: string, quantity: number) {
+    setConfirmedItems((prev) => prev.map((e) => (e.name === item ? { ...e, quantity } : e)));
   }
 
   function addNewItem() {
@@ -37,7 +51,7 @@ export function EquipmentChecklistForm({
     const existing = checklistItems.find((i) => i.toLowerCase() === trimmed.toLowerCase());
     const name = existing ?? trimmed;
     if (!existing) onAddChecklistItem(trimmed);
-    setConfirmedItems((prev) => (prev.includes(name) ? prev : [...prev, name]));
+    setConfirmedItems((prev) => (prev.some((e) => e.name === name) ? prev : [...prev, { name, quantity: 1 }]));
     setNewItemName("");
   }
 
@@ -61,7 +75,7 @@ export function EquipmentChecklistForm({
     });
   }
 
-  const missingCount = checklistItems.length - confirmedItems.filter((i) => checklistItems.includes(i)).length;
+  const missingCount = checklistItems.filter((item) => !isChecked(item)).length;
 
   return (
     <div className="form-card">
@@ -84,7 +98,11 @@ export function EquipmentChecklistForm({
         <div className="checklist-label-row">
           <label>List to be checked and confirmed daily before departure from office</label>
           <span className="checklist-select-actions">
-            <button type="button" className="btn-secondary-sm" onClick={() => setConfirmedItems(checklistItems)}>
+            <button
+              type="button"
+              className="btn-secondary-sm"
+              onClick={() => setConfirmedItems(checklistItems.map((name) => ({ name, quantity: 1 })))}
+            >
               Select all
             </button>
             <button type="button" className="btn-secondary-sm" onClick={() => setConfirmedItems([])}>
@@ -94,12 +112,27 @@ export function EquipmentChecklistForm({
         </div>
         {missingCount > 0 && <p className="form-hint">{missingCount} item(s) unchecked -- not confirmed present.</p>}
         <div className="inspection-checklist">
-          {checklistItems.map((item) => (
-            <label className="checkbox-label" key={item}>
-              <input type="checkbox" checked={confirmedItems.includes(item)} onChange={() => toggleItem(item)} />
-              {item}
-            </label>
-          ))}
+          {checklistItems.map((item) => {
+            const checked = isChecked(item);
+            return (
+              <div className="checklist-item-row" key={item}>
+                <label className="checkbox-label">
+                  <input type="checkbox" checked={checked} onChange={() => toggleItem(item)} />
+                  {item}
+                </label>
+                {checked && (
+                  <input
+                    type="number"
+                    min={1}
+                    className="checklist-item-qty"
+                    aria-label={`Quantity for ${item}`}
+                    value={quantityFor(item)}
+                    onChange={(e) => setQuantity(item, Math.max(1, Number(e.target.value) || 1))}
+                  />
+                )}
+              </div>
+            );
+          })}
         </div>
         <div className="url-field" style={{ marginTop: 10 }}>
           <input
