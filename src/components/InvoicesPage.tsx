@@ -6,6 +6,7 @@ import { Modal } from "./Modal";
 import { InvoiceForm } from "./InvoiceForm";
 import { ManageStatusesForm } from "./ManageStatusesForm";
 import { AddMenuButton } from "./AddMenuButton";
+import { DetailModal } from "./DetailModal";
 
 interface Props {
   app: AppTile;
@@ -28,6 +29,7 @@ export function InvoicesPage({ app, role, onBack, onUpdate, onUpdateStatusOption
   const [monthFilter, setMonthFilter] = useState("");
   const [openFolder, setOpenFolder] = useState<string | null>(null);
   const [editing, setEditing] = useState<InvoiceRecord | null>(null);
+  const [viewing, setViewing] = useState<InvoiceRecord | null>(null);
   const [adding, setAdding] = useState(false);
   const [addKind, setAddKind] = useState<"invoice" | "folder">("invoice");
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
@@ -97,7 +99,7 @@ export function InvoicesPage({ app, role, onBack, onUpdate, onUpdateStatusOption
 
   function renderInvoiceRow(inv: InvoiceRecord) {
     return (
-      <div className="items-row" key={inv.id}>
+      <div className="items-row items-row--clickable" key={inv.id} onClick={() => setViewing(inv)}>
         <span className="contact-avatar" style={{ background: tint.bg, color: tint.fg }}>
           {initialOf(inv.patientName)}
         </span>
@@ -113,7 +115,10 @@ export function InvoicesPage({ app, role, onBack, onUpdate, onUpdateStatusOption
           {inv.status === "printed" ? "Printed" : "To be printed"}
         </span>
         {canManage && (
-          <div className={`items-row-manage${confirmDeleteId === inv.id ? " items-row-manage--active" : ""}`}>
+          <div
+            className={`items-row-manage${confirmDeleteId === inv.id ? " items-row-manage--active" : ""}`}
+            onClick={(e) => e.stopPropagation()}
+          >
             <button
               type="button"
               className="icon-btn-sm"
@@ -270,6 +275,29 @@ export function InvoicesPage({ app, role, onBack, onUpdate, onUpdateStatusOption
           />
         )}
       </Modal>
+
+      <DetailModal
+        open={!!viewing}
+        onClose={() => setViewing(null)}
+        title={viewing?.patientName ?? "Invoice"}
+        fields={[
+          { label: "Folder", value: viewing?.folder },
+          { label: "Address", value: viewing?.address },
+          { label: "Hospice", value: viewing?.hospice },
+          { label: "Order type", value: viewing?.orderType },
+          { label: "Date", value: viewing?.date ? formatDate(viewing.date) : undefined },
+          { label: "Status", value: viewing?.status === "printed" ? "Printed" : "To be printed" },
+          { label: "Notes", value: viewing?.notes },
+        ]}
+        onEdit={
+          canManage && viewing
+            ? () => {
+                setEditing(viewing);
+                setViewing(null);
+              }
+            : undefined
+        }
+      />
     </div>
   );
 }

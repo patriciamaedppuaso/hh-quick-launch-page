@@ -5,6 +5,7 @@ import { DEFAULT_EQUIPMENT_CHECKLIST_ITEMS, canManageApp, formatDate, initialOf 
 import { Modal } from "./Modal";
 import { EquipmentChecklistForm } from "./EquipmentChecklistForm";
 import { ManageStatusesForm } from "./ManageStatusesForm";
+import { DetailModal } from "./DetailModal";
 
 interface Props {
   app: AppTile;
@@ -30,6 +31,7 @@ export function EquipmentChecklistsPage({
   const [query, setQuery] = useState("");
   const [dateFilter, setDateFilter] = useState("");
   const [editing, setEditing] = useState<EquipmentChecklistRecord | null>(null);
+  const [viewing, setViewing] = useState<EquipmentChecklistRecord | null>(null);
   const [adding, setAdding] = useState(false);
   const [managingChecklist, setManagingChecklist] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
@@ -141,7 +143,11 @@ export function EquipmentChecklistsPage({
             const confirmedNames = new Set(r.confirmedItems.map((e) => e.name));
             const missing = checklistItems.filter((item) => !confirmedNames.has(item));
             return (
-              <div className={`items-row${missing.length > 0 ? " items-row--flagged" : ""}`} key={r.id}>
+              <div
+                className={`items-row items-row--clickable${missing.length > 0 ? " items-row--flagged" : ""}`}
+                key={r.id}
+                onClick={() => setViewing(r)}
+              >
                 {missing.length > 0 && (
                   <span className="items-row-icon items-row-icon--flag">
                     <Icon name="alert-circle" />
@@ -156,7 +162,10 @@ export function EquipmentChecklistsPage({
                   {missing.length === 0 ? "All confirmed" : `${missing.length} missing`}
                 </span>
                 {canManage && (
-                  <div className={`items-row-manage${confirmDeleteId === r.id ? " items-row-manage--active" : ""}`}>
+                  <div
+                    className={`items-row-manage${confirmDeleteId === r.id ? " items-row-manage--active" : ""}`}
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     <button
                       type="button"
                       className="icon-btn-sm"
@@ -214,6 +223,36 @@ export function EquipmentChecklistsPage({
           />
         )}
       </Modal>
+
+      <DetailModal
+        open={!!viewing}
+        onClose={() => setViewing(null)}
+        title={viewing?.employeeName ?? "Checklist log"}
+        fields={[
+          { label: "Date", value: viewing?.date ? formatDate(viewing.date) : undefined },
+          {
+            label: "Confirmed items",
+            value: viewing?.confirmedItems.length
+              ? viewing.confirmedItems.map((i) => `${i.name} (x${i.quantity})`).join(", ")
+              : undefined,
+          },
+          {
+            label: "Missing items",
+            value: viewing
+              ? checklistItems.filter((item) => !viewing.confirmedItems.some((e) => e.name === item)).join(", ")
+              : undefined,
+          },
+          { label: "Employee signature", value: viewing?.certified ? "Confirmed" : undefined },
+        ]}
+        onEdit={
+          canManage && viewing
+            ? () => {
+                setEditing(viewing);
+                setViewing(null);
+              }
+            : undefined
+        }
+      />
 
       <Modal open={managingChecklist} onClose={() => setManagingChecklist(false)} title="Manage checklist items">
         <ManageStatusesForm

@@ -5,6 +5,7 @@ import { canManageApp, initialOf, todayIso } from "../utils";
 import { Modal } from "./Modal";
 import { RouteStopForm } from "./RouteStopForm";
 import { PersonSearchInput } from "./PersonSearchInput";
+import { DetailModal } from "./DetailModal";
 
 interface Props {
   app: AppTile;
@@ -24,6 +25,7 @@ export function RoutesPage({ app, role, currentUserName, registeredUserNames, on
   );
   const [date, setDate] = useState(todayIso());
   const [editing, setEditing] = useState<RouteStopRecord | null>(null);
+  const [viewing, setViewing] = useState<RouteStopRecord | null>(null);
   const [adding, setAdding] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
@@ -138,7 +140,11 @@ export function RoutesPage({ app, role, currentUserName, registeredUserNames, on
           ) : (
             <div className="items-list">
               {stopsForDay.map((r) => (
-                <div className={`items-row${r.flagged ? " items-row--flagged" : ""}`} key={r.id}>
+                <div
+                  className={`items-row items-row--clickable${r.flagged ? " items-row--flagged" : ""}`}
+                  key={r.id}
+                  onClick={() => setViewing(r)}
+                >
                   {r.flagged && (
                     <span className="items-row-icon items-row-icon--flag">
                       <Icon name="alert-circle" />
@@ -167,7 +173,10 @@ export function RoutesPage({ app, role, currentUserName, registeredUserNames, on
                   <div className="items-row-actions">
                     {r.mileage != null && <span className="items-row-kind">{r.mileage} mi</span>}
                     {canManage && (
-                      <div className={`items-row-manage${confirmDeleteId === r.id ? " items-row-manage--active" : ""}`}>
+                      <div
+                        className={`items-row-manage${confirmDeleteId === r.id ? " items-row-manage--active" : ""}`}
+                        onClick={(e) => e.stopPropagation()}
+                      >
                         <button
                           type="button"
                           className="icon-btn-sm"
@@ -225,6 +234,36 @@ export function RoutesPage({ app, role, currentUserName, registeredUserNames, on
           />
         )}
       </Modal>
+
+      <DetailModal
+        open={!!viewing}
+        onClose={() => setViewing(null)}
+        title={viewing?.customerName ?? "Stop"}
+        fields={[
+          { label: "Driver", value: viewing?.driver },
+          { label: "Date", value: viewing?.date },
+          {
+            label: "Time",
+            value: viewing?.startTime ? `${viewing.startTime}${viewing.endTime ? `–${viewing.endTime}` : ""}` : undefined,
+          },
+          { label: "Mileage", value: viewing?.mileage != null ? `${viewing.mileage} mi` : undefined },
+          { label: "Street", value: viewing?.street },
+          { label: "City", value: viewing?.city },
+          { label: "Driver's ETA", value: viewing?.driverEta },
+          { label: "Schedule ETA", value: viewing?.scheduleEta },
+          { label: "Service performed", value: viewing?.servicePerformed },
+          { label: "Note", value: viewing?.note },
+          { label: "Flagged", value: viewing?.flagged ? "Yes -- issue reported" : undefined },
+        ]}
+        onEdit={
+          canManage && viewing
+            ? () => {
+                setEditing(viewing);
+                setViewing(null);
+              }
+            : undefined
+        }
+      />
     </div>
   );
 }

@@ -7,6 +7,7 @@ import { PurchaseOrderForm } from "./PurchaseOrderForm";
 import { ManageStatusesForm } from "./ManageStatusesForm";
 import { FilePreviewModal } from "./FilePreviewModal";
 import { AddMenuButton } from "./AddMenuButton";
+import { DetailModal } from "./DetailModal";
 
 interface Props {
   app: AppTile;
@@ -28,6 +29,7 @@ export function PurchaseOrdersPage({ app, role, onBack, onUpdate, onUpdateStatus
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [openFolder, setOpenFolder] = useState<string | null>(null);
   const [editing, setEditing] = useState<PurchaseOrderRecord | null>(null);
+  const [viewing, setViewing] = useState<PurchaseOrderRecord | null>(null);
   const [adding, setAdding] = useState(false);
   const [addKind, setAddKind] = useState<"invoice" | "folder">("invoice");
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
@@ -99,7 +101,7 @@ export function PurchaseOrdersPage({ app, role, onBack, onUpdate, onUpdateStatus
     const canPreview = !!po.isFile && isPdfFile(po.fileName, po.url);
     const url = po.url;
     return (
-      <div className="items-row" key={po.id}>
+      <div className="items-row items-row--clickable" key={po.id} onClick={() => setViewing(po)}>
         <span className="items-row-icon">
           <Icon name="file" />
         </span>
@@ -109,7 +111,7 @@ export function PurchaseOrdersPage({ app, role, onBack, onUpdate, onUpdateStatus
         <span className={`equipment-pill equipment-pill--${po.status === "paid" ? "returned" : "ongoing"}`}>
           {po.status === "paid" ? "Paid" : "Unpaid"}
         </span>
-        <div className="items-row-actions">
+        <div className="items-row-actions" onClick={(e) => e.stopPropagation()}>
           {url ? (
             canPreview ? (
               <>
@@ -288,6 +290,26 @@ export function PurchaseOrdersPage({ app, role, onBack, onUpdate, onUpdateStatus
           url={previewItem.url ?? ""}
         />
       )}
+
+      <DetailModal
+        open={!!viewing}
+        onClose={() => setViewing(null)}
+        title={viewing?.name ?? "Invoice"}
+        fields={[
+          { label: "Folder", value: viewing?.folder },
+          { label: "Status", value: viewing?.status === "paid" ? "Paid" : "Unpaid" },
+          { label: "File name", value: viewing?.fileName },
+          { label: "Link", value: !viewing?.isFile ? viewing?.url : undefined },
+        ]}
+        onEdit={
+          canManage && viewing
+            ? () => {
+                setEditing(viewing);
+                setViewing(null);
+              }
+            : undefined
+        }
+      />
     </div>
   );
 }

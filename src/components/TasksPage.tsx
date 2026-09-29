@@ -14,6 +14,7 @@ import {
 import { Modal } from "./Modal";
 import { TaskForm } from "./TaskForm";
 import { ManageStatusesForm } from "./ManageStatusesForm";
+import { DetailModal } from "./DetailModal";
 
 interface Props {
   app: AppTile;
@@ -54,6 +55,7 @@ export function TasksPage({
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [assigneeFilter, setAssigneeFilter] = useState("all");
   const [editing, setEditing] = useState<TaskRecord | null>(null);
+  const [viewing, setViewing] = useState<TaskRecord | null>(null);
   const [adding, setAdding] = useState(false);
   const [managingStatuses, setManagingStatuses] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
@@ -201,7 +203,7 @@ export function TasksPage({
             const overdue = task.status !== DONE_STATUS && isOverdue(task.dueDate);
             const assignees = task.assignees ?? [];
             return (
-              <div className="items-row" key={task.id}>
+              <div className="items-row items-row--clickable" key={task.id} onClick={() => setViewing(task)}>
                 <div className="items-row-text">
                   <span className={`items-row-name${task.status === DONE_STATUS ? " task-done" : ""}`}>
                     {task.title}
@@ -237,6 +239,7 @@ export function TasksPage({
                     value={task.status}
                     disabled={!canChangeStatus(task)}
                     onChange={(e) => handleStatusChange(task, e.target.value as TaskStatus)}
+                    onClick={(e) => e.stopPropagation()}
                     aria-label={`Status for ${task.title}`}
                   >
                     {statusTabs.map((opt) => (
@@ -250,6 +253,7 @@ export function TasksPage({
                 {canManage && (
                   <div
                     className={`items-row-manage${confirmDeleteId === task.id ? " items-row-manage--active" : ""}`}
+                    onClick={(e) => e.stopPropagation()}
                   >
                     <button
                       type="button"
@@ -308,6 +312,26 @@ export function TasksPage({
           />
         )}
       </Modal>
+
+      <DetailModal
+        open={!!viewing}
+        onClose={() => setViewing(null)}
+        title={viewing?.title ?? "Task"}
+        fields={[
+          { label: "Status", value: viewing?.status },
+          { label: "Priority", value: viewing?.priority ? PRIORITY_LABEL[viewing.priority] : undefined },
+          { label: "Due date", value: viewing?.dueDate ? formatDate(viewing.dueDate) : undefined },
+          { label: "Assignees", value: viewing?.assignees?.join(", ") },
+        ]}
+        onEdit={
+          canManage && viewing
+            ? () => {
+                setEditing(viewing);
+                setViewing(null);
+              }
+            : undefined
+        }
+      />
 
       <Modal open={managingStatuses} onClose={() => setManagingStatuses(false)} title="Manage task statuses">
         <ManageStatusesForm

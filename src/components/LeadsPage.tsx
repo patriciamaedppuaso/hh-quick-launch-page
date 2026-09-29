@@ -5,6 +5,7 @@ import { DEFAULT_LEAD_STATUSES, canManageApp, colorForStatus, formatCurrency, fo
 import { Modal } from "./Modal";
 import { LeadForm } from "./LeadForm";
 import { ManageStatusesForm } from "./ManageStatusesForm";
+import { DetailModal } from "./DetailModal";
 
 interface Props {
   app: AppTile;
@@ -25,6 +26,7 @@ export function LeadsPage({ app, role, registeredUserNames, onBack, onUpdate, on
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [editing, setEditing] = useState<LeadRecord | null>(null);
+  const [viewing, setViewing] = useState<LeadRecord | null>(null);
   const [adding, setAdding] = useState(false);
   const [managingStatuses, setManagingStatuses] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
@@ -131,7 +133,7 @@ export function LeadsPage({ app, role, registeredUserNames, onBack, onUpdate, on
       ) : (
         <div className="items-list">
           {filtered.map((lead) => (
-            <div className="items-row" key={lead.id}>
+            <div className="items-row items-row--clickable" key={lead.id} onClick={() => setViewing(lead)}>
               <div className="items-row-text">
                 <span className="items-row-name">{lead.name}</span>
                 <span className="items-row-desc">
@@ -151,7 +153,10 @@ export function LeadsPage({ app, role, registeredUserNames, onBack, onUpdate, on
                 {lead.status}
               </span>
               {canManage && (
-                <div className={`items-row-manage${confirmDeleteId === lead.id ? " items-row-manage--active" : ""}`}>
+                <div
+                  className={`items-row-manage${confirmDeleteId === lead.id ? " items-row-manage--active" : ""}`}
+                  onClick={(e) => e.stopPropagation()}
+                >
                   <button
                     type="button"
                     className="icon-btn-sm"
@@ -206,6 +211,29 @@ export function LeadsPage({ app, role, registeredUserNames, onBack, onUpdate, on
           />
         )}
       </Modal>
+
+      <DetailModal
+        open={!!viewing}
+        onClose={() => setViewing(null)}
+        title={viewing?.name ?? "Lead"}
+        fields={[
+          { label: "Company", value: viewing?.company },
+          { label: "Status", value: viewing?.status },
+          { label: "Rep", value: viewing?.rep },
+          { label: "Est. value", value: viewing?.value != null ? formatCurrency(viewing.value) : undefined },
+          { label: "Follow-up date", value: viewing?.followUp ? formatDate(viewing.followUp) : undefined },
+          { label: "Created", value: viewing?.createdAt ? formatDate(viewing.createdAt) : undefined },
+          { label: "Notes", value: viewing?.notes },
+        ]}
+        onEdit={
+          canManage && viewing
+            ? () => {
+                setEditing(viewing);
+                setViewing(null);
+              }
+            : undefined
+        }
+      />
 
       <Modal open={managingStatuses} onClose={() => setManagingStatuses(false)} title="Manage lead statuses">
         <ManageStatusesForm

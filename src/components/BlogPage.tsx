@@ -4,6 +4,7 @@ import { Icon } from "../icons";
 import { canManageApp, formatDate, initialOf } from "../utils";
 import { Modal } from "./Modal";
 import { BlogPostForm } from "./BlogPostForm";
+import { DetailModal } from "./DetailModal";
 
 interface Props {
   app: AppTile;
@@ -28,6 +29,7 @@ export function BlogPage({ app, role, registeredUserNames, onBack, onUpdate }: P
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [editing, setEditing] = useState<BlogPostRecord | null>(null);
+  const [viewing, setViewing] = useState<BlogPostRecord | null>(null);
   const [adding, setAdding] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
@@ -119,7 +121,7 @@ export function BlogPage({ app, role, registeredUserNames, onBack, onUpdate }: P
       ) : (
         <div className="items-list">
           {filtered.map((post) => (
-            <div className="items-row" key={post.id}>
+            <div className="items-row items-row--clickable" key={post.id} onClick={() => setViewing(post)}>
               <span className="items-row-icon">
                 {post.coverImageUrl ? (
                   <img src={post.coverImageUrl} alt="" className="badge-logo" />
@@ -146,7 +148,10 @@ export function BlogPage({ app, role, registeredUserNames, onBack, onUpdate }: P
                 {post.isActive ? "Published" : "Draft"}
               </span>
               {canManage && (
-                <div className={`items-row-manage${confirmDeleteId === post.id ? " items-row-manage--active" : ""}`}>
+                <div
+                  className={`items-row-manage${confirmDeleteId === post.id ? " items-row-manage--active" : ""}`}
+                  onClick={(e) => e.stopPropagation()}
+                >
                   <button
                     type="button"
                     className="icon-btn-sm"
@@ -201,6 +206,28 @@ export function BlogPage({ app, role, registeredUserNames, onBack, onUpdate }: P
           />
         )}
       </Modal>
+
+      <DetailModal
+        open={!!viewing}
+        onClose={() => setViewing(null)}
+        title={viewing?.title ?? "Post"}
+        fields={[
+          { label: "Slug", value: viewing?.slug },
+          { label: "Status", value: viewing?.isActive ? "Published" : "Draft" },
+          { label: "Author", value: viewing?.authorName },
+          { label: "Published", value: viewing?.publishedAt ? formatDate(viewing.publishedAt.slice(0, 10)) : undefined },
+          { label: "Excerpt", value: viewing?.excerpt },
+          { label: "Content", value: viewing?.content },
+        ]}
+        onEdit={
+          canManage && viewing
+            ? () => {
+                setEditing(viewing);
+                setViewing(null);
+              }
+            : undefined
+        }
+      />
     </div>
   );
 }

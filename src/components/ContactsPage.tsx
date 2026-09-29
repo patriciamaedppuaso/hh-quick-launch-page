@@ -5,6 +5,7 @@ import { DEFAULT_CONTACT_CATEGORIES, canManageApp, colorForStatus, initialOf } f
 import { Modal } from "./Modal";
 import { ContactForm } from "./ContactForm";
 import { ManageStatusesForm } from "./ManageStatusesForm";
+import { DetailModal } from "./DetailModal";
 
 interface Props {
   app: AppTile;
@@ -22,6 +23,7 @@ export function ContactsPage({ app, role, onBack, onUpdate, onUpdateStatusOption
   const [query, setQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [editing, setEditing] = useState<ContactRecord | null>(null);
+  const [viewing, setViewing] = useState<ContactRecord | null>(null);
   const [adding, setAdding] = useState(false);
   const [managingCategories, setManagingCategories] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
@@ -126,7 +128,7 @@ export function ContactsPage({ app, role, onBack, onUpdate, onUpdateStatusOption
       ) : (
         <div className="items-list">
           {filtered.map((r) => (
-            <div className="items-row" key={r.id}>
+            <div className="items-row items-row--clickable" key={r.id} onClick={() => setViewing(r)}>
               <span className="contact-avatar" style={{ background: tint.bg, color: tint.fg }}>
                 {r.avatar ? <img src={r.avatar} alt="" /> : initialOf(r.name)}
               </span>
@@ -147,13 +149,22 @@ export function ContactsPage({ app, role, onBack, onUpdate, onUpdateStatusOption
                   </span>
                 )}
                 {r.phone && (
-                  <a className="list-item-open" href={`tel:${r.phone.replace(/[^\d+]/g, "")}`}>
+                  <a
+                    className="list-item-open"
+                    href={`tel:${r.phone.replace(/[^\d+]/g, "")}`}
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     <Icon name="phone" />
                     {r.phone}
                   </a>
                 )}
                 {r.email && (
-                  <a className="list-item-open list-item-open-icon" href={`mailto:${r.email}`} aria-label={`Email ${r.name}`}>
+                  <a
+                    className="list-item-open list-item-open-icon"
+                    href={`mailto:${r.email}`}
+                    aria-label={`Email ${r.name}`}
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     <Icon name="mail" />
                   </a>
                 )}
@@ -161,6 +172,7 @@ export function ContactsPage({ app, role, onBack, onUpdate, onUpdateStatusOption
                 {canManage && (
                   <div
                     className={`items-row-manage${confirmDeleteId === r.id ? " items-row-manage--active" : ""}`}
+                    onClick={(e) => e.stopPropagation()}
                   >
                     <button
                       type="button"
@@ -211,6 +223,27 @@ export function ContactsPage({ app, role, onBack, onUpdate, onUpdateStatusOption
           />
         )}
       </Modal>
+
+      <DetailModal
+        open={!!viewing}
+        onClose={() => setViewing(null)}
+        title={viewing?.name ?? "Contact"}
+        fields={[
+          { label: "Role", value: viewing?.role },
+          { label: "Category", value: viewing?.category },
+          { label: "Phone", value: viewing?.phone },
+          { label: "Email", value: viewing?.email },
+          { label: "Notes", value: viewing?.notes },
+        ]}
+        onEdit={
+          canManage && viewing
+            ? () => {
+                setEditing(viewing);
+                setViewing(null);
+              }
+            : undefined
+        }
+      />
 
       <Modal open={managingCategories} onClose={() => setManagingCategories(false)} title="Manage contact categories">
         <ManageStatusesForm

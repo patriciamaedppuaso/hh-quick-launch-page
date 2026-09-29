@@ -6,6 +6,7 @@ import { Modal } from "./Modal";
 import { RespiratoryPatientForm } from "./RespiratoryPatientForm";
 import { ManageStatusesForm } from "./ManageStatusesForm";
 import { AddMenuButton } from "./AddMenuButton";
+import { DetailModal } from "./DetailModal";
 
 interface Props {
   app: AppTile;
@@ -26,6 +27,7 @@ export function RespiratoryLogPage({ app, role, onBack, onUpdate, onUpdateStatus
   const [logDateFilter, setLogDateFilter] = useState("");
   const [openFolder, setOpenFolder] = useState<string | null>(null);
   const [editing, setEditing] = useState<RespiratoryPatientRecord | null>(null);
+  const [viewing, setViewing] = useState<RespiratoryPatientRecord | null>(null);
   const [adding, setAdding] = useState(false);
   const [addKind, setAddKind] = useState<"patient" | "folder">("patient");
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
@@ -96,7 +98,7 @@ export function RespiratoryLogPage({ app, role, onBack, onUpdate, onUpdateStatus
   function renderPatientRow(p: RespiratoryPatientRecord) {
     const overdue = isOverdue(p.dueDate) && p.equipment.some((e) => e.status === "ongoing");
     return (
-      <div className="items-row" key={p.id}>
+      <div className="items-row items-row--clickable" key={p.id} onClick={() => setViewing(p)}>
         <span className="contact-avatar" style={{ background: tint.bg, color: tint.fg }}>
           {initialOf(p.patientName)}
         </span>
@@ -122,7 +124,10 @@ export function RespiratoryLogPage({ app, role, onBack, onUpdate, onUpdateStatus
           )}
         </div>
         {canManage && (
-          <div className={`items-row-manage${confirmDeleteId === p.id ? " items-row-manage--active" : ""}`}>
+          <div
+            className={`items-row-manage${confirmDeleteId === p.id ? " items-row-manage--active" : ""}`}
+            onClick={(e) => e.stopPropagation()}
+          >
             <button
               type="button"
               className="icon-btn-sm"
@@ -293,6 +298,32 @@ export function RespiratoryLogPage({ app, role, onBack, onUpdate, onUpdateStatus
           />
         )}
       </Modal>
+
+      <DetailModal
+        open={!!viewing}
+        onClose={() => setViewing(null)}
+        title={viewing?.patientName ?? "Patient"}
+        fields={[
+          { label: "Folder", value: viewing?.folder },
+          { label: "City", value: viewing?.city },
+          { label: "Due date", value: viewing?.dueDate ? formatDate(viewing.dueDate) : undefined },
+          { label: "Log date", value: viewing?.logDate ? formatDate(viewing.logDate) : undefined },
+          {
+            label: "Equipment",
+            value: viewing?.equipment.length
+              ? viewing.equipment.map((e) => `${e.name} (${e.status === "ongoing" ? "Ongoing" : "Returned"})`).join(", ")
+              : undefined,
+          },
+        ]}
+        onEdit={
+          canManage && viewing
+            ? () => {
+                setEditing(viewing);
+                setViewing(null);
+              }
+            : undefined
+        }
+      />
     </div>
   );
 }

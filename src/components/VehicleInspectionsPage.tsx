@@ -5,6 +5,7 @@ import { DEFAULT_INSPECTION_ITEMS, canManageApp, formatDate, initialOf } from ".
 import { Modal } from "./Modal";
 import { VehicleInspectionForm } from "./VehicleInspectionForm";
 import { ManageStatusesForm } from "./ManageStatusesForm";
+import { DetailModal } from "./DetailModal";
 
 interface Props {
   app: AppTile;
@@ -33,6 +34,7 @@ export function VehicleInspectionsPage({
   const [dateFilter, setDateFilter] = useState("");
   const [tripFilter, setTripFilter] = useState<TripFilter>("all");
   const [editing, setEditing] = useState<VehicleInspectionRecord | null>(null);
+  const [viewing, setViewing] = useState<VehicleInspectionRecord | null>(null);
   const [adding, setAdding] = useState(false);
   const [managingChecklist, setManagingChecklist] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
@@ -151,7 +153,11 @@ export function VehicleInspectionsPage({
       ) : (
         <div className="items-list">
           {filtered.map((r) => (
-            <div className={`items-row${r.defectiveItems.length > 0 ? " items-row--flagged" : ""}`} key={r.id}>
+            <div
+              className={`items-row items-row--clickable${r.defectiveItems.length > 0 ? " items-row--flagged" : ""}`}
+              key={r.id}
+              onClick={() => setViewing(r)}
+            >
               {r.defectiveItems.length > 0 && (
                 <span className="items-row-icon items-row-icon--flag">
                   <Icon name="alert-circle" />
@@ -177,7 +183,10 @@ export function VehicleInspectionsPage({
                 {r.conditionAcceptable ? "Acceptable" : "Not acceptable"}
               </span>
               {canManage && (
-                <div className={`items-row-manage${confirmDeleteId === r.id ? " items-row-manage--active" : ""}`}>
+                <div
+                  className={`items-row-manage${confirmDeleteId === r.id ? " items-row-manage--active" : ""}`}
+                  onClick={(e) => e.stopPropagation()}
+                >
                   <button
                     type="button"
                     className="icon-btn-sm"
@@ -232,6 +241,32 @@ export function VehicleInspectionsPage({
           />
         )}
       </Modal>
+
+      <DetailModal
+        open={!!viewing}
+        onClose={() => setViewing(null)}
+        title={viewing?.driverName ?? "Inspection report"}
+        fields={[
+          { label: "Date", value: viewing?.date ? formatDate(viewing.date) : undefined },
+          { label: "Trip type", value: viewing?.tripType === "pre_trip" ? "Pre-Trip" : "Post-Trip" },
+          { label: "Location", value: viewing?.location },
+          { label: "License plate #", value: viewing?.licensePlate },
+          { label: "Vehicle", value: viewing?.vehicle },
+          { label: "Odometer", value: viewing?.odometer },
+          { label: "Defective items", value: viewing?.defectiveItems.join(", ") },
+          { label: "Remarks", value: viewing?.remarks },
+          { label: "Condition acceptable", value: viewing?.conditionAcceptable ? "Yes" : "No" },
+          { label: "Driver's declaration", value: viewing?.certified ? "Certified" : undefined },
+        ]}
+        onEdit={
+          canManage && viewing
+            ? () => {
+                setEditing(viewing);
+                setViewing(null);
+              }
+            : undefined
+        }
+      />
 
       <Modal open={managingChecklist} onClose={() => setManagingChecklist(false)} title="Manage checklist items">
         <ManageStatusesForm

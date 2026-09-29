@@ -7,6 +7,7 @@ import { ItemForm } from "./ItemForm";
 import { FilePreviewModal } from "./FilePreviewModal";
 import { ManageStatusesForm } from "./ManageStatusesForm";
 import { AddMenuButton } from "./AddMenuButton";
+import { DetailModal } from "./DetailModal";
 
 interface Props {
   app: ListApp;
@@ -38,6 +39,7 @@ export function ItemsPage({ app, role, onBack, onUpdateItems, onUpdateStatusOpti
   const [kindFilter, setKindFilter] = useState<KindFilter>("all");
   const [openFolder, setOpenFolder] = useState<string | null>(null);
   const [editingItem, setEditingItem] = useState<ListItem | null>(null);
+  const [viewingItem, setViewingItem] = useState<ListItem | null>(null);
   const [adding, setAdding] = useState(false);
   const [addKind, setAddKind] = useState<"item" | "folder">("item");
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
@@ -109,7 +111,7 @@ export function ItemsPage({ app, role, onBack, onUpdateItems, onUpdateStatusOpti
 
   function renderRow(item: ListItem) {
     return (
-      <div className="items-row" key={item.id}>
+      <div className="items-row items-row--clickable" key={item.id} onClick={() => setViewingItem(item)}>
         <span className="items-row-icon">
           <Icon name="file" />
         </span>
@@ -124,7 +126,7 @@ export function ItemsPage({ app, role, onBack, onUpdateItems, onUpdateStatusOpti
           )}
         </div>
         <span className="items-row-kind">{item.isFile ? "File" : item.url ? "Link" : "—"}</span>
-        <div className="items-row-actions">
+        <div className="items-row-actions" onClick={(e) => e.stopPropagation()}>
           {item.url ? (
             item.isFile && isPdfFile(item.fileName, item.url) ? (
               <>
@@ -309,6 +311,28 @@ export function ItemsPage({ app, role, onBack, onUpdateItems, onUpdateStatusOpti
           url={previewItem.url}
         />
       )}
+
+      <DetailModal
+        open={!!viewingItem}
+        onClose={() => setViewingItem(null)}
+        title={viewingItem?.name ?? "Item"}
+        fields={[
+          { label: "Folder", value: viewingItem?.folder },
+          { label: "Description", value: viewingItem?.description },
+          { label: "Type", value: viewingItem?.isFile ? "File" : viewingItem?.url ? "Link" : undefined },
+          { label: "Link", value: !viewingItem?.isFile ? viewingItem?.url : undefined },
+          { label: "File name", value: viewingItem?.isFile ? viewingItem?.fileName : undefined },
+          { label: "Expires on", value: viewingItem?.expiresOn ? formatDate(viewingItem.expiresOn) : undefined },
+        ]}
+        onEdit={
+          canManage && viewingItem
+            ? () => {
+                setEditingItem(viewingItem);
+                setViewingItem(null);
+              }
+            : undefined
+        }
+      />
     </div>
   );
 }

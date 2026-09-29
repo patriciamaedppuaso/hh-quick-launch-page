@@ -13,6 +13,7 @@ import {
 import { Modal } from "./Modal";
 import { ReceivablePayableForm } from "./ReceivablePayableForm";
 import { ManageStatusesForm } from "./ManageStatusesForm";
+import { DetailModal } from "./DetailModal";
 
 interface Props {
   app: AppTile;
@@ -39,6 +40,7 @@ export function ReceivablesPayablesPage({ app, role, onBack, onUpdate, onUpdateS
   const [kindFilter, setKindFilter] = useState<KindFilter>("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [editing, setEditing] = useState<ReceivablePayableRecord | null>(null);
+  const [viewing, setViewing] = useState<ReceivablePayableRecord | null>(null);
   const [adding, setAdding] = useState(false);
   const [managingStatuses, setManagingStatuses] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
@@ -177,7 +179,7 @@ export function ReceivablesPayablesPage({ app, role, onBack, onUpdate, onUpdateS
           {filtered.map((r) => {
             const overdue = isOverdue(r.dueDate);
             return (
-              <div className="items-row" key={r.id}>
+              <div className="items-row items-row--clickable" key={r.id} onClick={() => setViewing(r)}>
                 <div className="items-row-text">
                   <span className="items-row-name">{r.party}</span>
                   <span className="items-row-desc">
@@ -198,7 +200,10 @@ export function ReceivablesPayablesPage({ app, role, onBack, onUpdate, onUpdateS
                   {r.status}
                 </span>
                 {canManage && (
-                  <div className={`items-row-manage${confirmDeleteId === r.id ? " items-row-manage--active" : ""}`}>
+                  <div
+                    className={`items-row-manage${confirmDeleteId === r.id ? " items-row-manage--active" : ""}`}
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     <button
                       type="button"
                       className="icon-btn-sm"
@@ -248,6 +253,28 @@ export function ReceivablesPayablesPage({ app, role, onBack, onUpdate, onUpdateS
           />
         )}
       </Modal>
+
+      <DetailModal
+        open={!!viewing}
+        onClose={() => setViewing(null)}
+        title={viewing?.party ?? "Entry"}
+        fields={[
+          { label: "Type", value: viewing?.kind === "receivable" ? "Receivable" : "Payable" },
+          { label: "Amount", value: viewing?.amount != null ? formatCurrency(viewing.amount) : undefined },
+          { label: "Status", value: viewing?.status },
+          { label: "Due date", value: viewing?.dueDate ? formatDate(viewing.dueDate) : undefined },
+          { label: "Created", value: viewing?.createdAt ? formatDate(viewing.createdAt) : undefined },
+          { label: "Notes", value: viewing?.notes },
+        ]}
+        onEdit={
+          canManage && viewing
+            ? () => {
+                setEditing(viewing);
+                setViewing(null);
+              }
+            : undefined
+        }
+      />
 
       <Modal open={managingStatuses} onClose={() => setManagingStatuses(false)} title="Manage statuses">
         <ManageStatusesForm
