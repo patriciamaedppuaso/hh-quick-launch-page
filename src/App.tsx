@@ -34,6 +34,7 @@ import { RespiratoryLogPage } from "./components/RespiratoryLogPage";
 import { InvoicesPage } from "./components/InvoicesPage";
 import { PurchaseOrdersPage } from "./components/PurchaseOrdersPage";
 import { VehicleInspectionsPage } from "./components/VehicleInspectionsPage";
+import { EquipmentChecklistsPage } from "./components/EquipmentChecklistsPage";
 import { BlogPage } from "./components/BlogPage";
 import { Footer } from "./components/Footer";
 import { useToast } from "./components/ToastProvider";
@@ -59,6 +60,7 @@ const FIELD_LABELS: Record<string, string> = {
   invoices: "Invoice",
   purchaseOrders: "Invoice",
   vehicleInspections: "Report",
+  equipmentChecklists: "Log",
   statusOptions: "List",
   name: "App",
   visible: "App",
@@ -556,6 +558,17 @@ export default function App() {
             registeredUserNames={registeredUserNames}
             onBack={closeItems}
             onUpdate={(vehicleInspections) => updateApp(app.id, { vehicleInspections })}
+            onUpdateStatusOptions={(statusOptions) => updateApp(app.id, { statusOptions })}
+          />
+        );
+      case "equipmentChecklist":
+        return (
+          <EquipmentChecklistsPage
+            app={app}
+            role={role}
+            registeredUserNames={registeredUserNames}
+            onBack={closeItems}
+            onUpdate={(equipmentChecklists) => updateApp(app.id, { equipmentChecklists })}
             onUpdateStatusOptions={(statusOptions) => updateApp(app.id, { statusOptions })}
           />
         );

@@ -76,6 +76,33 @@ export const DEFAULT_ACCOUNT_CATEGORIES = ["Software", "Hosting", "Social Media"
 
 export const ORDER_TYPES: OrderType[] = ["Delivery", "Pickup", "Swapout", "Sale", "Service"];
 
+export const DEFAULT_EQUIPMENT_CHECKLIST_ITEMS = [
+  "Hospital Bed",
+  "Full / Half Rails",
+  "Hospital Bed Mattress",
+  "APP",
+  "O2 Conc 5L",
+  "Portable System",
+  "Hand Held Nebulizer",
+  "Suction Machine",
+  "Transport Wheelchair",
+  "Shower Chair",
+  "Bedside Commode",
+  "Bedside Table",
+  "Adult Walker",
+  "Mattress Covers (Zip)",
+  '7" Nasal Cannula',
+  '25" Nasal Cannula',
+  '50" Nasal Cannula',
+  "Oxygen Mask",
+  "Humidifier Bottles",
+  "Nebulizer Kit",
+  "Aerosol Mask",
+  "Suction Yanker",
+  "Suction Tubing",
+  "Suction Canister",
+];
+
 export const DEFAULT_INSPECTION_ITEMS = [
   "Brakes",
   "Parking Brake",

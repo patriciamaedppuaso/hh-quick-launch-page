@@ -80,7 +80,8 @@ export type BuiltinKind =
   | "respiratory"
   | "invoices"
   | "purchaseOrders"
-  | "vehicleInspections";
+  | "vehicleInspections"
+  | "equipmentChecklist";
 
 export interface ContactRecord {
   id: string;
@@ -242,6 +243,14 @@ export interface VehicleInspectionRecord {
   certified: boolean;
 }
 
+export interface EquipmentChecklistRecord {
+  id: string;
+  employeeName: string;
+  date: string;
+  confirmedItems: string[];
+  certified: boolean;
+}
+
 export interface BlogPostRecord {
   id: string;
   slug: string;
@@ -325,6 +334,7 @@ interface AppBase {
   invoices?: InvoiceRecord[];
   purchaseOrders?: PurchaseOrderRecord[];
   vehicleInspections?: VehicleInspectionRecord[];
+  equipmentChecklists?: EquipmentChecklistRecord[];
 }
 
 export interface LinkApp extends AppBase {

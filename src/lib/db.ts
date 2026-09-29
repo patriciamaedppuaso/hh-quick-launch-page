@@ -8,6 +8,7 @@ import type {
   BreakEntry,
   ClockRecord,
   ContactRecord,
+  EquipmentChecklistRecord,
   InvoiceRecord,
   LeadRecord,
   ListItem,
@@ -61,6 +62,8 @@ export async function fetchAllApps(): Promise<AppTile[]> {
     purchaseOrders,
     vehicleInspections,
     inspectionDefects,
+    equipmentChecklists,
+    checklistItems,
   ] = await Promise.all([
     supabase.from("apps").select("*").order("sort_order"),
     supabase.from("list_items").select("*").order("sort_order"),
@@ -83,6 +86,8 @@ export async function fetchAllApps(): Promise<AppTile[]> {
     supabase.from("purchase_order_invoices").select("*"),
     supabase.from("vehicle_inspections").select("*").order("date", { ascending: false }),
     supabase.from("vehicle_inspection_defects").select("*"),
+    supabase.from("equipment_checklists").select("*").order("date", { ascending: false }),
+    supabase.from("equipment_checklist_items").select("*"),
   ]);
 
   for (const res of [
@@ -107,6 +112,8 @@ export async function fetchAllApps(): Promise<AppTile[]> {
     purchaseOrders,
     vehicleInspections,
     inspectionDefects,
+    equipmentChecklists,
+    checklistItems,
   ]) {
     if (res.error) throw res.error;
   }
@@ -131,6 +138,8 @@ export async function fetchAllApps(): Promise<AppTile[]> {
   const purchaseOrdersByApp = groupBy(purchaseOrders.data ?? [], (r) => r.app_id);
   const vehicleInspectionsByApp = groupBy(vehicleInspections.data ?? [], (r) => r.app_id);
   const inspectionDefectsByInspection = groupBy(inspectionDefects.data ?? [], (r) => r.inspection_id);
+  const equipmentChecklistsByApp = groupBy(equipmentChecklists.data ?? [], (r) => r.app_id);
+  const checklistItemsByChecklist = groupBy(checklistItems.data ?? [], (r) => r.checklist_id);
 
   return (apps.data ?? []).map((row): AppTile => {
     const base = {
@@ -165,6 +174,9 @@ export async function fetchAllApps(): Promise<AppTile[]> {
       purchaseOrders: (purchaseOrdersByApp.get(row.id) ?? []).map(rowToPurchaseOrder),
       vehicleInspections: (vehicleInspectionsByApp.get(row.id) ?? []).map((v) =>
         rowToVehicleInspection(v, inspectionDefectsByInspection.get(v.id as string) ?? []),
+      ),
+      equipmentChecklists: (equipmentChecklistsByApp.get(row.id) ?? []).map((c) =>
+        rowToEquipmentChecklist(c, checklistItemsByChecklist.get(c.id as string) ?? []),
       ),
     };
 
@@ -363,6 +375,19 @@ function rowToVehicleInspection(
     defectiveItems: defectRows.map((d) => d.item_name as string),
     remarks: (row.remarks as string) ?? undefined,
     conditionAcceptable: row.condition_acceptable as boolean,
+    certified: row.certified as boolean,
+  };
+}
+
+function rowToEquipmentChecklist(
+  row: Record<string, unknown>,
+  itemRows: Record<string, unknown>[],
+): EquipmentChecklistRecord {
+  return {
+    id: row.id as string,
+    employeeName: row.employee_name as string,
+    date: row.date as string,
+    confirmedItems: itemRows.map((r) => r.item_name as string),
     certified: row.certified as boolean,
   };
 }
@@ -689,6 +714,10 @@ async function syncAppCollections(app: AppTile): Promise<void> {
     work.push(syncVehicleInspections(app.id, app.vehicleInspections));
   }
 
+  if (app.equipmentChecklists) {
+    work.push(syncEquipmentChecklists(app.id, app.equipmentChecklists));
+  }
+
   if (app.purchaseOrders) {
     work.push(
       replaceRows(
@@ -820,6 +849,31 @@ async function syncVehicleInspections(appId: string, inspections: VehicleInspect
         "inspection_id",
         v.id,
         v.defectiveItems.map((item) => ({ inspection_id: v.id, item_name: item })),
+      ),
+    ),
+  );
+}
+
+async function syncEquipmentChecklists(appId: string, checklists: EquipmentChecklistRecord[]): Promise<void> {
+  await replaceRows(
+    "equipment_checklists",
+    "app_id",
+    appId,
+    checklists.map((c) => ({
+      id: c.id,
+      app_id: appId,
+      employee_name: c.employeeName,
+      date: c.date,
+      certified: c.certified,
+    })),
+  );
+  await Promise.all(
+    checklists.map((c) =>
+      replaceRows(
+        "equipment_checklist_items",
+        "checklist_id",
+        c.id,
+        c.confirmedItems.map((item) => ({ checklist_id: c.id, item_name: item })),
       ),
     ),
   );

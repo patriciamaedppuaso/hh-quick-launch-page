@@ -2500,6 +2500,22 @@ body {
   cursor: pointer;
 }
 
+.checklist-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.checklist-label-row label {
+  margin-bottom: 0;
+}
+.checklist-select-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
 .inspection-checklist {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
