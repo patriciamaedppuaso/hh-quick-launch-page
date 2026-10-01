@@ -105,7 +105,7 @@ export interface LeadRecord {
   followUp?: string;
   notes?: string;
   createdAt?: string;
-  rep?: string;
+  reps?: string[];
 }
 
 export interface AnnouncementAttachment {

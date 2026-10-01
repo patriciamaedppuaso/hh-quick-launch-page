@@ -1,7 +1,6 @@
 import { useState } from "react";
 import type { LeadRecord, LeadStatus } from "../types";
 import { newId, todayIso } from "../utils";
-import { PersonSearchInput } from "./PersonSearchInput";
 
 interface Props {
   initial?: LeadRecord;
@@ -15,11 +14,31 @@ export function LeadForm({ initial, statusOptions, repOptions, onSave, onCancel 
   const [name, setName] = useState(initial?.name ?? "");
   const [company, setCompany] = useState(initial?.company ?? "");
   const [status, setStatus] = useState<LeadStatus>(initial?.status ?? statusOptions[0]);
-  const [rep, setRep] = useState(initial?.rep ?? "");
+  const [reps, setReps] = useState<string[]>(initial?.reps ?? []);
+  const [repQuery, setRepQuery] = useState("");
   const [value, setValue] = useState(initial?.value != null ? String(initial.value) : "");
   const [followUp, setFollowUp] = useState(initial?.followUp ?? "");
   const [notes, setNotes] = useState(initial?.notes ?? "");
   const [error, setError] = useState("");
+
+  const visibleRepOptions = Array.from(new Set([...repOptions, ...reps]));
+  const trimmedRepQuery = repQuery.trim();
+  const filteredRepOptions = trimmedRepQuery
+    ? visibleRepOptions.filter((n) => n.toLowerCase().includes(trimmedRepQuery.toLowerCase()))
+    : visibleRepOptions;
+  const hasExactRepMatch = visibleRepOptions.some((n) => n.toLowerCase() === trimmedRepQuery.toLowerCase());
+
+  function toggleRep(name: string) {
+    setReps((prev) => (prev.includes(name) ? prev.filter((n) => n !== name) : [...prev, name]));
+  }
+
+  function addRep() {
+    if (!trimmedRepQuery) return;
+    const match = visibleRepOptions.find((n) => n.toLowerCase() === trimmedRepQuery.toLowerCase());
+    const name = match ?? trimmedRepQuery;
+    if (!reps.includes(name)) setReps((prev) => [...prev, name]);
+    setRepQuery("");
+  }
 
   function handleSave() {
     const trimmedName = name.trim();
@@ -38,7 +57,7 @@ export function LeadForm({ initial, statusOptions, repOptions, onSave, onCancel 
       name: trimmedName,
       company: company.trim() || undefined,
       status,
-      rep: rep.trim() || undefined,
+      reps: reps.length ? reps : undefined,
       value: parsedValue,
       followUp: followUp || undefined,
       notes: notes.trim() || undefined,
@@ -79,14 +98,43 @@ export function LeadForm({ initial, statusOptions, repOptions, onSave, onCancel 
         </select>
       </div>
       <div className="form-row">
-        <label htmlFor="lRep">Rep (optional)</label>
-        <PersonSearchInput
-          id="lRep"
-          value={rep}
-          onChange={setRep}
-          options={repOptions}
-          placeholder="Who's working this lead?"
-        />
+        <label htmlFor="lRepSearch">Reps (optional)</label>
+        <div className="url-field">
+          <input
+            id="lRepSearch"
+            type="text"
+            placeholder="Search or add a name..."
+            value={repQuery}
+            onChange={(e) => setRepQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                addRep();
+              }
+            }}
+          />
+          {trimmedRepQuery && (
+            <button type="button" className="btn-secondary-sm" onClick={addRep}>
+              {hasExactRepMatch ? "Assign" : `Add "${trimmedRepQuery}"`}
+            </button>
+          )}
+        </div>
+        <div className="assignee-picker">
+          {filteredRepOptions.length > 0 ? (
+            filteredRepOptions.map((name) => (
+              <button
+                key={name}
+                type="button"
+                className={`assignee-option${reps.includes(name) ? " active" : ""}`}
+                onClick={() => toggleRep(name)}
+              >
+                {name}
+              </button>
+            ))
+          ) : (
+            <p className="form-hint">No match. Press Add to assign "{trimmedRepQuery}" as a new name.</p>
+          )}
+        </div>
       </div>
       <div className="form-row">
         <label htmlFor="lValue">Est. value (optional)</label>

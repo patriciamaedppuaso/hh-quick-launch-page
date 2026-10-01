@@ -45,6 +45,7 @@ export async function fetchAllApps(): Promise<AppTile[]> {
     items,
     contacts,
     leads,
+    leadReps,
     announcements,
     attachments,
     tasks,
@@ -69,6 +70,7 @@ export async function fetchAllApps(): Promise<AppTile[]> {
     supabase.from("list_items").select("*").order("sort_order"),
     supabase.from("contacts").select("*"),
     supabase.from("leads").select("*"),
+    supabase.from("lead_reps").select("*"),
     supabase.from("announcements").select("*").order("date", { ascending: false }),
     supabase.from("announcement_attachments").select("*"),
     supabase.from("tasks").select("*"),
@@ -95,6 +97,7 @@ export async function fetchAllApps(): Promise<AppTile[]> {
     items,
     contacts,
     leads,
+    leadReps,
     announcements,
     attachments,
     tasks,
@@ -121,6 +124,7 @@ export async function fetchAllApps(): Promise<AppTile[]> {
   const itemsByApp = groupBy(items.data ?? [], (r) => r.app_id);
   const contactsByApp = groupBy(contacts.data ?? [], (r) => r.app_id);
   const leadsByApp = groupBy(leads.data ?? [], (r) => r.app_id);
+  const leadRepsByLead = groupBy(leadReps.data ?? [], (r) => r.lead_id);
   const announcementsByApp = groupBy(announcements.data ?? [], (r) => r.app_id);
   const attachmentsByAnnouncement = groupBy(attachments.data ?? [], (r) => r.announcement_id);
   const tasksByApp = groupBy(tasks.data ?? [], (r) => r.app_id);
@@ -156,7 +160,7 @@ export async function fetchAllApps(): Promise<AppTile[]> {
       showInNav: (row.show_in_nav as boolean | null) ?? undefined,
       staffCanManage: (row.staff_can_manage as boolean | null) ?? false,
       contacts: (contactsByApp.get(row.id) ?? []).map(rowToContact),
-      leads: (leadsByApp.get(row.id) ?? []).map(rowToLead),
+      leads: (leadsByApp.get(row.id) ?? []).map((l) => rowToLead(l, leadRepsByLead.get(l.id as string) ?? [])),
       announcements: (announcementsByApp.get(row.id) ?? []).map((a) =>
         rowToAnnouncement(a, attachmentsByAnnouncement.get(a.id) ?? []),
       ),
@@ -251,7 +255,7 @@ function rowToContact(row: Record<string, unknown>): ContactRecord {
   };
 }
 
-function rowToLead(row: Record<string, unknown>): LeadRecord {
+function rowToLead(row: Record<string, unknown>, repRows: Record<string, unknown>[]): LeadRecord {
   return {
     id: row.id as string,
     name: row.name as string,
@@ -261,7 +265,7 @@ function rowToLead(row: Record<string, unknown>): LeadRecord {
     followUp: (row.follow_up as string) ?? undefined,
     notes: (row.notes as string) ?? undefined,
     createdAt: (row.created_at as string) ?? undefined,
-    rep: (row.rep as string) ?? undefined,
+    reps: repRows.length > 0 ? repRows.map((r) => r.rep_name as string) : undefined,
   };
 }
 
@@ -570,25 +574,7 @@ async function syncAppCollections(app: AppTile): Promise<void> {
   }
 
   if (app.leads) {
-    work.push(
-      replaceRows(
-        "leads",
-        "app_id",
-        app.id,
-        app.leads.map((l) => ({
-          id: l.id,
-          app_id: app.id,
-          name: l.name,
-          company: l.company ?? null,
-          status: l.status,
-          value: l.value ?? null,
-          follow_up: l.followUp ?? null,
-          notes: l.notes ?? null,
-          created_at: l.createdAt ?? null,
-          rep: l.rep ?? null,
-        })),
-      ),
-    );
+    work.push(syncLeads(app.id, app.leads));
   }
 
   if (app.announcements) {
@@ -798,6 +784,35 @@ async function syncAnnouncements(appId: string, announcements: AnnouncementRecor
           url: att.url,
           is_image: att.isImage,
         })),
+      ),
+    ),
+  );
+}
+
+async function syncLeads(appId: string, leads: LeadRecord[]): Promise<void> {
+  await replaceRows(
+    "leads",
+    "app_id",
+    appId,
+    leads.map((l) => ({
+      id: l.id,
+      app_id: appId,
+      name: l.name,
+      company: l.company ?? null,
+      status: l.status,
+      value: l.value ?? null,
+      follow_up: l.followUp ?? null,
+      notes: l.notes ?? null,
+      created_at: l.createdAt ?? null,
+    })),
+  );
+  await Promise.all(
+    leads.map((l) =>
+      replaceRows(
+        "lead_reps",
+        "lead_id",
+        l.id,
+        (l.reps ?? []).map((name) => ({ lead_id: l.id, rep_name: name })),
       ),
     ),
   );

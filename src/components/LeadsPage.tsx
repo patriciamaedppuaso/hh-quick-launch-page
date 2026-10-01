@@ -25,6 +25,7 @@ export function LeadsPage({ app, role, registeredUserNames, onBack, onUpdate, on
   const statusOptions = app.statusOptions ?? DEFAULT_LEAD_STATUSES;
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [repFilter, setRepFilter] = useState("all");
   const [editing, setEditing] = useState<LeadRecord | null>(null);
   const [viewing, setViewing] = useState<LeadRecord | null>(null);
   const [adding, setAdding] = useState(false);
@@ -45,14 +46,24 @@ export function LeadsPage({ app, role, registeredUserNames, onBack, onUpdate, on
     return counts;
   }, [records]);
 
+  const repOptions = useMemo(() => {
+    const names = new Set(registeredUserNames);
+    for (const r of records) {
+      for (const rep of r.reps ?? []) names.add(rep);
+    }
+    return Array.from(names).sort((a, b) => a.localeCompare(b));
+  }, [records, registeredUserNames]);
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return records.filter((r) => {
       if (statusFilter !== "all" && r.status !== statusFilter) return false;
+      if (repFilter === "unassigned" && (r.reps ?? []).length > 0) return false;
+      if (repFilter !== "all" && repFilter !== "unassigned" && !(r.reps ?? []).includes(repFilter)) return false;
       if (!q) return true;
-      return [r.name, r.company, r.rep, r.notes].some((v) => v?.toLowerCase().includes(q));
+      return [r.name, r.company, r.notes, ...(r.reps ?? [])].some((v) => v?.toLowerCase().includes(q));
     });
-  }, [records, query, statusFilter]);
+  }, [records, query, statusFilter, repFilter]);
 
   function handleAddSave(record: LeadRecord) {
     onUpdate([...records, record]);
@@ -108,6 +119,20 @@ export function LeadsPage({ app, role, registeredUserNames, onBack, onUpdate, on
             </option>
           ))}
         </select>
+        <select
+          className="filter-select"
+          aria-label="Filter by rep"
+          value={repFilter}
+          onChange={(e) => setRepFilter(e.target.value)}
+        >
+          <option value="all">Everyone's leads</option>
+          <option value="unassigned">Unassigned</option>
+          {repOptions.map((name) => (
+            <option key={name} value={name}>
+              {name}
+            </option>
+          ))}
+        </select>
         {canManage && (
           <button
             type="button"
@@ -137,7 +162,11 @@ export function LeadsPage({ app, role, registeredUserNames, onBack, onUpdate, on
               <div className="items-row-text">
                 <span className="items-row-name">{lead.name}</span>
                 <span className="items-row-desc">
-                  {[lead.company, lead.rep && `Rep: ${lead.rep}`, lead.followUp && `Follow up ${formatDate(lead.followUp)}`]
+                  {[
+                    lead.company,
+                    lead.reps?.length ? `Reps: ${lead.reps.join(", ")}` : undefined,
+                    lead.followUp && `Follow up ${formatDate(lead.followUp)}`,
+                  ]
                     .filter(Boolean)
                     .join(" · ")}
                 </span>
@@ -219,7 +248,7 @@ export function LeadsPage({ app, role, registeredUserNames, onBack, onUpdate, on
         fields={[
           { label: "Company", value: viewing?.company },
           { label: "Status", value: viewing?.status },
-          { label: "Rep", value: viewing?.rep },
+          { label: "Reps", value: viewing?.reps?.join(", ") },
           { label: "Est. value", value: viewing?.value != null ? formatCurrency(viewing.value) : undefined },
           { label: "Follow-up date", value: viewing?.followUp ? formatDate(viewing.followUp) : undefined },
           { label: "Created", value: viewing?.createdAt ? formatDate(viewing.createdAt) : undefined },

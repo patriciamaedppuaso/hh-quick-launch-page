@@ -261,7 +261,7 @@ export const DEFAULT_APPS: AppTile[] = [
         name: "Dr. Patricia Nguyen",
         company: "Nguyen Family Clinic",
         status: "contacted",
-        rep: "Myka",
+        reps: ["Myka"],
         createdAt: "2026-09-14",
       },
       {
@@ -269,7 +269,7 @@ export const DEFAULT_APPS: AppTile[] = [
         name: "Marcus Webb",
         company: "Webb Physical Therapy",
         status: "follow-up",
-        rep: "Myka",
+        reps: ["Myka"],
         followUp: "2026-09-18",
         createdAt: "2026-09-11",
       },
