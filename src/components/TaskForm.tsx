@@ -23,6 +23,7 @@ export function TaskForm({ initial, statusOptions, knownAssignees, currentUserNa
   const [priority, setPriority] = useState<TaskPriority>(initial?.priority ?? "medium");
   const [dueDate, setDueDate] = useState(initial?.dueDate ?? "");
   const [assignees, setAssignees] = useState<string[]>(initial?.assignees ?? []);
+  const [notes, setNotes] = useState(initial?.notes ?? "");
   const [assigneeQuery, setAssigneeQuery] = useState("");
   const [error, setError] = useState("");
 
@@ -63,6 +64,7 @@ export function TaskForm({ initial, statusOptions, knownAssignees, currentUserNa
       priority,
       dueDate: dueDate || undefined,
       assignees: assignees.length ? assignees : undefined,
+      notes: notes.trim() || undefined,
     });
   }
 
@@ -141,6 +143,16 @@ export function TaskForm({ initial, statusOptions, knownAssignees, currentUserNa
             <p className="form-hint">No match. Press Add to assign "{trimmedQuery}" as a new name.</p>
           )}
         </div>
+      </div>
+      <div className="form-row">
+        <label htmlFor="tNotes">Notes (optional)</label>
+        <textarea
+          id="tNotes"
+          rows={3}
+          placeholder="Anything worth remembering"
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+        />
       </div>
       {error && <p className="field-error">{error}</p>}
 

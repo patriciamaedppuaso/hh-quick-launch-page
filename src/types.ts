@@ -134,6 +134,7 @@ export interface TaskRecord {
   dueDate?: string;
   assignees?: string[];
   priority?: TaskPriority;
+  notes?: string;
 }
 
 export type RpKind = "receivable" | "payable";

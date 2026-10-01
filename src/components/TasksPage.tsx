@@ -93,6 +93,7 @@ export function TasksPage({
         return false;
       if (!q) return true;
       if (t.title.toLowerCase().includes(q)) return true;
+      if (t.notes?.toLowerCase().includes(q)) return true;
       return (t.assignees ?? []).some((a) => a.toLowerCase().includes(q));
     });
   }, [records, query, statusFilter, assigneeFilter]);
@@ -322,6 +323,7 @@ export function TasksPage({
           { label: "Priority", value: viewing?.priority ? PRIORITY_LABEL[viewing.priority] : undefined },
           { label: "Due date", value: viewing?.dueDate ? formatDate(viewing.dueDate) : undefined },
           { label: "Assignees", value: viewing?.assignees?.join(", ") },
+          { label: "Notes", value: viewing?.notes },
         ]}
         onEdit={
           canManage && viewing
