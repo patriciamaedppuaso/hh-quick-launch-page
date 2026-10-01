@@ -79,7 +79,7 @@ export async function fetchAllApps(): Promise<AppTile[]> {
     supabase.from("receivables_payables").select("*"),
     supabase.from("hh_blog_posts").select("*").order("published_at", { ascending: false }),
     supabase.from("account_credentials").select("*"),
-    supabase.from("route_stops").select("*"),
+    supabase.from("route_stops").select("*").order("sort_order"),
     supabase.from("respiratory_patients").select("*"),
     supabase.from("respiratory_equipment").select("*"),
     supabase.from("printed_invoices").select("*"),
@@ -307,6 +307,7 @@ function rowToRouteStop(row: Record<string, unknown>): RouteStopRecord {
     servicePerformed: (row.service_performed as string) ?? undefined,
     note: (row.note as string) ?? undefined,
     flagged: (row.flagged as boolean) ?? undefined,
+    finished: (row.finished as boolean) ?? undefined,
   };
 }
 
@@ -666,7 +667,7 @@ async function syncAppCollections(app: AppTile): Promise<void> {
         "route_stops",
         "app_id",
         app.id,
-        app.routeStops.map((s) => ({
+        app.routeStops.map((s, i) => ({
           id: s.id,
           app_id: app.id,
           driver: s.driver,
@@ -682,6 +683,8 @@ async function syncAppCollections(app: AppTile): Promise<void> {
           service_performed: s.servicePerformed ?? null,
           note: s.note ?? null,
           flagged: s.flagged ?? false,
+          finished: s.finished ?? false,
+          sort_order: i,
         })),
       ),
     );

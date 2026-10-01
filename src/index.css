@@ -1808,6 +1808,28 @@ body {
   height: 15px;
 }
 
+.items-row[draggable="true"] {
+  cursor: grab;
+}
+.items-row[draggable="true"]:active {
+  cursor: grabbing;
+}
+.items-row.dragging {
+  opacity: 0.4;
+}
+.items-row.drag-over {
+  outline: 2px dashed var(--teal);
+  outline-offset: -2px;
+}
+
+.route-finished-checkbox {
+  width: 17px;
+  height: 17px;
+  accent-color: var(--teal-strong);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
 .card-edit-btn {
   display: inline-flex;
   align-items: center;

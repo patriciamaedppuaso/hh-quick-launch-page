@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import type { AppTile, Role, RouteStopRecord } from "../types";
 import { Icon } from "../icons";
-import { canManageApp, initialOf, todayIso } from "../utils";
+import { addDaysIso, canManageApp, initialOf, todayIso } from "../utils";
 import { Modal } from "./Modal";
 import { RouteStopForm } from "./RouteStopForm";
 import { PersonSearchInput } from "./PersonSearchInput";
 import { DetailModal } from "./DetailModal";
+import { useIsMobile } from "../hooks/useIsMobile";
 
 interface Props {
   app: AppTile;
@@ -28,8 +29,12 @@ export function RoutesPage({ app, role, currentUserName, registeredUserNames, on
   const [viewing, setViewing] = useState<RouteStopRecord | null>(null);
   const [adding, setAdding] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [draggedId, setDraggedId] = useState<string | null>(null);
+  const [overId, setOverId] = useState<string | null>(null);
 
   const canManage = canManageApp(app, role);
+  const isMobile = useIsMobile();
+  const canReorder = canManage && !isMobile;
   const tint = app.tint ?? FALLBACK_TINT;
 
   // known drivers = registered users, plus anyone logged on a past route
@@ -52,11 +57,13 @@ export function RoutesPage({ app, role, currentUserName, registeredUserNames, on
   const totals = useMemo(() => {
     let mileage = 0;
     let flagged = 0;
+    let finished = 0;
     for (const r of stopsForDay) {
       mileage += r.mileage ?? 0;
       if (r.flagged) flagged += 1;
+      if (r.finished) finished += 1;
     }
-    return { stops: stopsForDay.length, mileage, flagged };
+    return { stops: stopsForDay.length, mileage, flagged, finished };
   }, [stopsForDay]);
 
   function handleAddSave(record: RouteStopRecord) {
@@ -72,6 +79,34 @@ export function RoutesPage({ app, role, currentUserName, registeredUserNames, on
   function handleDelete(id: string) {
     onUpdate(records.filter((r) => r.id !== id));
     setConfirmDeleteId(null);
+  }
+
+  function toggleFinished(stop: RouteStopRecord) {
+    onUpdate(records.map((r) => (r.id === stop.id ? { ...r, finished: !r.finished } : r)));
+  }
+
+  function moveToNextDay(stop: RouteStopRecord) {
+    onUpdate(records.map((r) => (r.id === stop.id ? { ...r, date: addDaysIso(r.date, 1) } : r)));
+  }
+
+  function handleReorder(nextStopsForDay: RouteStopRecord[]) {
+    const otherRecords = records.filter((r) => !(r.driver === driver && r.date === date));
+    onUpdate([...otherRecords, ...nextStopsForDay]);
+  }
+
+  function handleDrop(targetId: string) {
+    if (draggedId && draggedId !== targetId) {
+      const fromIndex = stopsForDay.findIndex((r) => r.id === draggedId);
+      const toIndex = stopsForDay.findIndex((r) => r.id === targetId);
+      if (fromIndex !== -1 && toIndex !== -1) {
+        const next = [...stopsForDay];
+        const [moved] = next.splice(fromIndex, 1);
+        next.splice(toIndex, 0, moved);
+        handleReorder(next);
+      }
+    }
+    setDraggedId(null);
+    setOverId(null);
   }
 
   return (
@@ -127,6 +162,12 @@ export function RoutesPage({ app, role, currentUserName, registeredUserNames, on
               <span className="rp-total-label">Mileage</span>
               <span className="rp-total-value">{totals.mileage} mi</span>
             </span>
+            <span className="rp-total rp-total--receivable">
+              <span className="rp-total-label">Finished</span>
+              <span className="rp-total-value">
+                {totals.finished}/{totals.stops}
+              </span>
+            </span>
             {totals.flagged > 0 && (
               <span className="rp-total rp-total--payable">
                 <span className="rp-total-label">Flagged</span>
@@ -141,17 +182,51 @@ export function RoutesPage({ app, role, currentUserName, registeredUserNames, on
             <div className="items-list">
               {stopsForDay.map((r) => (
                 <div
-                  className={`items-row items-row--clickable${r.flagged ? " items-row--flagged" : ""}`}
+                  className={`items-row items-row--clickable${r.flagged ? " items-row--flagged" : ""}${
+                    draggedId === r.id ? " dragging" : ""
+                  }${overId === r.id && draggedId && draggedId !== r.id ? " drag-over" : ""}`}
                   key={r.id}
                   onClick={() => setViewing(r)}
+                  draggable={canReorder}
+                  onDragStart={() => setDraggedId(r.id)}
+                  onDragOver={(e) => {
+                    if (!draggedId) return;
+                    e.preventDefault();
+                    if (overId !== r.id) setOverId(r.id);
+                  }}
+                  onDragLeave={() => setOverId((cur) => (cur === r.id ? null : cur))}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    handleDrop(r.id);
+                  }}
+                  onDragEnd={() => {
+                    setDraggedId(null);
+                    setOverId(null);
+                  }}
                 >
+                  {canReorder && (
+                    <span className="drag-handle" aria-hidden="true" title="Drag to reorder" onClick={(e) => e.stopPropagation()}>
+                      <Icon name="grip" />
+                    </span>
+                  )}
+                  {canManage && (
+                    <input
+                      type="checkbox"
+                      className="route-finished-checkbox"
+                      checked={r.finished ?? false}
+                      aria-label={r.finished ? `Mark ${r.customerName} as unfinished` : `Mark ${r.customerName} as finished`}
+                      title={r.finished ? "Finished" : "Mark as finished"}
+                      onClick={(e) => e.stopPropagation()}
+                      onChange={() => toggleFinished(r)}
+                    />
+                  )}
                   {r.flagged && (
                     <span className="items-row-icon items-row-icon--flag">
                       <Icon name="alert-circle" />
                     </span>
                   )}
                   <div className="items-row-text">
-                    <span className="items-row-name">{r.customerName}</span>
+                    <span className={`items-row-name${r.finished ? " task-done" : ""}`}>{r.customerName}</span>
                     <span className="items-row-desc">
                       {[r.street, r.city, r.startTime && `${r.startTime}${r.endTime ? `–${r.endTime}` : ""}`]
                         .filter(Boolean)
@@ -172,6 +247,19 @@ export function RoutesPage({ app, role, currentUserName, registeredUserNames, on
                   </div>
                   <div className="items-row-actions">
                     {r.mileage != null && <span className="items-row-kind">{r.mileage} mi</span>}
+                    {canManage && !r.finished && (
+                      <button
+                        type="button"
+                        className="btn-secondary-sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          moveToNextDay(r);
+                        }}
+                        title={`Move to ${addDaysIso(r.date, 1)}`}
+                      >
+                        Next day
+                      </button>
+                    )}
                     {canManage && (
                       <div
                         className={`items-row-manage${confirmDeleteId === r.id ? " items-row-manage--active" : ""}`}
@@ -254,6 +342,7 @@ export function RoutesPage({ app, role, currentUserName, registeredUserNames, on
           { label: "Service performed", value: viewing?.servicePerformed },
           { label: "Note", value: viewing?.note },
           { label: "Flagged", value: viewing?.flagged ? "Yes -- issue reported" : undefined },
+          { label: "Finished", value: viewing?.finished ? "Yes" : "No" },
         ]}
         onEdit={
           canManage && viewing

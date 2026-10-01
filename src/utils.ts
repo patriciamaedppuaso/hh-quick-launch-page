@@ -314,6 +314,10 @@ export function addDays(date: Date, days: number): Date {
   return d;
 }
 
+export function addDaysIso(dateIso: string, days: number): string {
+  return toIsoDate(addDays(new Date(`${dateIso}T00:00:00`), days));
+}
+
 export function formatDate(iso?: string): string {
   if (!iso) return "";
   const d = new Date(`${iso}T00:00:00`);

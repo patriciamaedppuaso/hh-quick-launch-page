@@ -176,6 +176,7 @@ export interface RouteStopRecord {
   servicePerformed?: string;
   note?: string;
   flagged?: boolean;
+  finished?: boolean;
 }
 
 export type EquipmentStatus = "ongoing" | "returned";
