@@ -981,14 +981,29 @@ export async function syncApps(prevApps: AppTile[], nextApps: AppTile[]): Promis
   const rows = nextApps.map((a, i) => appToRow(a, i));
   const touched = nextApps.filter((a) => prevById.get(a.id) !== a);
 
+  // `apps` is realtime-watched (see SYNCED_TABLES in App.tsx): writing to it
+  // triggers a debounced full reload in every open tab. A brand new app's
+  // row has to exist first so its own collection rows (which reference it
+  // via a foreign key) can insert -- but for everything else, write the
+  // collections *before* touching `apps`, so that debounced reload (which
+  // can land before a collection's own delete-then-reinsert finishes)
+  // always reads complete data instead of catching it mid-write.
+  const newAppRows = rows.filter((r) => !prevById.has(r.id as string));
+  if (newAppRows.length > 0) {
+    const { error } = await supabase.from("apps").upsert(newAppRows);
+    if (error) throw error;
+  }
+
   if (removedIds.length > 0) {
     const { error } = await supabase.from("apps").delete().in("id", removedIds);
     if (error) throw error;
   }
-  if (rows.length > 0) {
-    const { error } = await supabase.from("apps").upsert(rows);
-    if (error) throw error;
-  }
 
   await Promise.all(touched.map((a) => syncAppCollections(a)));
+
+  const existingRows = rows.filter((r) => prevById.has(r.id as string));
+  if (existingRows.length > 0) {
+    const { error } = await supabase.from("apps").upsert(existingRows);
+    if (error) throw error;
+  }
 }
