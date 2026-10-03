@@ -21,6 +21,7 @@ import type {
   RouteStopRecord,
   TaskRecord,
   TimeEntry,
+  TimeOffRequest,
   VehicleInspectionRecord,
 } from "../types";
 
@@ -53,6 +54,7 @@ export async function fetchAllApps(): Promise<AppTile[]> {
     clockRecords,
     timeEntries,
     breaks,
+    timeOffRequests,
     receivablesPayables,
     blogPosts,
     accounts,
@@ -78,6 +80,7 @@ export async function fetchAllApps(): Promise<AppTile[]> {
     supabase.from("clock_records").select("*"),
     supabase.from("time_entries").select("*"),
     supabase.from("time_entry_breaks").select("*"),
+    supabase.from("time_off_requests").select("*").order("requested_at", { ascending: false }),
     supabase.from("receivables_payables").select("*"),
     supabase.from("hh_blog_posts").select("*").order("published_at", { ascending: false }),
     supabase.from("account_credentials").select("*"),
@@ -105,6 +108,7 @@ export async function fetchAllApps(): Promise<AppTile[]> {
     clockRecords,
     timeEntries,
     breaks,
+    timeOffRequests,
     receivablesPayables,
     blogPosts,
     accounts,
@@ -132,6 +136,7 @@ export async function fetchAllApps(): Promise<AppTile[]> {
   const clockRecordsByApp = groupBy(clockRecords.data ?? [], (r) => r.app_id);
   const timeEntriesByApp = groupBy(timeEntries.data ?? [], (r) => r.app_id);
   const breaksByEntry = groupBy(breaks.data ?? [], (r) => r.time_entry_id);
+  const timeOffRequestsByApp = groupBy(timeOffRequests.data ?? [], (r) => r.app_id);
   const receivablesPayablesByApp = groupBy(receivablesPayables.data ?? [], (r) => r.app_id);
   const blogPostsByApp = groupBy(blogPosts.data ?? [], (r) => r.app_id);
   const accountsByApp = groupBy(accounts.data ?? [], (r) => r.app_id);
@@ -167,6 +172,7 @@ export async function fetchAllApps(): Promise<AppTile[]> {
       tasks: (tasksByApp.get(row.id) ?? []).map((t) => rowToTask(t, assigneesByTask.get(t.id) ?? [])),
       clockRecords: (clockRecordsByApp.get(row.id) ?? []).map(rowToClockRecord),
       timeEntries: (timeEntriesByApp.get(row.id) ?? []).map((e) => rowToTimeEntry(e, breaksByEntry.get(e.id) ?? [])),
+      requests: (timeOffRequestsByApp.get(row.id) ?? []).map(rowToTimeOffRequest),
       receivablesPayables: (receivablesPayablesByApp.get(row.id) ?? []).map(rowToReceivablePayable),
       blogPosts: (blogPostsByApp.get(row.id) ?? []).map(rowToBlogPost),
       accounts: (accountsByApp.get(row.id) ?? []).map(rowToAccount),
@@ -447,6 +453,21 @@ function rowToTask(row: Record<string, unknown>, assigneeRows: Record<string, un
   };
 }
 
+function rowToTimeOffRequest(row: Record<string, unknown>): TimeOffRequest {
+  return {
+    id: row.id as string,
+    employeeName: row.employee_name as string,
+    type: row.type as TimeOffRequest["type"],
+    date: row.date as string,
+    endDate: (row.end_date as string) ?? undefined,
+    startTime: (row.start_time as string) ?? undefined,
+    endTime: (row.end_time as string) ?? undefined,
+    note: (row.note as string) ?? undefined,
+    status: row.status as TimeOffRequest["status"],
+    requestedAt: row.requested_at as string,
+  };
+}
+
 function rowToClockRecord(row: Record<string, unknown>): ClockRecord {
   return {
     id: row.id as string,
@@ -604,6 +625,29 @@ async function syncAppCollections(app: AppTile): Promise<void> {
 
   if (app.timeEntries) {
     work.push(syncTimeEntries(app.id, app.timeEntries));
+  }
+
+  if (app.requests) {
+    work.push(
+      replaceRows(
+        "time_off_requests",
+        "app_id",
+        app.id,
+        app.requests.map((r) => ({
+          id: r.id,
+          app_id: app.id,
+          employee_name: r.employeeName,
+          type: r.type,
+          date: r.date,
+          end_date: r.endDate ?? null,
+          start_time: r.startTime ?? null,
+          end_time: r.endTime ?? null,
+          note: r.note ?? null,
+          status: r.status,
+          requested_at: r.requestedAt,
+        })),
+      ),
+    );
   }
 
   if (app.receivablesPayables) {

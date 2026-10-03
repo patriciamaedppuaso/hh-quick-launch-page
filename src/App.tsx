@@ -96,6 +96,7 @@ const SYNCED_TABLES = [
   "clock_records",
   "time_entries",
   "time_entry_breaks",
+  "time_off_requests",
 ];
 
 export default function App() {

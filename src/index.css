@@ -3653,6 +3653,59 @@ body {
   margin: 0 0 12px;
 }
 
+.request-quick-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.request-quick-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  border: 1px solid var(--border);
+  background: var(--card-bg);
+  border-radius: 999px;
+  padding: 10px 16px;
+  font-family: "Public Sans", sans-serif;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+}
+.request-quick-btn:hover {
+  border-color: var(--teal);
+  background: var(--surface-soft);
+}
+.request-quick-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  flex-shrink: 0;
+}
+.request-quick-icon svg {
+  width: 15px;
+  height: 15px;
+}
+.request-quick-icon--shift {
+  background: var(--teal);
+}
+.request-quick-icon--break {
+  background: #a85fd6;
+}
+.request-quick-icon--absence {
+  background: var(--success);
+}
+
+.request-list {
+  margin-top: 12px;
+}
+
 @media (max-width: 640px) {
   .items-page-badge {
     width: 42px;

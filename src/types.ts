@@ -300,6 +300,22 @@ export interface TimeEditRequest {
   requestedAt: string;
 }
 
+export type RequestType = "shift" | "break" | "absence";
+export type RequestStatus = "pending" | "approved" | "denied";
+
+export interface TimeOffRequest {
+  id: string;
+  employeeName: string;
+  type: RequestType;
+  date: string;
+  endDate?: string;
+  startTime?: string;
+  endTime?: string;
+  note?: string;
+  status: RequestStatus;
+  requestedAt: string;
+}
+
 export interface TimeEntry {
   id: string;
   name: string;
@@ -333,6 +349,7 @@ interface AppBase {
   tasks?: TaskRecord[];
   clockRecords?: ClockRecord[];
   timeEntries?: TimeEntry[];
+  requests?: TimeOffRequest[];
   receivablesPayables?: ReceivablePayableRecord[];
   blogPosts?: BlogPostRecord[];
   accounts?: AccountRecord[];

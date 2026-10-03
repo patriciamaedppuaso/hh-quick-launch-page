@@ -1,18 +1,40 @@
 import { useEffect, useMemo, useState } from "react";
-import type { AppTile, ClockRecord, Role, TimeEntry } from "../types";
+import type { AppTile, ClockRecord, RequestType, Role, TimeEntry, TimeOffRequest } from "../types";
 import { Icon } from "../icons";
 import { formatDate, formatElapsed, formatTimeOfDay, initialOf, newId, nowIso, todayIso } from "../utils";
 import { Modal } from "./Modal";
 import { TimeClockForm } from "./TimeClockForm";
 import { TimeEntryEditForm } from "./TimeEntryEditForm";
 import { TimesheetSection } from "./TimesheetSection";
+import { RequestForm } from "./RequestForm";
 
 interface Props {
   app: AppTile;
   role: Role;
   currentUserName: string;
   onBack: () => void;
-  onUpdate: (patch: { clockRecords?: ClockRecord[]; timeEntries?: TimeEntry[] }) => void;
+  onUpdate: (patch: { clockRecords?: ClockRecord[]; timeEntries?: TimeEntry[]; requests?: TimeOffRequest[] }) => void;
+}
+
+const REQUEST_TYPE_LABEL: Record<RequestType, string> = {
+  shift: "Shift",
+  break: "Break",
+  absence: "Absence",
+};
+
+const REQUEST_STATUS_COLOR: Record<TimeOffRequest["status"], { bg: string; fg: string }> = {
+  pending: { bg: "#FCF0DC", fg: "#B9772E" },
+  approved: { bg: "#E9F5EF", fg: "#3E9A6D" },
+  denied: { bg: "#F6E2DD", fg: "#C05A4A" },
+};
+
+function describeRequest(r: TimeOffRequest): string {
+  if (r.type === "absence") {
+    const range = r.endDate && r.endDate !== r.date ? `${formatDate(r.date)} – ${formatDate(r.endDate)}` : formatDate(r.date);
+    return range;
+  }
+  const time = r.startTime ? `${r.startTime}${r.endTime ? `–${r.endTime}` : ""}` : undefined;
+  return [formatDate(r.date), time].filter(Boolean).join(" · ");
 }
 
 const FALLBACK_TINT = { bg: "#EDF7F6", fg: "#479CA4" };
@@ -20,11 +42,13 @@ const FALLBACK_TINT = { bg: "#EDF7F6", fg: "#479CA4" };
 export function TimeClockPage({ app, role, currentUserName, onBack, onUpdate }: Props) {
   const records = app.clockRecords ?? [];
   const entries = app.timeEntries ?? [];
+  const requests = app.requests ?? [];
   const [query, setQuery] = useState("");
   const [editing, setEditing] = useState<ClockRecord | null>(null);
   const [adding, setAdding] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [editingEntry, setEditingEntry] = useState<TimeEntry | null>(null);
+  const [requestType, setRequestType] = useState<RequestType | null>(null);
   const [viewingName, setViewingName] = useState(currentUserName);
   const [, forceTick] = useState(0);
 
@@ -34,6 +58,17 @@ export function TimeClockPage({ app, role, currentUserName, onBack, onUpdate }: 
   const myOpenEntry = entries.find((e) => e.name === currentUserName && !e.clockOut);
   const myOpenBreak = myOpenEntry?.breaks.find((b) => !b.end);
   const pendingEntries = useMemo(() => entries.filter((e) => e.editRequest), [entries]);
+  const myRequests = useMemo(
+    () =>
+      requests
+        .filter((r) => r.employeeName === currentUserName)
+        .sort((a, b) => b.requestedAt.localeCompare(a.requestedAt)),
+    [requests, currentUserName],
+  );
+  const pendingRequests = useMemo(
+    () => requests.filter((r) => r.status === "pending").sort((a, b) => a.requestedAt.localeCompare(b.requestedAt)),
+    [requests],
+  );
 
   const otherRecords = records.filter((r) => r.name !== currentUserName);
   const viewedEntries = useMemo(
@@ -137,6 +172,15 @@ export function TimeClockPage({ app, role, currentUserName, onBack, onUpdate }: 
     onUpdate({ timeEntries: updatedEntries });
   }
 
+  function handleAddRequest(record: TimeOffRequest) {
+    onUpdate({ requests: [...requests, record] });
+    setRequestType(null);
+  }
+
+  function handleReviewRequest(request: TimeOffRequest, status: "approved" | "denied") {
+    onUpdate({ requests: requests.map((r) => (r.id === request.id ? { ...r, status } : r)) });
+  }
+
   function toggleOther(record: ClockRecord) {
     const clockingIn = !record.clockedIn;
     onUpdate({
@@ -216,6 +260,52 @@ export function TimeClockPage({ app, role, currentUserName, onBack, onUpdate }: 
         </div>
       </div>
 
+      <div className="items-section">
+        <h2 className="items-section-title">Requests</h2>
+        <div className="request-quick-actions">
+          <button type="button" className="request-quick-btn" onClick={() => setRequestType("shift")}>
+            <span className="request-quick-icon request-quick-icon--shift">
+              <Icon name="plus" />
+            </span>
+            Add a shift request
+          </button>
+          <button type="button" className="request-quick-btn" onClick={() => setRequestType("break")}>
+            <span className="request-quick-icon request-quick-icon--break">
+              <Icon name="clock" />
+            </span>
+            Add a break request
+          </button>
+          <button type="button" className="request-quick-btn" onClick={() => setRequestType("absence")}>
+            <span className="request-quick-icon request-quick-icon--absence">
+              <Icon name="sun" />
+            </span>
+            Add an absence request
+          </button>
+        </div>
+
+        {myRequests.length > 0 && (
+          <div className="items-list request-list">
+            {myRequests.map((r) => (
+              <div className="items-row" key={r.id}>
+                <div className="items-row-text">
+                  <span className="items-row-name">{REQUEST_TYPE_LABEL[r.type]} request</span>
+                  <span className="items-row-desc">
+                    {describeRequest(r)}
+                    {r.note ? ` · "${r.note}"` : ""}
+                  </span>
+                </div>
+                <span
+                  className="status-pill"
+                  style={{ background: REQUEST_STATUS_COLOR[r.status].bg, color: REQUEST_STATUS_COLOR[r.status].fg }}
+                >
+                  {r.status === "pending" ? "Pending" : r.status === "approved" ? "Approved" : "Denied"}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       {isAdmin && otherRecords.length > 0 && (
         <div className="timesheet-viewer">
           <label htmlFor="timesheetViewer">Viewing timesheet for</label>
@@ -266,6 +356,35 @@ export function TimeClockPage({ app, role, currentUserName, onBack, onUpdate }: 
                     Reject
                   </button>
                   <button type="button" className="btn-primary-sm" onClick={() => handleApproveEdit(entry)}>
+                    Approve
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {isAdmin && pendingRequests.length > 0 && (
+        <div className="items-section">
+          <h2 className="items-section-title">Pending requests</h2>
+          <div className="items-list">
+            {pendingRequests.map((r) => (
+              <div className="items-row" key={r.id}>
+                <div className="items-row-text">
+                  <span className="items-row-name">
+                    {r.employeeName} · {REQUEST_TYPE_LABEL[r.type]} request
+                  </span>
+                  <span className="items-row-desc">
+                    {describeRequest(r)}
+                    {r.note ? ` · "${r.note}"` : ""}
+                  </span>
+                </div>
+                <div className="items-row-manage items-row-manage--active">
+                  <button type="button" className="btn-secondary-sm" onClick={() => handleReviewRequest(r, "denied")}>
+                    Deny
+                  </button>
+                  <button type="button" className="btn-primary-sm" onClick={() => handleReviewRequest(r, "approved")}>
                     Approve
                   </button>
                 </div>
@@ -367,6 +486,21 @@ export function TimeClockPage({ app, role, currentUserName, onBack, onUpdate }: 
             entry={editingEntry}
             onSave={handleRequestEdit}
             onCancel={() => setEditingEntry(null)}
+          />
+        )}
+      </Modal>
+
+      <Modal
+        open={!!requestType}
+        onClose={() => setRequestType(null)}
+        title={requestType ? `${REQUEST_TYPE_LABEL[requestType]} request` : "Request"}
+      >
+        {requestType && (
+          <RequestForm
+            type={requestType}
+            employeeName={currentUserName}
+            onSave={handleAddRequest}
+            onCancel={() => setRequestType(null)}
           />
         )}
       </Modal>
