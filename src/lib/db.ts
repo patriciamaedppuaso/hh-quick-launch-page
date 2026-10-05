@@ -450,6 +450,7 @@ function rowToTask(row: Record<string, unknown>, assigneeRows: Record<string, un
     priority: (row.priority as TaskRecord["priority"]) ?? undefined,
     assignees: assigneeRows.length > 0 ? assigneeRows.map((r) => r.assignee_name as string) : undefined,
     notes: (row.notes as string) ?? undefined,
+    createdAt: (row.created_at as string) ?? undefined,
   };
 }
 
@@ -875,6 +876,7 @@ async function syncTasks(appId: string, tasks: TaskRecord[]): Promise<void> {
       due_date: t.dueDate ?? null,
       priority: t.priority ?? null,
       notes: t.notes ?? null,
+      created_at: t.createdAt ?? null,
     })),
   );
   await Promise.all(

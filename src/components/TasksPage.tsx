@@ -15,6 +15,7 @@ import { Modal } from "./Modal";
 import { TaskForm } from "./TaskForm";
 import { ManageStatusesForm } from "./ManageStatusesForm";
 import { DetailModal } from "./DetailModal";
+import { TaskCalendar } from "./TaskCalendar";
 
 interface Props {
   app: AppTile;
@@ -29,6 +30,7 @@ interface Props {
 const FALLBACK_TINT = { bg: "#EDF7F6", fg: "#479CA4" };
 
 type StatusFilter = "all" | TaskStatus;
+type ViewMode = "list" | "calendar";
 
 const PRIORITY_LABEL: Record<TaskPriority, string> = { low: "Low", medium: "Medium", high: "High" };
 const PRIORITY_COLORS: Record<TaskPriority, { bg: string; fg: string }> = {
@@ -57,8 +59,10 @@ export function TasksPage({
   const [editing, setEditing] = useState<TaskRecord | null>(null);
   const [viewing, setViewing] = useState<TaskRecord | null>(null);
   const [adding, setAdding] = useState(false);
+  const [addCreatedAt, setAddCreatedAt] = useState<string | undefined>(undefined);
   const [managingStatuses, setManagingStatuses] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<ViewMode>("list");
 
   const canManage = canManageApp(app, role);
   const tint = app.tint ?? FALLBACK_TINT;
@@ -104,6 +108,12 @@ export function TasksPage({
 
   function handleStatusChange(task: TaskRecord, status: TaskStatus) {
     onUpdate(records.map((t) => (t.id === task.id ? { ...t, status } : t)));
+  }
+
+  function handleViewingStatusChange(status: TaskStatus) {
+    if (!viewing) return;
+    handleStatusChange(viewing, status);
+    setViewing({ ...viewing, status });
   }
 
   function handleAddSave(record: TaskRecord) {
@@ -176,6 +186,22 @@ export function TasksPage({
             ))}
           </select>
         )}
+        <div className="type-toggle" role="group" aria-label="View">
+          <button
+            type="button"
+            className={`type-btn${viewMode === "list" ? " active" : ""}`}
+            onClick={() => setViewMode("list")}
+          >
+            List
+          </button>
+          <button
+            type="button"
+            className={`type-btn${viewMode === "calendar" ? " active" : ""}`}
+            onClick={() => setViewMode("calendar")}
+          >
+            Calendar
+          </button>
+        </div>
         {canManage && (
           <button
             type="button"
@@ -188,13 +214,34 @@ export function TasksPage({
           </button>
         )}
         {canManage && (
-          <button type="button" className="btn-primary items-add-btn" onClick={() => setAdding(true)}>
+          <button
+            type="button"
+            className="btn-primary items-add-btn"
+            onClick={() => {
+              setAddCreatedAt(undefined);
+              setAdding(true);
+            }}
+          >
             + Add task
           </button>
         )}
       </div>
 
-      {filtered.length === 0 ? (
+      {viewMode === "calendar" ? (
+        <TaskCalendar
+          tasks={filtered}
+          statusOptions={editableStatuses}
+          canManage={canManage}
+          highlightName={
+            assigneeFilter !== "all" && assigneeFilter !== "unassigned" ? assigneeFilter : currentUserName
+          }
+          onSelectTask={setViewing}
+          onAddForDate={(dateIso) => {
+            setAddCreatedAt(dateIso);
+            setAdding(true);
+          }}
+        />
+      ) : filtered.length === 0 ? (
         <p className="items-empty">
           {records.length === 0 ? "No tasks yet." : "No tasks match your filters."}
         </p>
@@ -296,6 +343,7 @@ export function TasksPage({
           statusOptions={statusTabs}
           knownAssignees={assigneeOptions}
           currentUserName={currentUserName}
+          defaultCreatedAt={addCreatedAt}
           onSave={handleAddSave}
           onCancel={() => setAdding(false)}
         />
@@ -319,9 +367,30 @@ export function TasksPage({
         onClose={() => setViewing(null)}
         title={viewing?.title ?? "Task"}
         fields={[
-          { label: "Status", value: viewing?.status },
+          {
+            label: "Status",
+            value:
+              viewing && canChangeStatus(viewing) ? (
+                <select
+                  className="task-status-select"
+                  style={{ background: statusColor(viewing.status).bg, color: statusColor(viewing.status).fg }}
+                  value={viewing.status}
+                  onChange={(e) => handleViewingStatusChange(e.target.value as TaskStatus)}
+                  aria-label={`Status for ${viewing.title}`}
+                >
+                  {statusTabs.map((opt) => (
+                    <option key={opt} value={opt}>
+                      {opt}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                viewing?.status
+              ),
+          },
           { label: "Priority", value: viewing?.priority ? PRIORITY_LABEL[viewing.priority] : undefined },
-          { label: "Due date", value: viewing?.dueDate ? formatDate(viewing.dueDate) : undefined },
+          { label: "Due date", value: viewing?.dueDate ? formatDate(viewing.dueDate) : "No due date" },
+          { label: "Created", value: viewing?.createdAt ? formatDate(viewing.createdAt) : undefined },
           { label: "Assignees", value: viewing?.assignees?.join(", ") },
           { label: "Notes", value: viewing?.notes },
         ]}

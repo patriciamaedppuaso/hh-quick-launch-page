@@ -1,12 +1,14 @@
 import { useState } from "react";
 import type { TaskPriority, TaskRecord, TaskStatus } from "../types";
-import { newId } from "../utils";
+import { newId, todayIso } from "../utils";
 
 interface Props {
   initial?: TaskRecord;
   statusOptions: string[];
   knownAssignees: string[];
   currentUserName: string;
+  defaultDueDate?: string;
+  defaultCreatedAt?: string;
   onSave: (record: TaskRecord) => void;
   onCancel: () => void;
 }
@@ -17,11 +19,21 @@ const PRIORITY_OPTIONS: { value: TaskPriority; label: string }[] = [
   { value: "high", label: "High" },
 ];
 
-export function TaskForm({ initial, statusOptions, knownAssignees, currentUserName, onSave, onCancel }: Props) {
+export function TaskForm({
+  initial,
+  statusOptions,
+  knownAssignees,
+  currentUserName,
+  defaultDueDate,
+  defaultCreatedAt,
+  onSave,
+  onCancel,
+}: Props) {
   const [title, setTitle] = useState(initial?.title ?? "");
   const [status, setStatus] = useState<TaskStatus>(initial?.status ?? statusOptions[0]);
   const [priority, setPriority] = useState<TaskPriority>(initial?.priority ?? "medium");
-  const [dueDate, setDueDate] = useState(initial?.dueDate ?? "");
+  const [dueDate, setDueDate] = useState(initial?.dueDate ?? defaultDueDate ?? "");
+  const createdAt = initial?.createdAt ?? defaultCreatedAt ?? todayIso();
   const [assignees, setAssignees] = useState<string[]>(initial?.assignees ?? []);
   const [notes, setNotes] = useState(initial?.notes ?? "");
   const [assigneeQuery, setAssigneeQuery] = useState("");
@@ -65,6 +77,7 @@ export function TaskForm({ initial, statusOptions, knownAssignees, currentUserNa
       dueDate: dueDate || undefined,
       assignees: assignees.length ? assignees : undefined,
       notes: notes.trim() || undefined,
+      createdAt,
     });
   }
 
