@@ -382,15 +382,19 @@ export function formatTimeOfDay(iso?: string): string {
   return d.toLocaleTimeString(undefined, { timeZone: APP_TIMEZONE, hour: "numeric", minute: "2-digit" });
 }
 
-export function formatElapsed(sinceIso: string): string {
-  const since = new Date(sinceIso).getTime();
-  if (Number.isNaN(since)) return "00:00:00";
-  const totalSeconds = Math.max(0, Math.floor((Date.now() - since) / 1000));
+export function formatMsClock(ms: number): string {
+  const totalSeconds = Math.max(0, Math.floor(ms / 1000));
   const hours = Math.floor(totalSeconds / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
   const seconds = totalSeconds % 60;
   const pad = (n: number) => n.toString().padStart(2, "0");
   return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+}
+
+export function formatElapsed(sinceIso: string): string {
+  const since = new Date(sinceIso).getTime();
+  if (Number.isNaN(since)) return "00:00:00";
+  return formatMsClock(Date.now() - since);
 }
 
 // These feed <input type="datetime-local">, which has no timezone concept of

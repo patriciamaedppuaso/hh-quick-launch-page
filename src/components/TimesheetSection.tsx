@@ -25,13 +25,13 @@ interface Props {
 const WEEKLY_OVERTIME_MS = 40 * 60 * 60 * 1000;
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-interface Segment {
+export interface Segment {
   type: "shift" | "break";
   start: string;
   end?: string;
 }
 
-function segmentsForEntry(entry: TimeEntry): Segment[] {
+export function segmentsForEntry(entry: TimeEntry): Segment[] {
   const segments: Segment[] = [];
   const sortedBreaks = [...entry.breaks].sort((a, b) => a.start.localeCompare(b.start));
   let cursor = entry.clockIn;
@@ -44,7 +44,7 @@ function segmentsForEntry(entry: TimeEntry): Segment[] {
   return segments;
 }
 
-function segmentMs(seg: Segment): number {
+export function segmentMs(seg: Segment): number {
   const start = new Date(seg.start).getTime();
   const end = seg.end ? new Date(seg.end).getTime() : Date.now();
   return Math.max(0, end - start);

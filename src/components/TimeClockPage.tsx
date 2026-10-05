@@ -1,12 +1,24 @@
 import { useEffect, useMemo, useState } from "react";
 import type { AppTile, ClockRecord, RequestType, Role, TimeEntry, TimeOffRequest } from "../types";
 import { Icon } from "../icons";
-import { formatDate, formatElapsed, formatTimeOfDay, initialOf, newId, nowIso, todayIso } from "../utils";
+import {
+  formatDate,
+  formatElapsed,
+  formatMsClock,
+  formatTimeOfDay,
+  initialOf,
+  newId,
+  nowIso,
+  todayIso,
+  toZonedDate,
+  workedMs,
+} from "../utils";
 import { Modal } from "./Modal";
 import { TimeClockForm } from "./TimeClockForm";
 import { TimeEntryEditForm } from "./TimeEntryEditForm";
 import { TimesheetSection } from "./TimesheetSection";
 import { RequestForm } from "./RequestForm";
+import { TodayLog } from "./TodayLog";
 
 interface Props {
   app: AppTile;
@@ -57,6 +69,16 @@ export function TimeClockPage({ app, role, currentUserName, onBack, onUpdate }: 
 
   const myOpenEntry = entries.find((e) => e.name === currentUserName && !e.clockOut);
   const myOpenBreak = myOpenEntry?.breaks.find((b) => !b.end);
+  const myTodayEntries = useMemo(
+    () => entries.filter((e) => e.name === currentUserName && e.date === todayIso()),
+    [entries, currentUserName],
+  );
+  const todayWorkedMs = myTodayEntries.reduce((sum, e) => sum + workedMs(e), 0);
+  const todayLabel = toZonedDate(new Date()).toLocaleDateString(undefined, {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  });
   const pendingEntries = useMemo(() => entries.filter((e) => e.editRequest), [entries]);
   const myRequests = useMemo(
     () =>
@@ -222,88 +244,102 @@ export function TimeClockPage({ app, role, currentUserName, onBack, onUpdate }: 
         </div>
       </div>
 
-      <div
-        className={`clock-hero${myOpenEntry ? " clock-hero--active" : ""}${myOpenBreak ? " clock-hero--break" : ""}`}
-      >
-        <div className="clock-hero-info">
-          <span className="clock-hero-label">
-            {myOpenBreak ? "On break" : myOpenEntry ? "Clocked in" : "Ready to start your shift?"}
-          </span>
-          <span className="clock-hero-timer">{myOpenEntry ? formatElapsed(myOpenEntry.clockIn) : "00:00:00"}</span>
-          {myOpenEntry && (
-            <span className="clock-hero-sub">
-              {myOpenBreak
-                ? `On break since ${formatTimeOfDay(myOpenBreak.start)}`
-                : `Since ${formatTimeOfDay(myOpenEntry.clockIn)}`}
-            </span>
-          )}
-        </div>
-        <div className="clock-hero-actions">
-          {myOpenEntry && (
-            <button
-              type="button"
-              className="clock-hero-btn clock-hero-btn--break"
-              onClick={myOpenBreak ? handleEndBreak : handleStartBreak}
+      <div className="clock-top-row">
+        <div className="items-section clock-today-panel">
+          <div className="clock-hero-col">
+            <h2 className="items-section-title">Today's clock</h2>
+            <div
+              className={`clock-hero${myOpenEntry ? " clock-hero--active" : ""}${myOpenBreak ? " clock-hero--break" : ""}`}
             >
-              <Icon name="clock" />
-              {myOpenBreak ? "End break" : "Start break"}
-            </button>
-          )}
-          <button
-            type="button"
-            className={`clock-hero-btn${myOpenEntry ? " clock-hero-btn--end" : " clock-hero-btn--start"}`}
-            onClick={myOpenEntry ? handleEnd : handleStart}
-          >
-            <Icon name="clock" />
-            {myOpenEntry ? "End" : "Start"}
-          </button>
-        </div>
-      </div>
-
-      <div className="items-section">
-        <h2 className="items-section-title">Requests</h2>
-        <div className="request-quick-actions">
-          <button type="button" className="request-quick-btn" onClick={() => setRequestType("shift")}>
-            <span className="request-quick-icon request-quick-icon--shift">
-              <Icon name="plus" />
-            </span>
-            Add a shift request
-          </button>
-          <button type="button" className="request-quick-btn" onClick={() => setRequestType("break")}>
-            <span className="request-quick-icon request-quick-icon--break">
-              <Icon name="clock" />
-            </span>
-            Add a break request
-          </button>
-          <button type="button" className="request-quick-btn" onClick={() => setRequestType("absence")}>
-            <span className="request-quick-icon request-quick-icon--absence">
-              <Icon name="sun" />
-            </span>
-            Add an absence request
-          </button>
-        </div>
-
-        {myRequests.length > 0 && (
-          <div className="items-list request-list">
-            {myRequests.map((r) => (
-              <div className="items-row" key={r.id}>
-                <div className="items-row-text">
-                  <span className="items-row-name">{REQUEST_TYPE_LABEL[r.type]} request</span>
-                  <span className="items-row-desc">
-                    {describeRequest(r)}
-                    {r.note ? ` · "${r.note}"` : ""}
-                  </span>
-                </div>
-                <span
-                  className="status-pill"
-                  style={{ background: REQUEST_STATUS_COLOR[r.status].bg, color: REQUEST_STATUS_COLOR[r.status].fg }}
-                >
-                  {r.status === "pending" ? "Pending" : r.status === "approved" ? "Approved" : "Denied"}
+              <div className="clock-hero-top">
+                <span className="clock-hero-worktime">
+                  {myOpenEntry ? "Work time on" : "Ready to start your shift?"}
+                  {myOpenEntry && (
+                    <span className="clock-hero-type-pill">{myOpenBreak ? "Break" : "Shift"}</span>
+                  )}
                 </span>
               </div>
-            ))}
+              <span className="clock-hero-timer">{myOpenEntry ? formatElapsed(myOpenEntry.clockIn) : "00:00:00"}</span>
+              <div className="clock-hero-footer">
+                <span>Total work hours for {todayLabel}</span>
+                <strong>{formatMsClock(todayWorkedMs)}</strong>
+              </div>
+            </div>
+            <div className="clock-hero-buttons">
+              {myOpenEntry && (
+                <button
+                  type="button"
+                  className="clock-hero-btn clock-hero-btn--break"
+                  onClick={myOpenBreak ? handleEndBreak : handleStartBreak}
+                >
+                  <Icon name="clock" />
+                  {myOpenBreak ? "End break" : "Start break"}
+                </button>
+              )}
+              <button
+                type="button"
+                className={`clock-hero-btn clock-hero-btn--main${myOpenEntry ? " clock-hero-btn--end" : " clock-hero-btn--start"}`}
+                onClick={myOpenEntry ? handleEnd : handleStart}
+              >
+                <Icon name="clock" />
+                {myOpenEntry ? "End" : "Start"}
+              </button>
+            </div>
           </div>
-        )}
+
+          <div className="clock-today-divider" />
+
+          <div className="clock-daylog-col">
+            <h2 className="items-section-title">My day log</h2>
+            <TodayLog entries={myTodayEntries} />
+          </div>
+        </div>
+
+        <div className="items-section clock-requests-panel">
+          <h2 className="items-section-title">Requests</h2>
+          <div className="request-quick-actions">
+            <button type="button" className="request-quick-btn" onClick={() => setRequestType("shift")}>
+              <span className="request-quick-icon request-quick-icon--shift">
+                <Icon name="plus" />
+              </span>
+              Add a shift request
+            </button>
+            <button type="button" className="request-quick-btn" onClick={() => setRequestType("break")}>
+              <span className="request-quick-icon request-quick-icon--break">
+                <Icon name="clock" />
+              </span>
+              Add a break request
+            </button>
+            <button type="button" className="request-quick-btn" onClick={() => setRequestType("absence")}>
+              <span className="request-quick-icon request-quick-icon--absence">
+                <Icon name="sun" />
+              </span>
+              Add an absence request
+            </button>
+          </div>
+
+          {myRequests.length > 0 && (
+            <div className="items-list request-list">
+              {myRequests.map((r) => (
+                <div className="items-row" key={r.id}>
+                  <div className="items-row-text">
+                    <span className="items-row-name">{REQUEST_TYPE_LABEL[r.type]} request</span>
+                    <span className="items-row-desc">
+                      {describeRequest(r)}
+                      {r.note ? ` · "${r.note}"` : ""}
+                    </span>
+                  </div>
+                  <span
+                    className="status-pill"
+                    style={{ background: REQUEST_STATUS_COLOR[r.status].bg, color: REQUEST_STATUS_COLOR[r.status].fg }}
+                  >
+                    {r.status === "pending" ? "Pending" : r.status === "approved" ? "Approved" : "Denied"}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {isAdmin && otherRecords.length > 0 && (
