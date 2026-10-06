@@ -65,3 +65,7 @@ export async function createUserAccount(input: CreateUserInput): Promise<void> {
 export async function deleteUser(id: string): Promise<void> {
   await invokeManageUser({ action: "delete", userId: id });
 }
+
+export async function resetUserPassword(id: string, password: string): Promise<void> {
+  await invokeManageUser({ action: "reset-password", userId: id, password });
+}

@@ -281,6 +281,17 @@ export interface UserProfile {
   lastSignInAt?: string;
 }
 
+export type PasswordResetRequestStatus = "pending" | "resolved" | "dismissed";
+
+export interface PasswordResetRequest {
+  id: string;
+  email: string;
+  note?: string;
+  status: PasswordResetRequestStatus;
+  createdAt: string;
+  resolvedAt?: string;
+}
+
 export interface ClockRecord {
   id: string;
   name: string;

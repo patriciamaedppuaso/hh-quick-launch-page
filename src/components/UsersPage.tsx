@@ -1,11 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
-import type { AppTile, Role, UserProfile } from "../types";
+import type { AppTile, PasswordResetRequest, Role, UserProfile } from "../types";
 import { Icon } from "../icons";
-import { createUserAccount, deleteUser, fetchUsers, updateUserProfile } from "../lib/users";
+import { createUserAccount, deleteUser, fetchUsers, resetUserPassword, updateUserProfile } from "../lib/users";
+import {
+  dismissPasswordResetRequest,
+  fetchPasswordResetRequests,
+  resolvePasswordResetRequest,
+} from "../lib/passwordResetRequests";
 import { formatDate, initialOf } from "../utils";
 import { Modal } from "./Modal";
 import { UserCreateForm } from "./UserCreateForm";
 import { UserEditForm } from "./UserEditForm";
+import { ResetPasswordForm } from "./ResetPasswordForm";
 import { useToast } from "./ToastProvider";
 
 interface Props {
@@ -24,15 +30,19 @@ export function UsersPage({ app, role, onBack }: Props) {
   const [query, setQuery] = useState("");
   const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState<UserProfile | null>(null);
+  const [resettingUser, setResettingUser] = useState<UserProfile | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [resetRequests, setResetRequests] = useState<PasswordResetRequest[]>([]);
+  const [resolvingRequestFor, setResolvingRequestFor] = useState<PasswordResetRequest | null>(null);
 
   const isAdmin = role === "admin";
   const tint = app.tint ?? FALLBACK_TINT;
 
   async function reload() {
-    const next = await fetchUsers();
-    setUsers(next);
+    const [nextUsers, nextRequests] = await Promise.all([fetchUsers(), fetchPasswordResetRequests()]);
+    setUsers(nextUsers);
+    setResetRequests(nextRequests);
   }
 
   useEffect(() => {
@@ -51,6 +61,8 @@ export function UsersPage({ app, role, onBack }: Props) {
     if (!q) return users;
     return users.filter((u) => [u.name, u.email].some((v) => v?.toLowerCase().includes(q)));
   }, [users, query]);
+
+  const pendingRequests = useMemo(() => resetRequests.filter((r) => r.status === "pending"), [resetRequests]);
 
   async function handleCreate(input: { email: string; password: string; name?: string; role: Role }) {
     try {
@@ -92,6 +104,34 @@ export function UsersPage({ app, role, onBack }: Props) {
     }
   }
 
+  async function handleResetPassword(password: string) {
+    if (!resettingUser) return;
+    try {
+      await resetUserPassword(resettingUser.id, password);
+      if (resolvingRequestFor) await resolvePasswordResetRequest(resolvingRequestFor.id);
+      await reload();
+      setResettingUser(null);
+      setResolvingRequestFor(null);
+      toast.success("Password reset");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Couldn't reset the password.");
+      throw err;
+    }
+  }
+
+  async function handleDismissRequest(id: string) {
+    setBusyId(id);
+    try {
+      await dismissPasswordResetRequest(id);
+      await reload();
+      toast.success("Request dismissed");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Couldn't dismiss the request.");
+    } finally {
+      setBusyId(null);
+    }
+  }
+
   return (
     <div className="items-page">
       <button type="button" className="back-link" onClick={onBack}>
@@ -116,6 +156,51 @@ export function UsersPage({ app, role, onBack }: Props) {
       ) : (
         <>
           {loadErr && <p className="field-error">{loadErr}</p>}
+
+          {pendingRequests.length > 0 && (
+            <div className="items-section">
+              <h2 className="items-section-title">Password reset requests</h2>
+              <div className="items-list">
+                {pendingRequests.map((r) => {
+                  const matchedUser = users.find((u) => u.email.toLowerCase() === r.email.toLowerCase());
+                  return (
+                    <div className="items-row" key={r.id}>
+                      <div className="items-row-text">
+                        <span className="items-row-name">{r.email}</span>
+                        <span className="items-row-desc">
+                          {r.note ? `"${r.note}" · ` : ""}
+                          Requested {formatDate(r.createdAt.slice(0, 10))}
+                          {!matchedUser && " · No account found for this email"}
+                        </span>
+                      </div>
+                      <div className="items-row-manage items-row-manage--active">
+                        {matchedUser && (
+                          <button
+                            type="button"
+                            className="btn-primary-sm"
+                            onClick={() => {
+                              setResolvingRequestFor(r);
+                              setResettingUser(matchedUser);
+                            }}
+                          >
+                            Reset password
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          className="btn-secondary-sm"
+                          onClick={() => handleDismissRequest(r.id)}
+                          disabled={busyId === r.id}
+                        >
+                          Dismiss
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           <div className="items-toolbar">
             <div className="search-field">
@@ -163,6 +248,19 @@ export function UsersPage({ app, role, onBack }: Props) {
                     >
                       <Icon name="edit" />
                     </button>
+                    <button
+                      type="button"
+                      className="icon-btn-sm"
+                      aria-label={`Reset password for ${u.email}`}
+                      title="Reset password"
+                      onClick={() => {
+                        setResolvingRequestFor(null);
+                        setResettingUser(u);
+                      }}
+                      disabled={busyId === u.id}
+                    >
+                      <Icon name="key" />
+                    </button>
                     {confirmDeleteId === u.id ? (
                       <span className="confirm-delete">
                         <button
@@ -206,6 +304,26 @@ export function UsersPage({ app, role, onBack }: Props) {
             user={editing}
             onSave={(patch) => handleEditSave(editing.id, patch)}
             onCancel={() => setEditing(null)}
+          />
+        )}
+      </Modal>
+
+      <Modal
+        open={!!resettingUser}
+        onClose={() => {
+          setResettingUser(null);
+          setResolvingRequestFor(null);
+        }}
+        title="Reset password"
+      >
+        {resettingUser && (
+          <ResetPasswordForm
+            userEmail={resettingUser.email}
+            onSave={handleResetPassword}
+            onCancel={() => {
+              setResettingUser(null);
+              setResolvingRequestFor(null);
+            }}
           />
         )}
       </Modal>

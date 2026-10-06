@@ -80,6 +80,19 @@ Deno.serve(async (req) => {
     return jsonResponse({ user: data.user });
   }
 
+  if (action === "reset-password") {
+    const userId = typeof body.userId === "string" ? body.userId : "";
+    const password = typeof body.password === "string" ? body.password : "";
+    if (!userId) return jsonResponse({ error: "userId is required." }, 400);
+    if (!password || password.length < 8) {
+      return jsonResponse({ error: "Password must be at least 8 characters." }, 400);
+    }
+
+    const { error } = await supabaseAdmin.auth.admin.updateUserById(userId, { password });
+    if (error) return jsonResponse({ error: error.message }, 400);
+    return jsonResponse({ ok: true });
+  }
+
   if (action === "delete") {
     const userId = typeof body.userId === "string" ? body.userId : "";
     if (!userId) return jsonResponse({ error: "userId is required." }, 400);
