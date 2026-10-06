@@ -91,6 +91,7 @@ export function TasksPage({
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return records.filter((t) => {
+      if (statusFilter === "all" && t.status === DONE_STATUS) return false;
       if (statusFilter !== "all" && t.status !== statusFilter) return false;
       if (assigneeFilter === "unassigned" && (t.assignees ?? []).length > 0) return false;
       if (assigneeFilter !== "all" && assigneeFilter !== "unassigned" && !(t.assignees ?? []).includes(assigneeFilter))
