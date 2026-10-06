@@ -625,7 +625,11 @@ export default function App() {
       <Sidebar
         apps={apps}
         role={role}
+        currentUserId={currentUser?.id ?? ""}
+        currentUserEmail={currentUser?.email ?? ""}
         currentUserName={currentUserName}
+        currentUserRawName={currentUser?.name ?? ""}
+        onProfileNameUpdated={(name) => setCurrentUser((u) => (u ? { ...u, name } : u))}
         activeAppId={openAppId}
         theme={theme}
         onThemeChange={setTheme}

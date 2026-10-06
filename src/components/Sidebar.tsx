@@ -5,11 +5,19 @@ import { initialOf, isAppVisible, isInNav, openTarget, recordAppUsage } from "..
 import { useClickOutside } from "../hooks/useClickOutside";
 import { useIsMobile } from "../hooks/useIsMobile";
 import { Modal } from "./Modal";
+import { ManageAccountForm } from "./ManageAccountForm";
+import { useToast } from "./ToastProvider";
+import { updateMyPassword } from "../lib/auth";
+import { updateUserProfile } from "../lib/users";
 
 interface Props {
   apps: AppTile[];
   role: Role;
+  currentUserId: string;
+  currentUserEmail: string;
   currentUserName: string;
+  currentUserRawName: string;
+  onProfileNameUpdated: (name: string) => void;
   activeAppId: string | null;
   theme: Theme;
   onThemeChange: (theme: Theme) => void;
@@ -29,7 +37,11 @@ const FALLBACK_TINT = { bg: "#EDF7F6", fg: "#479CA4" };
 export function Sidebar({
   apps,
   role,
+  currentUserId,
+  currentUserEmail,
   currentUserName,
+  currentUserRawName,
+  onProfileNameUpdated,
   activeAppId,
   theme,
   onThemeChange,
@@ -43,10 +55,12 @@ export function Sidebar({
   collapsed,
   onToggleCollapsed,
 }: Props) {
+  const toast = useToast();
   const [query, setQuery] = useState("");
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [navEditMode, setNavEditMode] = useState(false);
   const [confirmSignOut, setConfirmSignOut] = useState(false);
+  const [manageAccountOpen, setManageAccountOpen] = useState(false);
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
@@ -306,6 +320,16 @@ export function Sidebar({
                   className="dropdown-item"
                   onClick={() => {
                     setUserMenuOpen(false);
+                    setManageAccountOpen(true);
+                  }}
+                >
+                  Manage account
+                </button>
+                <button
+                  type="button"
+                  className="dropdown-item"
+                  onClick={() => {
+                    setUserMenuOpen(false);
                     setConfirmSignOut(true);
                   }}
                 >
@@ -316,6 +340,25 @@ export function Sidebar({
           </div>
         </div>
       </aside>
+
+      <Modal open={manageAccountOpen} onClose={() => setManageAccountOpen(false)} title="Manage account">
+        <ManageAccountForm
+          email={currentUserEmail}
+          name={currentUserRawName}
+          onCancel={() => setManageAccountOpen(false)}
+          onSave={async (patch) => {
+            if (patch.name !== undefined) {
+              await updateUserProfile(currentUserId, { name: patch.name });
+              onProfileNameUpdated(patch.name);
+            }
+            if (patch.password) {
+              await updateMyPassword(patch.password);
+            }
+            setManageAccountOpen(false);
+            toast.success("Account updated");
+          }}
+        />
+      </Modal>
 
       <Modal open={confirmSignOut} onClose={() => setConfirmSignOut(false)} title="Sign out">
         <div className="form-card">

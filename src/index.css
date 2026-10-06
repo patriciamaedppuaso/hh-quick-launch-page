@@ -837,6 +837,12 @@ body {
   right: auto;
   width: 100%;
 }
+.sidebar--collapsed .sidebar-user-menu {
+  width: 190px;
+  left: calc(100% + 10px);
+  right: auto;
+  bottom: 0;
+}
 
 /* hero */
 .hero {

@@ -18,6 +18,11 @@ export async function signOut(): Promise<void> {
   if (error) throw error;
 }
 
+export async function updateMyPassword(password: string): Promise<void> {
+  const { error } = await supabase.auth.updateUser({ password });
+  if (error) throw error;
+}
+
 export async function fetchCurrentUser(userId: string, email: string): Promise<CurrentUser> {
   const { data, error } = await supabase.from("profiles").select("name, role").eq("id", userId).single();
   if (error) throw error;
