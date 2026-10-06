@@ -7,7 +7,7 @@ import {
   fetchPasswordResetRequests,
   resolvePasswordResetRequest,
 } from "../lib/passwordResetRequests";
-import { formatDate, initialOf } from "../utils";
+import { formatDate, initialOf, roleLabel } from "../utils";
 import { Modal } from "./Modal";
 import { UserCreateForm } from "./UserCreateForm";
 import { UserEditForm } from "./UserEditForm";
@@ -234,7 +234,7 @@ export function UsersPage({ app, role, onBack }: Props) {
                     </span>
                   </div>
                   <span className="status-pill" style={{ background: "var(--surface-soft)", color: "var(--text-secondary)" }}>
-                    {u.role === "admin" ? "Administrator" : "Staff"}
+                    {roleLabel(u.role)}
                   </span>
                   <div
                     className={`items-row-manage${confirmDeleteId === u.id ? " items-row-manage--active" : ""}`}

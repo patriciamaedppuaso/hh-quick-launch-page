@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from "react";
 import type { AppTile, Role, Theme } from "../types";
 import { Icon } from "../icons";
-import { initialOf, isAppVisible, isInNav, openTarget, recordAppUsage } from "../utils";
+import { initialOf, isAppVisible, isInNav, openTarget, recordAppUsage, roleLabel } from "../utils";
 import { useClickOutside } from "../hooks/useClickOutside";
 import { useIsMobile } from "../hooks/useIsMobile";
 import { Modal } from "./Modal";
@@ -309,7 +309,7 @@ export function Sidebar({
               {!isCollapsed && (
                 <span className="sidebar-user-info">
                   <span className="sidebar-user-name">{currentUserName}</span>
-                  <span className="sidebar-user-role">{role === "admin" ? "Administrator" : "Staff"}</span>
+                  <span className="sidebar-user-role">{roleLabel(role)}</span>
                 </span>
               )}
             </button>

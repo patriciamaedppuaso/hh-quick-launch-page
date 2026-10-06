@@ -214,7 +214,7 @@ export async function fetchAllApps(): Promise<AppTile[]> {
 export async function fetchReadAnnouncements(): Promise<ReadAnnouncements> {
   const { data, error } = await supabase.from("read_announcements").select("*");
   if (error) throw error;
-  const result: ReadAnnouncements = { admin: [], employee: [] };
+  const result: ReadAnnouncements = { admin: [], employee: [], driver: [] };
   for (const row of data ?? []) {
     result[row.role as Role].push(row.announcement_id);
   }

@@ -19,6 +19,13 @@ export function canManageApp(app: AppTile, role: Role): boolean {
   return role === "admin" || !!app.staffCanManage;
 }
 
+const ROLE_LABELS: Record<Role, string> = { admin: "Administrator", employee: "Staff", driver: "Driver" };
+
+/** Display label for a role -- same permissions as Staff, just a distinct tag. */
+export function roleLabel(role: Role): string {
+  return ROLE_LABELS[role] ?? "Staff";
+}
+
 /** Whether an app currently shows in the sidebar nav list (independent of who's viewing). */
 export function isInNav(app: AppTile): boolean {
   if (app.showInNav === true) return true;

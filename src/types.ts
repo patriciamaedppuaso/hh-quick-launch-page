@@ -1,4 +1,4 @@
-export type Role = "admin" | "employee";
+export type Role = "admin" | "employee" | "driver";
 
 export type ReadAnnouncements = Record<Role, string[]>;
 

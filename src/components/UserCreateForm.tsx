@@ -66,6 +66,7 @@ export function UserCreateForm({ onSave, onCancel }: Props) {
         <label htmlFor="ucRole">Role</label>
         <select id="ucRole" value={role} onChange={(e) => setRole(e.target.value as Role)}>
           <option value="employee">Staff</option>
+          <option value="driver">Driver</option>
           <option value="admin">Administrator</option>
         </select>
       </div>

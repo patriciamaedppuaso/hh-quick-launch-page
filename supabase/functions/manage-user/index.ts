@@ -67,7 +67,7 @@ Deno.serve(async (req) => {
     if (!password || password.length < 8) {
       return jsonResponse({ error: "Password must be at least 8 characters." }, 400);
     }
-    const role = body.role === "admin" ? "admin" : "employee";
+    const role = body.role === "admin" || body.role === "driver" ? body.role : "employee";
     const name = typeof body.name === "string" && body.name.trim() ? body.name.trim() : null;
 
     const { data, error } = await supabaseAdmin.auth.admin.createUser({
