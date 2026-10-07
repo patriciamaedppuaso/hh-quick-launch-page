@@ -9,12 +9,15 @@ export function firstNameOf(name: string): string {
   return trimmed.split(/\s+/)[0];
 }
 
-/** Admins always see every app; staff only see the ones marked visible. */
+/** Selectable non-admin roles, in display order -- admins always see/manage every app regardless. */
+export const SELECTABLE_ROLES: Role[] = ["employee", "driver"];
+
+/** Admins always see every app; other roles only see it if visibleRoles includes them (undefined = everyone). */
 export function isAppVisible(app: AppTile, role: Role): boolean {
-  return role === "admin" || app.visible !== false;
+  return role === "admin" || !app.visibleRoles || app.visibleRoles.includes(role);
 }
 
-/** Admins can always add/edit/delete an app's content; staff can only if the app allows it. */
+/** Admins can always add/edit/delete an app's content; other roles can only if the app allows it. */
 export function canManageApp(app: AppTile, role: Role): boolean {
   return role === "admin" || !!app.staffCanManage;
 }
@@ -24,6 +27,14 @@ const ROLE_LABELS: Record<Role, string> = { admin: "Administrator", employee: "S
 /** Display label for a role -- same permissions as Staff, just a distinct tag. */
 export function roleLabel(role: Role): string {
   return ROLE_LABELS[role] ?? "Staff";
+}
+
+/** Short summary of who can see an app, for admin-facing badges (e.g. on app cards). Null = visible to everyone. */
+export function visibilityBadge(app: AppTile): string | null {
+  const roles = app.visibleRoles;
+  if (!roles) return null;
+  if (roles.length === 0) return "Hidden";
+  return `${roles.map(roleLabel).join(" & ")} only`;
 }
 
 /** Whether an app currently shows in the sidebar nav list (independent of who's viewing). */

@@ -1,12 +1,13 @@
 import { useState } from "react";
-import type { AppTile } from "../types";
+import type { AppTile, Role } from "../types";
+import { SELECTABLE_ROLES, roleLabel } from "../utils";
 
 interface Props {
   app: AppTile;
   onSave: (patch: {
     name: string;
     description?: string;
-    visible: boolean;
+    visibleRoles?: Role[];
     showInNav: boolean;
     staffCanManage: boolean;
   }) => void;
@@ -17,11 +18,15 @@ interface Props {
 export function EditAppForm({ app, onSave, onDelete, onCancel }: Props) {
   const [name, setName] = useState(app.name);
   const [description, setDescription] = useState(app.description ?? "");
-  const [visible, setVisible] = useState(app.visible !== false);
+  const [visibleRoles, setVisibleRoles] = useState<Role[]>(app.visibleRoles ?? SELECTABLE_ROLES);
   const [showInNav, setShowInNav] = useState(app.showInNav ?? app.type === "list");
   const [staffCanManage, setStaffCanManage] = useState(app.staffCanManage ?? false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [error, setError] = useState("");
+
+  function toggleRole(role: Role) {
+    setVisibleRoles((prev) => (prev.includes(role) ? prev.filter((r) => r !== role) : [...prev, role]));
+  }
 
   function handleSave() {
     const trimmedName = name.trim();
@@ -33,11 +38,13 @@ export function EditAppForm({ app, onSave, onDelete, onCancel }: Props) {
     onSave({
       name: trimmedName,
       description: description.trim() || undefined,
-      visible,
+      visibleRoles: visibleRoles.length === SELECTABLE_ROLES.length ? undefined : visibleRoles,
       showInNav,
       staffCanManage,
     });
   }
+
+  const visibleRoleLabels = visibleRoles.map(roleLabel);
 
   return (
     <div className="form-card">
@@ -55,25 +62,24 @@ export function EditAppForm({ app, onSave, onDelete, onCancel }: Props) {
           onChange={(e) => setDescription(e.target.value)}
         />
       </div>
+
       <div className="form-row">
-        <label>Visibility</label>
-        <div className="type-toggle" role="group" aria-label="Visibility">
-          <button
-            type="button"
-            className={`type-btn${visible ? " active" : ""}`}
-            onClick={() => setVisible(true)}
-          >
-            Visible to staff
-          </button>
-          <button
-            type="button"
-            className={`type-btn${!visible ? " active" : ""}`}
-            onClick={() => setVisible(false)}
-          >
-            Hidden from staff
-          </button>
+        <label>Who can see this</label>
+        <div className="type-toggle" role="group" aria-label="Who can see this">
+          <span className="type-btn active type-btn--locked" title="Admins always see every app">
+            Admin
+          </span>
+          {SELECTABLE_ROLES.map((role) => (
+            <button
+              key={role}
+              type="button"
+              className={`type-btn${visibleRoles.includes(role) ? " active" : ""}`}
+              onClick={() => toggleRole(role)}
+            >
+              {roleLabel(role)}
+            </button>
+          ))}
         </div>
-        <p className="form-hint">Admins always see every app. Hidden apps stay editable, just off staff's dashboard.</p>
       </div>
 
       <div className="form-row">
@@ -95,16 +101,14 @@ export function EditAppForm({ app, onSave, onDelete, onCancel }: Props) {
           </button>
         </div>
         <p className="form-hint">
-          {app.type === "link"
-            ? "Link apps aren't in the sidebar by default. Turning this on adds a shortcut there that opens the link directly."
-            : "This app still shows on the dashboard grid either way -- this only controls the sidebar list."}
+          {app.type === "link" ? "Adds a sidebar shortcut that opens the link directly." : "Only affects the sidebar list, not the dashboard grid."}
         </p>
       </div>
 
-      {app.type === "list" && (
+      {app.type === "list" && visibleRoles.length > 0 && (
         <div className="form-row">
-          <label>Staff permissions</label>
-          <div className="type-toggle" role="group" aria-label="Staff permissions">
+          <label>Permission</label>
+          <div className="type-toggle" role="group" aria-label="Permission">
             <button
               type="button"
               className={`type-btn${!staffCanManage ? " active" : ""}`}
@@ -121,7 +125,7 @@ export function EditAppForm({ app, onSave, onDelete, onCancel }: Props) {
             </button>
           </div>
           <p className="form-hint">
-            Admins can always add, edit, and delete. This controls whether staff can too, or just view.
+            Whether {visibleRoleLabels.join(" and ")} can {staffCanManage ? "add, edit, and delete" : "only view"}. Admins can always manage.
           </p>
         </div>
       )}
@@ -129,7 +133,7 @@ export function EditAppForm({ app, onSave, onDelete, onCancel }: Props) {
       <div className="danger-zone">
         <div>
           <p className="danger-zone-title">Delete this app</p>
-          <p className="form-hint">This removes "{app.name}" and everything inside it for everyone. This can't be undone.</p>
+          <p className="form-hint">This removes "{app.name}" and everything inside it. Can't be undone.</p>
         </div>
         {confirmingDelete ? (
           <span className="confirm-delete">

@@ -2,7 +2,7 @@ import { useState } from "react";
 import type { AppTile } from "../types";
 import { Icon } from "../icons";
 import { AppLogo } from "./AppLogo";
-import { isPdfFile, openTarget, recordAppUsage } from "../utils";
+import { isPdfFile, openTarget, recordAppUsage, visibilityBadge } from "../utils";
 import { FilePreviewModal } from "./FilePreviewModal";
 
 interface Props {
@@ -22,7 +22,7 @@ export function AppRow({ app, onOpenItems, showHandle, layout = "row", canEdit, 
   const linkApp = app.type === "link" ? app : null;
   const tint = app.tint ?? FALLBACK_TINT;
   const isTile = layout === "tile";
-  const isHidden = app.visible === false;
+  const badge = visibilityBadge(app);
   const canPreview = !!linkApp?.isFile && isPdfFile(linkApp.fileName, linkApp.url);
 
   function handleClick() {
@@ -58,7 +58,7 @@ export function AppRow({ app, onOpenItems, showHandle, layout = "row", canEdit, 
         >
           {app.name}
         </span>
-        {isHidden && !isTile && <span className="visibility-badge">Hidden</span>}
+        {badge && !isTile && <span className="visibility-badge">{badge}</span>}
         {canEdit && !isTile && (
           <span
             className="card-edit-btn app-row-edit"

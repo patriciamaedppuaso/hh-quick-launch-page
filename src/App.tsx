@@ -404,7 +404,7 @@ export default function App() {
   function handleEditApp(patch: {
     name: string;
     description?: string;
-    visible: boolean;
+    visibleRoles?: Role[];
     showInNav: boolean;
     staffCanManage: boolean;
   }) {

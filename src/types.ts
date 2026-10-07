@@ -349,11 +349,11 @@ interface AppBase {
   builtin?: BuiltinKind;
   /** Admin-editable status tabs for builtin apps that filter by status (leads, tasks). */
   statusOptions?: string[];
-  /** Whether staff can see this app. Admins always see every app regardless. Defaults to true. */
-  visible?: boolean;
+  /** Non-admin roles that can see this app. Admins always see every app regardless. Undefined = every role. */
+  visibleRoles?: Role[];
   /** Whether this app shows in the sidebar nav list. Undefined = default (list apps yes, link apps no). */
   showInNav?: boolean;
-  /** Whether staff (non-admin) can add/edit/delete this app's content. Admins always can. Defaults to false. */
+  /** Whether the roles in visibleRoles can add/edit/delete this app's content. Admins always can. Defaults to false. */
   staffCanManage?: boolean;
   contacts?: ContactRecord[];
   leads?: LeadRecord[];

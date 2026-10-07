@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { AppTile } from "../types";
-import { builtinCount, domainOf, isPdfFile, openTarget, recordAppUsage } from "../utils";
+import { builtinCount, domainOf, isPdfFile, openTarget, recordAppUsage, visibilityBadge } from "../utils";
 import { Icon } from "../icons";
 import { AppLogo } from "./AppLogo";
 import { FilePreviewModal } from "./FilePreviewModal";
@@ -36,11 +36,11 @@ export function AppCard({ app, onOpenItems, showHandle, canEdit, onEdit }: Props
     }
   }
 
-  const isHidden = app.visible === false;
+  const badge = visibilityBadge(app);
 
   return (
     <div
-      className={`card${isHidden ? " card-hidden" : ""}`}
+      className={`card${badge ? " card-hidden" : ""}`}
       style={{
         background: `linear-gradient(160deg, color-mix(in srgb, ${tint.fg} 16%, var(--card-bg)) 0%, var(--card-bg) 55%)`,
       }}
@@ -50,7 +50,7 @@ export function AppCard({ app, onOpenItems, showHandle, canEdit, onEdit }: Props
           <AppLogo app={app} />
         </div>
         <div className="card-top-right">
-          {isHidden && <span className="visibility-badge">Hidden</span>}
+          {badge && <span className="visibility-badge">{badge}</span>}
           {app.category && <span className="category-badge">{app.category}</span>}
           {canEdit && (
             <button

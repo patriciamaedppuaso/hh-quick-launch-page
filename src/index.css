@@ -2849,6 +2849,13 @@ body {
   color: var(--text);
   box-shadow: var(--shadow);
 }
+.type-btn--locked {
+  cursor: default;
+  opacity: 0.6;
+}
+.type-btn--locked:hover {
+  color: var(--text);
+}
 
 .person-search {
   position: relative;
