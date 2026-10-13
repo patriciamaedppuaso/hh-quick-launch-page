@@ -61,6 +61,8 @@ export function TimeClockPage({ app, role, currentUserName, onBack, onUpdate }: 
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [editingEntry, setEditingEntry] = useState<TimeEntry | null>(null);
   const [requestType, setRequestType] = useState<RequestType | null>(null);
+  const [requestDate, setRequestDate] = useState<string | undefined>(undefined);
+  const [requestEmployeeName, setRequestEmployeeName] = useState(currentUserName);
   const [viewingName, setViewingName] = useState(currentUserName);
   const [, forceTick] = useState(0);
 
@@ -199,6 +201,18 @@ export function TimeClockPage({ app, role, currentUserName, onBack, onUpdate }: 
     setRequestType(null);
   }
 
+  function openSelfRequest(type: RequestType) {
+    setRequestEmployeeName(currentUserName);
+    setRequestDate(undefined);
+    setRequestType(type);
+  }
+
+  function openDayRequest(iso: string) {
+    setRequestEmployeeName(viewingName);
+    setRequestDate(iso);
+    setRequestType("shift");
+  }
+
   function handleReviewRequest(request: TimeOffRequest, status: "approved" | "denied") {
     onUpdate({ requests: requests.map((r) => (r.id === request.id ? { ...r, status } : r)) });
   }
@@ -298,19 +312,19 @@ export function TimeClockPage({ app, role, currentUserName, onBack, onUpdate }: 
         <div className="items-section clock-requests-panel">
           <h2 className="items-section-title">Requests</h2>
           <div className="request-quick-actions">
-            <button type="button" className="request-quick-btn" onClick={() => setRequestType("shift")}>
+            <button type="button" className="request-quick-btn" onClick={() => openSelfRequest("shift")}>
               <span className="request-quick-icon request-quick-icon--shift">
                 <Icon name="plus" />
               </span>
               Add a shift request
             </button>
-            <button type="button" className="request-quick-btn" onClick={() => setRequestType("break")}>
+            <button type="button" className="request-quick-btn" onClick={() => openSelfRequest("break")}>
               <span className="request-quick-icon request-quick-icon--break">
                 <Icon name="clock" />
               </span>
               Add a break request
             </button>
-            <button type="button" className="request-quick-btn" onClick={() => setRequestType("absence")}>
+            <button type="button" className="request-quick-btn" onClick={() => openSelfRequest("absence")}>
               <span className="request-quick-icon request-quick-icon--absence">
                 <Icon name="sun" />
               </span>
@@ -366,6 +380,7 @@ export function TimeClockPage({ app, role, currentUserName, onBack, onUpdate }: 
         personName={viewingName}
         entries={viewedEntries}
         onRequestEdit={setEditingEntry}
+        onRequestForDay={openDayRequest}
       />
 
       {isAdmin && pendingEntries.length > 0 && (
@@ -534,7 +549,8 @@ export function TimeClockPage({ app, role, currentUserName, onBack, onUpdate }: 
         {requestType && (
           <RequestForm
             type={requestType}
-            employeeName={currentUserName}
+            employeeName={requestEmployeeName}
+            initialDate={requestDate}
             onSave={handleAddRequest}
             onCancel={() => setRequestType(null)}
           />

@@ -5,12 +5,13 @@ import { newId, nowIso, todayIso } from "../utils";
 interface Props {
   type: RequestType;
   employeeName: string;
+  initialDate?: string;
   onSave: (record: TimeOffRequest) => void;
   onCancel: () => void;
 }
 
-export function RequestForm({ type, employeeName, onSave, onCancel }: Props) {
-  const [date, setDate] = useState(todayIso());
+export function RequestForm({ type, employeeName, initialDate, onSave, onCancel }: Props) {
+  const [date, setDate] = useState(initialDate ?? todayIso());
   const [endDate, setEndDate] = useState("");
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");

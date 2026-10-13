@@ -20,6 +20,7 @@ interface Props {
   personName: string;
   entries: TimeEntry[];
   onRequestEdit: (entry: TimeEntry) => void;
+  onRequestForDay: (iso: string) => void;
 }
 
 const WEEKLY_OVERTIME_MS = 40 * 60 * 60 * 1000;
@@ -54,7 +55,7 @@ function csvCell(value: string): string {
   return `"${value.replace(/"/g, '""')}"`;
 }
 
-export function TimesheetSection({ title, personName, entries, onRequestEdit }: Props) {
+export function TimesheetSection({ title, personName, entries, onRequestEdit, onRequestForDay }: Props) {
   const toast = useToast();
   const fileSlug = personName.trim().toLowerCase().replace(/\s+/g, "-") || "employee";
   const [weekStart, setWeekStart] = useState(() => startOfWeek(toZonedDate(new Date())));
@@ -339,7 +340,18 @@ export function TimesheetSection({ title, personName, entries, onRequestEdit }: 
               <span className="timesheet-day-total">{day.worked > 0 ? formatHoursMinutes(day.worked) : "--"}</span>
             </div>
             {day.entries.length === 0 ? (
-              <p className="timesheet-day-empty">No activity</p>
+              <div className="timesheet-day-empty-row">
+                <p className="timesheet-day-empty">No activity</p>
+                <button
+                  type="button"
+                  className="icon-btn-sm"
+                  aria-label={`Request hours for ${day.iso}`}
+                  title="Request hours for this day"
+                  onClick={() => onRequestForDay(day.iso)}
+                >
+                  <Icon name="plus" />
+                </button>
+              </div>
             ) : (
               day.entries.map((entry) => (
                 <div className="timesheet-entry" key={entry.id}>
