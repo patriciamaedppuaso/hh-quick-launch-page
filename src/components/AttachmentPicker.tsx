@@ -1,7 +1,8 @@
 import { useState } from "react";
 import type { AnnouncementAttachment } from "../types";
 import { Icon } from "../icons";
-import { MAX_UPLOAD_BYTES, formatFileSize, newId, readFileAsDataUrl } from "../utils";
+import { MAX_UPLOAD_BYTES, formatFileSize, newId } from "../utils";
+import { deleteUploadedFile, uploadFile } from "../lib/uploads";
 
 interface Props {
   attachments: AnnouncementAttachment[];
@@ -10,11 +11,13 @@ interface Props {
 
 export function AttachmentPicker({ attachments, onChange }: Props) {
   const [error, setError] = useState("");
+  const [uploading, setUploading] = useState(false);
   const inputId = `attach-${Math.random().toString(36).slice(2, 8)}`;
 
   async function handleFiles(fileList: FileList | null) {
     setError("");
     if (!fileList || fileList.length === 0) return;
+    setUploading(true);
     const next = [...attachments];
     for (const file of Array.from(fileList)) {
       if (file.size > MAX_UPLOAD_BYTES) {
@@ -22,22 +25,25 @@ export function AttachmentPicker({ attachments, onChange }: Props) {
         continue;
       }
       try {
-        const dataUrl = await readFileAsDataUrl(file);
+        const url = await uploadFile(file, "announcements");
         next.push({
           id: newId("attachment"),
           name: file.name,
-          url: dataUrl,
+          url,
           isImage: file.type.startsWith("image/"),
         });
       } catch {
-        setError(`Couldn't read "${file.name}". Try a different file.`);
+        setError(`Couldn't upload "${file.name}". Try again.`);
       }
     }
+    setUploading(false);
     onChange(next);
   }
 
   function removeAttachment(id: string) {
+    const attachment = attachments.find((a) => a.id === id);
     onChange(attachments.filter((a) => a.id !== id));
+    deleteUploadedFile(attachment?.url);
   }
 
   return (
@@ -69,12 +75,13 @@ export function AttachmentPicker({ attachments, onChange }: Props) {
           ))}
         </div>
       )}
-      <label htmlFor={inputId} className="file-picker-btn">
-        + Add files or images
+      <label htmlFor={inputId} className={`file-picker-btn${uploading ? " file-picker-btn--uploading" : ""}`}>
+        {uploading ? "Uploading…" : "+ Add files or images"}
         <input
           id={inputId}
           type="file"
           multiple
+          disabled={uploading}
           className="file-picker-input"
           onChange={(e) => {
             handleFiles(e.target.files);

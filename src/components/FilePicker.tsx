@@ -4,11 +4,12 @@ interface Props {
   fileName: string;
   fileSize: number;
   error?: string;
+  uploading?: boolean;
   onChange: (file: File | null) => void;
   onClear: () => void;
 }
 
-export function FilePicker({ fileName, fileSize, error, onChange, onClear }: Props) {
+export function FilePicker({ fileName, fileSize, error, uploading, onChange, onClear }: Props) {
   const inputId = `file-${Math.random().toString(36).slice(2, 8)}`;
 
   return (
@@ -24,6 +25,8 @@ export function FilePicker({ fileName, fileSize, error, onChange, onClear }: Pro
             </svg>
           </button>
         </div>
+      ) : uploading ? (
+        <span className="file-picker-btn file-picker-btn--uploading">Uploading…</span>
       ) : (
         <label htmlFor={inputId} className="file-picker-btn">
           Choose file

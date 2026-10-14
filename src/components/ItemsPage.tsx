@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
 import type { ListApp, ListItem, Role } from "../types";
 import { Icon } from "../icons";
-import { canManageApp, formatDate, initialOf, isOverdue, isPdfFile, openTarget } from "../utils";
+import { canManageApp, formatDate, initialOf, isOverdue, isPdfFile, openTarget, withUsedFolders } from "../utils";
+import { deleteUploadedFile } from "../lib/uploads";
 import { Modal } from "./Modal";
 import { ItemForm } from "./ItemForm";
 import { FilePreviewModal } from "./FilePreviewModal";
@@ -47,7 +48,10 @@ export function ItemsPage({ app, role, onBack, onUpdateItems, onUpdateStatusOpti
 
   const canManage = canManageApp(app, role);
   const tint = app.tint ?? FALLBACK_TINT;
-  const folderOptions = app.statusOptions ?? [];
+  const folderOptions = useMemo(
+    () => withUsedFolders(app.statusOptions ?? [], app.items),
+    [app.statusOptions, app.items],
+  );
   const hasFolders = folderOptions.length > 0;
   const showFolders = openFolder === null && hasFolders;
 
@@ -85,8 +89,10 @@ export function ItemsPage({ app, role, onBack, onUpdateItems, onUpdateStatusOpti
   }
 
   function handleDelete(id: string) {
+    const item = app.items.find((it) => it.id === id);
     onUpdateItems(app.items.filter((it) => it.id !== id));
     setConfirmDeleteId(null);
+    if (item?.isFile) deleteUploadedFile(item.url);
   }
 
   function renderFolderRow(folder: string) {

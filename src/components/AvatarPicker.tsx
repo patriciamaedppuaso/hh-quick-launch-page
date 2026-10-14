@@ -1,15 +1,17 @@
 import { useState } from "react";
-import { MAX_UPLOAD_BYTES, formatFileSize, initialOf, readFileAsDataUrl } from "../utils";
+import { MAX_UPLOAD_BYTES, formatFileSize, initialOf } from "../utils";
+import { uploadFile } from "../lib/uploads";
 
 interface Props {
   name: string;
   avatar: string;
-  onChange: (dataUrl: string) => void;
+  onChange: (url: string) => void;
   onClear: () => void;
 }
 
 export function AvatarPicker({ name, avatar, onChange, onClear }: Props) {
   const [error, setError] = useState("");
+  const [uploading, setUploading] = useState(false);
   const inputId = `avatar-${Math.random().toString(36).slice(2, 8)}`;
 
   async function handleFile(file: File | null) {
@@ -23,11 +25,14 @@ export function AvatarPicker({ name, avatar, onChange, onClear }: Props) {
       setError(`Image is too large (max ${formatFileSize(MAX_UPLOAD_BYTES)}).`);
       return;
     }
+    setUploading(true);
     try {
-      const dataUrl = await readFileAsDataUrl(file);
-      onChange(dataUrl);
+      const url = await uploadFile(file, "avatars");
+      onChange(url);
     } catch {
-      setError("Couldn't read that image. Try a different one.");
+      setError("Couldn't upload that image. Try again.");
+    } finally {
+      setUploading(false);
     }
   }
 
@@ -38,11 +43,12 @@ export function AvatarPicker({ name, avatar, onChange, onClear }: Props) {
       </div>
       <div className="avatar-picker-actions">
         <label htmlFor={inputId} className="btn-secondary-sm avatar-picker-btn">
-          {avatar ? "Change photo" : "Upload photo"}
+          {uploading ? "Uploading…" : avatar ? "Change photo" : "Upload photo"}
           <input
             id={inputId}
             type="file"
             accept="image/*"
+            disabled={uploading}
             className="file-picker-input"
             onChange={(e) => handleFile(e.target.files?.[0] ?? null)}
           />

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { PurchaseOrderRecord } from "../types";
-import { MAX_UPLOAD_BYTES, formatFileSize, newId, normalizeUrl, readFileAsDataUrl } from "../utils";
+import { MAX_UPLOAD_BYTES, formatFileSize, newId, normalizeUrl } from "../utils";
+import { uploadFile } from "../lib/uploads";
 import { FilePicker } from "./FilePicker";
 
 interface Props {
@@ -23,6 +24,7 @@ export function PurchaseOrderForm({ initial, folderOptions, defaultFolder, onSav
   const [fileSize, setFileSize] = useState(0);
   const [fileDataUrl, setFileDataUrl] = useState(initial?.isFile ? (initial?.url ?? "") : "");
   const [fileError, setFileError] = useState("");
+  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
 
   async function handleFileChange(file: File | null) {
@@ -32,13 +34,16 @@ export function PurchaseOrderForm({ initial, folderOptions, defaultFolder, onSav
       setFileError(`File is too large (max ${formatFileSize(MAX_UPLOAD_BYTES)}).`);
       return;
     }
+    setUploading(true);
     try {
-      const dataUrl = await readFileAsDataUrl(file);
-      setFileDataUrl(dataUrl);
+      const url = await uploadFile(file, "purchase-orders");
+      setFileDataUrl(url);
       setFileName(file.name);
       setFileSize(file.size);
     } catch {
-      setFileError("Couldn't read that file. Try a different one.");
+      setFileError("Couldn't upload that file. Try again.");
+    } finally {
+      setUploading(false);
     }
   }
 
@@ -131,6 +136,7 @@ export function PurchaseOrderForm({ initial, folderOptions, defaultFolder, onSav
             fileName={fileName}
             fileSize={fileSize}
             error={fileError}
+            uploading={uploading}
             onChange={handleFileChange}
             onClear={() => {
               setFileName("");
@@ -168,7 +174,7 @@ export function PurchaseOrderForm({ initial, folderOptions, defaultFolder, onSav
         <button type="button" className="btn-secondary" onClick={onCancel}>
           Cancel
         </button>
-        <button type="button" className="btn-primary" onClick={handleSave}>
+        <button type="button" className="btn-primary" onClick={handleSave} disabled={uploading}>
           {initial ? "Save" : "Add"}
         </button>
       </div>

@@ -2953,6 +2953,13 @@ body {
 .file-picker-btn:hover {
   border-color: var(--teal);
 }
+.file-picker-btn--uploading {
+  color: var(--text-secondary);
+  cursor: default;
+}
+.file-picker-btn--uploading:hover {
+  border-color: var(--border);
+}
 
 .form-card .file-picker-input {
   position: absolute;

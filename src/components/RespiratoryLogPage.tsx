@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import type { AppTile, RespiratoryPatientRecord, Role } from "../types";
 import { Icon } from "../icons";
-import { canManageApp, formatDate, initialOf, isOverdue } from "../utils";
+import { canManageApp, formatDate, initialOf, isOverdue, withUsedFolders } from "../utils";
 import { Modal } from "./Modal";
 import { RespiratoryPatientForm } from "./RespiratoryPatientForm";
 import { ManageStatusesForm } from "./ManageStatusesForm";
@@ -20,7 +20,10 @@ const FALLBACK_TINT = { bg: "#EAF6F1", fg: "#2F9E76" };
 
 export function RespiratoryLogPage({ app, role, onBack, onUpdate, onUpdateStatusOptions }: Props) {
   const records = app.respiratoryPatients ?? [];
-  const folderOptions = app.statusOptions ?? [];
+  const folderOptions = useMemo(
+    () => withUsedFolders(app.statusOptions ?? [], records),
+    [app.statusOptions, records],
+  );
   const hasFolders = folderOptions.length > 0;
   const [query, setQuery] = useState("");
   const [dueDateFilter, setDueDateFilter] = useState("");

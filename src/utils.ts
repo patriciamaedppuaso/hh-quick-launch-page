@@ -29,6 +29,15 @@ export function roleLabel(role: Role): string {
   return ROLE_LABELS[role] ?? "Staff";
 }
 
+/** Union of the admin-configured folder list and any folder names still referenced by
+ * records, so a record never becomes invisible just because its folder got removed from
+ * the list (e.g. two admins editing folders around the same time, last save wins). */
+export function withUsedFolders<T extends { folder?: string }>(options: string[], records: T[]): string[] {
+  const used = new Set(records.map((r) => r.folder).filter((f): f is string => !!f));
+  const extra = [...used].filter((f) => !options.includes(f));
+  return extra.length ? [...options, ...extra] : options;
+}
+
 /** Short summary of who can see an app, for admin-facing badges (e.g. on app cards). Null = visible to everyone. */
 export function visibilityBadge(app: AppTile): string | null {
   const roles = app.visibleRoles;
@@ -236,15 +245,6 @@ export function openTarget(url: string, isFile?: boolean, fileName?: string): vo
 }
 
 export const MAX_UPLOAD_BYTES = 4 * 1024 * 1024;
-
-export function readFileAsDataUrl(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = () => reject(reader.error);
-    reader.readAsDataURL(file);
-  });
-}
 
 export function isPdfFile(fileName?: string, url?: string): boolean {
   if (fileName?.toLowerCase().endsWith(".pdf")) return true;

@@ -4,6 +4,7 @@ import type { AppTile, ListApp, ReadAnnouncements, Role, Theme, ViewMode } from 
 import { loadSidebarCollapsed, loadTheme, loadView, saveSidebarCollapsed, saveTheme, saveView } from "./storage";
 import { fetchAllApps, fetchReadAnnouncements, markAnnouncementsReadRemote, syncApps } from "./lib/db";
 import { fetchUsers } from "./lib/users";
+import { deleteUploadedFile } from "./lib/uploads";
 import { supabase } from "./lib/supabaseClient";
 import { type CurrentUser, fetchCurrentUser, signOut } from "./lib/auth";
 import { computeMetrics } from "./metrics";
@@ -419,6 +420,7 @@ export default function App() {
     setAppsAndSync((prev) => prev.filter((a) => a.id !== appId), "App deleted");
     setEditingApp(null);
     if (openAppId === appId) setOpenAppId(null);
+    if (editingApp.type === "link" && editingApp.isFile) deleteUploadedFile(editingApp.url);
   }
 
   function renderActiveApp(app: ListApp) {

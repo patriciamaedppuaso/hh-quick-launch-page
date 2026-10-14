@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import type { AppTile, InvoiceRecord, Role } from "../types";
 import { Icon } from "../icons";
-import { canManageApp, formatDate, initialOf } from "../utils";
+import { canManageApp, formatDate, initialOf, withUsedFolders } from "../utils";
 import { Modal } from "./Modal";
 import { InvoiceForm } from "./InvoiceForm";
 import { ManageStatusesForm } from "./ManageStatusesForm";
@@ -22,7 +22,10 @@ type StatusFilter = "all" | InvoiceRecord["status"];
 
 export function InvoicesPage({ app, role, onBack, onUpdate, onUpdateStatusOptions }: Props) {
   const records = app.invoices ?? [];
-  const folderOptions = app.statusOptions ?? [];
+  const folderOptions = useMemo(
+    () => withUsedFolders(app.statusOptions ?? [], records),
+    [app.statusOptions, records],
+  );
   const hasFolders = folderOptions.length > 0;
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");

@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
 import type { AppTile, PurchaseOrderRecord, Role } from "../types";
 import { Icon } from "../icons";
-import { canManageApp, initialOf, isPdfFile, openTarget } from "../utils";
+import { canManageApp, initialOf, isPdfFile, openTarget, withUsedFolders } from "../utils";
+import { deleteUploadedFile } from "../lib/uploads";
 import { Modal } from "./Modal";
 import { PurchaseOrderForm } from "./PurchaseOrderForm";
 import { ManageStatusesForm } from "./ManageStatusesForm";
@@ -23,7 +24,10 @@ type StatusFilter = "all" | PurchaseOrderRecord["status"];
 
 export function PurchaseOrdersPage({ app, role, onBack, onUpdate, onUpdateStatusOptions }: Props) {
   const records = app.purchaseOrders ?? [];
-  const folderOptions = app.statusOptions ?? [];
+  const folderOptions = useMemo(
+    () => withUsedFolders(app.statusOptions ?? [], records),
+    [app.statusOptions, records],
+  );
   const hasFolders = folderOptions.length > 0;
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
@@ -73,8 +77,10 @@ export function PurchaseOrdersPage({ app, role, onBack, onUpdate, onUpdateStatus
   }
 
   function handleDelete(id: string) {
+    const record = records.find((po) => po.id === id);
     onUpdate(records.filter((po) => po.id !== id));
     setConfirmDeleteId(null);
+    if (record?.isFile) deleteUploadedFile(record.url);
   }
 
   function renderFolderRow(folder: string) {

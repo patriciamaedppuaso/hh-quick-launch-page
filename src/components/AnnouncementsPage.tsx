@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { AnnouncementAttachment, AnnouncementRecord, AppTile, Role } from "../types";
 import { Icon } from "../icons";
 import { canManageApp, formatDate, initialOf } from "../utils";
+import { deleteUploadedFile } from "../lib/uploads";
 import { Modal } from "./Modal";
 import { AnnouncementForm } from "./AnnouncementForm";
 import { FilePreviewModal } from "./FilePreviewModal";
@@ -55,8 +56,10 @@ export function AnnouncementsPage({ app, role, registeredUserNames, onBack, onUp
   }
 
   function handleDelete(id: string) {
+    const record = records.find((r) => r.id === id);
     onUpdate(records.filter((r) => r.id !== id));
     setConfirmDeleteId(null);
+    record?.attachments?.forEach((a) => deleteUploadedFile(a.url));
   }
 
   return (
