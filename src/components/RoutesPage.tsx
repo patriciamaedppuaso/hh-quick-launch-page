@@ -4,7 +4,6 @@ import { Icon } from "../icons";
 import { addDaysIso, canManageApp, initialOf, todayIso } from "../utils";
 import { Modal } from "./Modal";
 import { RouteStopForm } from "./RouteStopForm";
-import { PersonSearchInput } from "./PersonSearchInput";
 import { DetailModal } from "./DetailModal";
 import { useIsMobile } from "../hooks/useIsMobile";
 
@@ -13,16 +12,36 @@ interface Props {
   role: Role;
   currentUserName: string;
   registeredUserNames: string[];
+  driverNames: string[];
   onBack: () => void;
   onUpdate: (records: RouteStopRecord[]) => void;
 }
 
 const FALLBACK_TINT = { bg: "#E8F3EA", fg: "#3F9142" };
 
-export function RoutesPage({ app, role, currentUserName, registeredUserNames, onBack, onUpdate }: Props) {
+export function RoutesPage({ app, role, currentUserName, registeredUserNames, driverNames, onBack, onUpdate }: Props) {
   const records = app.routeStops ?? [];
+
+  // known drivers = everyone with the "Driver" role first, then every other
+  // registered user, plus anyone logged on a past route who isn't registered
+  // at all (e.g. a contractor) -- so the list is never empty while roles are
+  // still being assigned, and no existing stop ever goes missing.
+  const driverOptions = useMemo(() => {
+    const driverSet = new Set(driverNames);
+    const rest = registeredUserNames.filter((n) => !driverSet.has(n)).sort((a, b) => a.localeCompare(b));
+    const names = [...driverNames.slice().sort((a, b) => a.localeCompare(b)), ...rest];
+    const known = new Set(names);
+    for (const r of records) {
+      if (!known.has(r.driver)) {
+        known.add(r.driver);
+        names.push(r.driver);
+      }
+    }
+    return names;
+  }, [driverNames, registeredUserNames, records]);
+
   const [driver, setDriver] = useState(() =>
-    registeredUserNames.includes(currentUserName) ? currentUserName : (registeredUserNames[0] ?? ""),
+    driverOptions.includes(currentUserName) ? currentUserName : (driverOptions[0] ?? ""),
   );
   const [date, setDate] = useState(todayIso());
   const [editing, setEditing] = useState<RouteStopRecord | null>(null);
@@ -36,14 +55,6 @@ export function RoutesPage({ app, role, currentUserName, registeredUserNames, on
   const isMobile = useIsMobile();
   const canReorder = canManage && !isMobile;
   const tint = app.tint ?? FALLBACK_TINT;
-
-  // known drivers = registered users, plus anyone logged on a past route
-  // who might not be a registered user (e.g. a contractor)
-  const driverOptions = useMemo(() => {
-    const names = new Set(registeredUserNames);
-    for (const r of records) names.add(r.driver);
-    return Array.from(names).sort((a, b) => a.localeCompare(b));
-  }, [registeredUserNames, records]);
 
   useEffect(() => {
     if (!driver && driverOptions.length > 0) setDriver(driverOptions[0]);
@@ -127,14 +138,19 @@ export function RoutesPage({ app, role, currentUserName, registeredUserNames, on
       </div>
 
       <div className="items-toolbar">
-        <div className="form-row" style={{ margin: 0, minWidth: 220 }}>
-          <PersonSearchInput
-            value={driver}
-            onChange={setDriver}
-            options={driverOptions}
-            placeholder="Search drivers..."
-          />
-        </div>
+        <select
+          className="filter-select"
+          aria-label="Select driver"
+          value={driver}
+          onChange={(e) => setDriver(e.target.value)}
+        >
+          {driverOptions.length === 0 && <option value="">No drivers yet</option>}
+          {driverOptions.map((name) => (
+            <option key={name} value={name}>
+              {name}
+            </option>
+          ))}
+        </select>
         <input
           type="date"
           className="filter-select"

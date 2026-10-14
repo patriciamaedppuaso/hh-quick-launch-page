@@ -118,6 +118,7 @@ export default function App() {
   const [openAppId, setOpenAppId] = useState<string | null>(() => parseHashAppId());
   const [readAnnouncements, setReadAnnouncements] = useState<ReadAnnouncements>({ admin: [], employee: [], driver: [] });
   const [registeredUserNames, setRegisteredUserNames] = useState<string[]>([]);
+  const [driverNames, setDriverNames] = useState<string[]>([]);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(() => loadSidebarCollapsed());
   const [addingApp, setAddingApp] = useState(false);
@@ -179,6 +180,7 @@ export default function App() {
     setApps(nextApps);
     setReadAnnouncements(nextRead);
     setRegisteredUserNames(nextUsers.map((u) => u.name || u.email));
+    setDriverNames(nextUsers.filter((u) => u.role === "driver").map((u) => u.name || u.email));
   }
 
   useEffect(() => {
@@ -519,6 +521,7 @@ export default function App() {
             role={role}
             currentUserName={currentUserName}
             registeredUserNames={registeredUserNames}
+            driverNames={driverNames}
             onBack={closeItems}
             onUpdate={(routeStops) => updateApp(app.id, { routeStops })}
           />
