@@ -27,11 +27,7 @@ export function AccountForm({ initial, categoryOptions, onSave, onCancel }: Prop
       return;
     }
     const trimmedEmail = email.trim();
-    if (!trimmedEmail) {
-      setError("Email is required.");
-      return;
-    }
-    if (!isValidEmail(trimmedEmail)) {
+    if (trimmedEmail && !isValidEmail(trimmedEmail)) {
       setError("Enter a valid email address.");
       return;
     }
@@ -44,7 +40,7 @@ export function AccountForm({ initial, categoryOptions, onSave, onCancel }: Prop
       id: initial?.id ?? newId("account"),
       name: trimmedName,
       category: category || undefined,
-      email: trimmedEmail,
+      email: trimmedEmail || undefined,
       password,
       url: url.trim() || undefined,
       notes: notes.trim() || undefined,
@@ -75,7 +71,7 @@ export function AccountForm({ initial, categoryOptions, onSave, onCancel }: Prop
         </select>
       </div>
       <div className="form-row">
-        <label htmlFor="acEmail">Email</label>
+        <label htmlFor="acEmail">Email (optional)</label>
         <input
           id="acEmail"
           type="email"

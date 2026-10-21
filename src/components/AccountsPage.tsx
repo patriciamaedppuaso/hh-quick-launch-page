@@ -146,18 +146,20 @@ export function AccountsPage({ app, role, onBack, onUpdate, onUpdateStatusOption
                 </span>
                 <div className="items-row-text">
                   <span className="items-row-name">{r.name}</span>
-                  <span className="items-row-desc account-email">
-                    {r.email}
-                    <button
-                      type="button"
-                      className="icon-btn-sm"
-                      aria-label={`Copy email for ${r.name}`}
-                      title="Copy email"
-                      onClick={() => copyToClipboard(r.email, "Email")}
-                    >
-                      <Icon name="copy" />
-                    </button>
-                  </span>
+                  {r.email && (
+                    <span className="items-row-desc account-email">
+                      {r.email}
+                      <button
+                        type="button"
+                        className="icon-btn-sm"
+                        aria-label={`Copy email for ${r.name}`}
+                        title="Copy email"
+                        onClick={() => copyToClipboard(r.email!, "Email")}
+                      >
+                        <Icon name="copy" />
+                      </button>
+                    </span>
+                  )}
                 </div>
                 <div className="items-row-actions">
                   {r.category && (

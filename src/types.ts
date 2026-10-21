@@ -156,7 +156,7 @@ export interface AccountRecord {
   id: string;
   name: string;
   category?: string;
-  email: string;
+  email?: string;
   password: string;
   url?: string;
   notes?: string;
