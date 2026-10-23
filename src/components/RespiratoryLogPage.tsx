@@ -110,8 +110,8 @@ export function RespiratoryLogPage({ app, role, onBack, onUpdate, onUpdateStatus
           <span className={`items-row-desc${overdue ? " task-overdue" : ""}`}>
             {[
               p.city,
-              p.dueDate && `Due ${formatDate(p.dueDate)}`,
-              p.logDate && `Logged ${formatDate(p.logDate)}`,
+              p.dueDate && formatDate(p.dueDate),
+              p.logDate && `Created ${formatDate(p.logDate)}`,
             ]
               .filter(Boolean)
               .join(" · ")}
@@ -203,7 +203,7 @@ export function RespiratoryLogPage({ app, role, onBack, onUpdate, onUpdateStatus
         </div>
         <div className="form-row" style={{ margin: 0 }}>
           <label htmlFor="rlDueFilter" className="form-hint" style={{ margin: 0 }}>
-            Due date
+            Date
           </label>
           <input
             id="rlDueFilter"
@@ -215,7 +215,7 @@ export function RespiratoryLogPage({ app, role, onBack, onUpdate, onUpdateStatus
         </div>
         <div className="form-row" style={{ margin: 0 }}>
           <label htmlFor="rlLogFilter" className="form-hint" style={{ margin: 0 }}>
-            Log date
+            Created at
           </label>
           <input
             id="rlLogFilter"
@@ -309,14 +309,14 @@ export function RespiratoryLogPage({ app, role, onBack, onUpdate, onUpdateStatus
         fields={[
           { label: "Folder", value: viewing?.folder },
           { label: "City", value: viewing?.city },
-          { label: "Due date", value: viewing?.dueDate ? formatDate(viewing.dueDate) : undefined },
-          { label: "Log date", value: viewing?.logDate ? formatDate(viewing.logDate) : undefined },
+          { label: "Date", value: viewing?.dueDate ? formatDate(viewing.dueDate) : undefined },
           {
             label: "Equipment",
             value: viewing?.equipment.length
               ? viewing.equipment.map((e) => `${e.name} (${e.status === "ongoing" ? "Ongoing" : "Returned"})`).join(", ")
               : undefined,
           },
+          { label: "Created at", value: viewing?.logDate ? formatDate(viewing.logDate) : undefined },
         ]}
         onEdit={
           canManage && viewing

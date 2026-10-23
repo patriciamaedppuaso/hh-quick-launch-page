@@ -84,7 +84,7 @@ export function RespiratoryPatientForm({ initial, folderOptions, defaultFolder, 
         <input id="rpCity" type="text" value={city} onChange={(e) => setCity(e.target.value)} />
       </div>
       <div className="form-row">
-        <label htmlFor="rpDue">Due date (optional)</label>
+        <label htmlFor="rpDue">Date (optional)</label>
         <input id="rpDue" type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
       </div>
 
