@@ -13,6 +13,7 @@ interface Props {
 export function AccountForm({ initial, categoryOptions, onSave, onCancel }: Props) {
   const [name, setName] = useState(initial?.name ?? "");
   const [category, setCategory] = useState(initial?.category ?? categoryOptions[0] ?? "");
+  const [username, setUsername] = useState(initial?.username ?? "");
   const [email, setEmail] = useState(initial?.email ?? "");
   const [password, setPassword] = useState(initial?.password ?? "");
   const [showPassword, setShowPassword] = useState(false);
@@ -31,17 +32,14 @@ export function AccountForm({ initial, categoryOptions, onSave, onCancel }: Prop
       setError("Enter a valid email address.");
       return;
     }
-    if (!password) {
-      setError("Password is required.");
-      return;
-    }
     setError("");
     onSave({
       id: initial?.id ?? newId("account"),
       name: trimmedName,
       category: category || undefined,
+      username: username.trim() || undefined,
       email: trimmedEmail || undefined,
-      password,
+      password: password || undefined,
       url: url.trim() || undefined,
       notes: notes.trim() || undefined,
       updatedAt: todayIso(),
@@ -71,6 +69,16 @@ export function AccountForm({ initial, categoryOptions, onSave, onCancel }: Prop
         </select>
       </div>
       <div className="form-row">
+        <label htmlFor="acUsername">Username (optional)</label>
+        <input
+          id="acUsername"
+          type="text"
+          placeholder="Login username"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+        />
+      </div>
+      <div className="form-row">
         <label htmlFor="acEmail">Email (optional)</label>
         <input
           id="acEmail"
@@ -81,7 +89,7 @@ export function AccountForm({ initial, categoryOptions, onSave, onCancel }: Prop
         />
       </div>
       <div className="form-row">
-        <label htmlFor="acPassword">Password</label>
+        <label htmlFor="acPassword">Password (optional)</label>
         <div className="url-field">
           <input
             id="acPassword"

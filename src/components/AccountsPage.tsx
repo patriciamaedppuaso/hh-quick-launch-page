@@ -45,7 +45,7 @@ export function AccountsPage({ app, role, onBack, onUpdate, onUpdateStatusOption
     return records.filter((r) => {
       if (categoryFilter !== "all" && r.category !== categoryFilter) return false;
       if (!q) return true;
-      return [r.name, r.email, r.notes].some((v) => v?.toLowerCase().includes(q));
+      return [r.name, r.username, r.email, r.notes].some((v) => v?.toLowerCase().includes(q));
     });
   }, [records, query, categoryFilter]);
 
@@ -146,6 +146,20 @@ export function AccountsPage({ app, role, onBack, onUpdate, onUpdateStatusOption
                 </span>
                 <div className="items-row-text">
                   <span className="items-row-name">{r.name}</span>
+                  {r.username && (
+                    <span className="items-row-desc account-email">
+                      {r.username}
+                      <button
+                        type="button"
+                        className="icon-btn-sm"
+                        aria-label={`Copy username for ${r.name}`}
+                        title="Copy username"
+                        onClick={() => copyToClipboard(r.username!, "Username")}
+                      >
+                        <Icon name="copy" />
+                      </button>
+                    </span>
+                  )}
                   {r.email && (
                     <span className="items-row-desc account-email">
                       {r.email}
@@ -173,27 +187,29 @@ export function AccountsPage({ app, role, onBack, onUpdate, onUpdateStatusOption
                       {r.category}
                     </span>
                   )}
-                  <span className="account-password">
-                    <span className="account-password-value">{revealed ? r.password : "••••••••"}</span>
-                    <button
-                      type="button"
-                      className="icon-btn-sm"
-                      aria-label={revealed ? `Hide password for ${r.name}` : `Show password for ${r.name}`}
-                      title={revealed ? "Hide password" : "Show password"}
-                      onClick={() => setRevealedId(revealed ? null : r.id)}
-                    >
-                      <Icon name={revealed ? "eye-off" : "eye"} />
-                    </button>
-                    <button
-                      type="button"
-                      className="icon-btn-sm"
-                      aria-label={`Copy password for ${r.name}`}
-                      title="Copy password"
-                      onClick={() => copyToClipboard(r.password, "Password")}
-                    >
-                      <Icon name="copy" />
-                    </button>
-                  </span>
+                  {r.password && (
+                    <span className="account-password">
+                      <span className="account-password-value">{revealed ? r.password : "••••••••"}</span>
+                      <button
+                        type="button"
+                        className="icon-btn-sm"
+                        aria-label={revealed ? `Hide password for ${r.name}` : `Show password for ${r.name}`}
+                        title={revealed ? "Hide password" : "Show password"}
+                        onClick={() => setRevealedId(revealed ? null : r.id)}
+                      >
+                        <Icon name={revealed ? "eye-off" : "eye"} />
+                      </button>
+                      <button
+                        type="button"
+                        className="icon-btn-sm"
+                        aria-label={`Copy password for ${r.name}`}
+                        title="Copy password"
+                        onClick={() => copyToClipboard(r.password!, "Password")}
+                      >
+                        <Icon name="copy" />
+                      </button>
+                    </span>
+                  )}
                   {r.url && (
                     <a
                       className="list-item-open list-item-open-icon"
