@@ -215,6 +215,8 @@ export interface InvoiceRecord {
   notes?: string;
   status: InvoiceStatus;
   date: string;
+  /** Marked done once someone's verified/handled this invoice -- independent of print status. */
+  checked?: boolean;
 }
 
 export type PurchaseOrderStatus = "unpaid" | "paid";

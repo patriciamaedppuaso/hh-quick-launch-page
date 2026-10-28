@@ -356,6 +356,7 @@ function rowToInvoice(row: Record<string, unknown>): InvoiceRecord {
     notes: (row.notes as string) ?? undefined,
     status: row.status as InvoiceRecord["status"],
     date: row.date as string,
+    checked: (row.checked as boolean) ?? false,
   };
 }
 
@@ -745,6 +746,7 @@ async function syncAppCollections(app: AppTile): Promise<void> {
           notes: inv.notes ?? null,
           status: inv.status,
           date: inv.date,
+          checked: inv.checked ?? false,
         })),
       ),
     );

@@ -29,6 +29,7 @@ export function InvoicesPage({ app, role, onBack, onUpdate, onUpdateStatusOption
   const hasFolders = folderOptions.length > 0;
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [checkedFilter, setCheckedFilter] = useState<"all" | "checked" | "unchecked">("all");
   const [monthFilter, setMonthFilter] = useState("");
   const [openFolder, setOpenFolder] = useState<string | null>(null);
   const [editing, setEditing] = useState<InvoiceRecord | null>(null);
@@ -59,11 +60,13 @@ export function InvoicesPage({ app, role, onBack, onUpdate, onUpdateStatusOption
     const q = query.trim().toLowerCase();
     return visibleInvoices.filter((inv) => {
       if (statusFilter !== "all" && inv.status !== statusFilter) return false;
+      if (checkedFilter === "checked" && !inv.checked) return false;
+      if (checkedFilter === "unchecked" && inv.checked) return false;
       if (monthFilter && !inv.date.startsWith(monthFilter)) return false;
       if (!q) return true;
       return [inv.patientName, inv.address, inv.hospice, inv.notes].some((v) => v?.toLowerCase().includes(q));
     });
-  }, [visibleInvoices, query, statusFilter, monthFilter]);
+  }, [visibleInvoices, query, statusFilter, checkedFilter, monthFilter]);
 
   function handleAddSave(record: InvoiceRecord) {
     onUpdate([...records, record]);
@@ -78,6 +81,10 @@ export function InvoicesPage({ app, role, onBack, onUpdate, onUpdateStatusOption
   function handleDelete(id: string) {
     onUpdate(records.filter((inv) => inv.id !== id));
     setConfirmDeleteId(null);
+  }
+
+  function toggleChecked(inv: InvoiceRecord) {
+    onUpdate(records.map((r) => (r.id === inv.id ? { ...r, checked: !r.checked } : r)));
   }
 
   function renderFolderRow(folder: string) {
@@ -103,11 +110,22 @@ export function InvoicesPage({ app, role, onBack, onUpdate, onUpdateStatusOption
   function renderInvoiceRow(inv: InvoiceRecord) {
     return (
       <div className="items-row items-row--clickable" key={inv.id} onClick={() => setViewing(inv)}>
+        {canManage && (
+          <input
+            type="checkbox"
+            className="route-finished-checkbox"
+            checked={inv.checked ?? false}
+            aria-label={inv.checked ? `Mark ${inv.patientName} as not checked` : `Mark ${inv.patientName} as checked`}
+            title={inv.checked ? "Checked" : "Mark as checked"}
+            onClick={(e) => e.stopPropagation()}
+            onChange={() => toggleChecked(inv)}
+          />
+        )}
         <span className="contact-avatar" style={{ background: tint.bg, color: tint.fg }}>
           {initialOf(inv.patientName)}
         </span>
         <div className="items-row-text">
-          <span className="items-row-name">{inv.patientName}</span>
+          <span className={`items-row-name${inv.checked ? " task-done" : ""}`}>{inv.patientName}</span>
           <span className="items-row-desc">
             {[inv.hospice, inv.address, formatDate(inv.date)].filter(Boolean).join(" · ")}
           </span>
@@ -202,6 +220,16 @@ export function InvoicesPage({ app, role, onBack, onUpdate, onUpdateStatusOption
           <option value="to_be_printed">To be printed</option>
           <option value="printed">Printed</option>
         </select>
+        <select
+          className="filter-select"
+          aria-label="Filter by checked"
+          value={checkedFilter}
+          onChange={(e) => setCheckedFilter(e.target.value as "all" | "checked" | "unchecked")}
+        >
+          <option value="all">Checked & unchecked</option>
+          <option value="unchecked">Unchecked only</option>
+          <option value="checked">Checked only</option>
+        </select>
         <input
           type="month"
           className="filter-select"
@@ -231,7 +259,7 @@ export function InvoicesPage({ app, role, onBack, onUpdate, onUpdateStatusOption
 
       {filtered.length === 0 && !(showFolders && folderOptions.length > 0) ? (
         <p className="items-empty">
-          {query || statusFilter !== "all" || monthFilter
+          {query || statusFilter !== "all" || checkedFilter !== "all" || monthFilter
             ? "No invoices match your filters."
             : openFolder !== null
               ? "No invoices in this folder yet."
@@ -290,6 +318,7 @@ export function InvoicesPage({ app, role, onBack, onUpdate, onUpdateStatusOption
           { label: "Order type", value: viewing?.orderType },
           { label: "Date", value: viewing?.date ? formatDate(viewing.date) : undefined },
           { label: "Status", value: viewing?.status === "printed" ? "Printed" : "To be printed" },
+          { label: "Checked", value: viewing?.checked ? "Yes" : "No" },
           { label: "Notes", value: viewing?.notes },
         ]}
         onEdit={
