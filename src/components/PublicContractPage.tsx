@@ -38,9 +38,17 @@ function renderInline(
     if (seg.type === "text") return seg.value;
 
     if (seg.key === "signature") {
-      return signatureUrl ? (
-        <img key={key} src={signatureUrl} alt="Signature" className="contract-inline-signature" />
-      ) : (
+      if (signatureUrl) {
+        return <img key={key} src={signatureUrl} alt="Signature" className="contract-inline-signature" />;
+      }
+      if (onChange) {
+        return (
+          <em key={key} className="contract-signature-hint">
+            (refer to the box below for signature)
+          </em>
+        );
+      }
+      return (
         <span className="contract-blank-filled" key={key}>
           _____________
         </span>
@@ -343,7 +351,12 @@ export function PublicContractPage({ token }: Props) {
 
         {error && <p className="field-error">{error}</p>}
 
-        <button type="button" className="btn-primary contract-submit" onClick={handleSubmit} disabled={submitting}>
+        <button
+          type="button"
+          className="btn-primary contract-submit"
+          onClick={handleSubmit}
+          disabled={submitting || !agreed}
+        >
           {submitting ? "Submitting…" : "Submit & sign"}
         </button>
       </div>
