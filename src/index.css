@@ -226,11 +226,11 @@ body {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08), 0 12px 32px rgba(0, 0, 0, 0.14);
   padding: 56px 64px;
   font-family: Georgia, "Times New Roman", serif;
-  font-size: 13.5px;
-  line-height: 1.65;
+  font-size: 11px;
+  line-height: 1.5;
 }
 .contract-page p {
-  margin: 0 0 14px;
+  margin: 0 0 11px;
   white-space: pre-line;
   text-align: justify;
 }
@@ -240,12 +240,23 @@ body {
 .contract-page p.contract-page-title {
   text-align: center;
   font-weight: 700;
-  font-size: 16px;
+  font-size: 13.5px;
   letter-spacing: 0.02em;
-  margin-bottom: 22px;
+  margin-bottom: 18px;
 }
 .contract-page p.contract-center {
   text-align: center;
+}
+.contract-two-col {
+  margin-bottom: 11px;
+}
+.contract-two-col-row {
+  display: flex;
+  gap: 24px;
+}
+.contract-two-col-cell {
+  flex: 1;
+  min-width: 0;
 }
 @media (max-width: 640px) {
   .contract-page {
@@ -281,11 +292,20 @@ body {
   border-bottom-color: #2f5fc0;
 }
 .contract-blank-filled {
-  display: inline;
+  display: inline-block;
+  white-space: nowrap;
   font-weight: 700;
   color: #1a3a6b;
   border-bottom: 1.5px solid #c9c9c9;
   padding: 0 2px;
+}
+
+.contract-inline-signature {
+  display: inline-block;
+  height: 54px;
+  width: auto;
+  vertical-align: middle;
+  margin: -14px 2px -18px 2px;
 }
 
 .contract-body-preview {
@@ -352,6 +372,9 @@ body {
   background: var(--surface-soft);
 }
 
+@page {
+  margin: 0.6in;
+}
 @media print {
   .contract-toolbar,
   .contract-sign-panel,
@@ -368,6 +391,10 @@ body {
     box-shadow: none;
     max-width: none;
     width: 100%;
+    padding: 0;
+  }
+  .contract-page p {
+    break-inside: avoid;
   }
 }
 

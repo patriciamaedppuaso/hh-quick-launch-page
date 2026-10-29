@@ -21,19 +21,92 @@ type LoadState = "loading" | "ready" | "not-found" | "error";
 
 const INDENT_PX = 22;
 
+/** Renders one segment-stream (bold/italic -> <strong>/<em>, {{key}} -> inline input or
+ * inline filled text) shared by both normal paragraphs and two-column cells. */
+function renderInline(
+  text: string,
+  fieldByKey: Map<string, ContractField>,
+  values: Record<string, string>,
+  onChange: ((key: string, value: string) => void) | undefined,
+  keyPrefix: string,
+  signatureUrl?: string | null,
+): ReactNode {
+  return splitRichText(text).map((seg, i) => {
+    const key = `${keyPrefix}-${i}`;
+    if (seg.type === "bold") return <strong key={key}>{seg.value}</strong>;
+    if (seg.type === "italic") return <em key={key}>{seg.value}</em>;
+    if (seg.type === "text") return seg.value;
+
+    if (seg.key === "signature") {
+      return signatureUrl ? (
+        <img key={key} src={signatureUrl} alt="Signature" className="contract-inline-signature" />
+      ) : (
+        <span className="contract-blank-filled" key={key}>
+          _____________
+        </span>
+      );
+    }
+
+    const field = fieldByKey.get(seg.key);
+    if (!field) return null;
+    const value = values[seg.key] ?? "";
+    if (!onChange) {
+      return (
+        <span className="contract-blank-filled" key={key}>
+          {value || "_____________"}
+        </span>
+      );
+    }
+    return (
+      <input
+        key={key}
+        type={field.type === "date" ? "date" : "text"}
+        className="contract-blank"
+        style={field.type === "text" ? { width: `${Math.max(field.label.length, value.length) + 2}ch` } : undefined}
+        value={value}
+        placeholder={field.label}
+        title={field.label}
+        onChange={(e) => onChange(seg.key, e.target.value)}
+      />
+    );
+  });
+}
+
 /** Renders a template body as a paper page: bold/italic markers become <strong>/<em>,
- * leading tabs/^^ become indentation/centering (see parseParagraph), and each {{key}}
- * blank becomes an inline input (editable) or inline filled text (read-only, once
- * submitted). */
+ * leading tabs/^^/## become indentation/centering/two-column rows (see parseParagraph),
+ * and each {{key}} blank becomes an inline input (editable) or inline filled text
+ * (read-only, once submitted). */
 function renderPage(
   body: string,
   fields: ContractField[],
   values: Record<string, string>,
   onChange?: (key: string, value: string) => void,
+  signatureUrl?: string | null,
 ): ReactNode {
   const fieldByKey = new Map(fields.map((f) => [f.key, f]));
   return body.split("\n\n").map((raw, pi) => {
-    const { centered, indent, text } = parseParagraph(raw);
+    const { centered, twoColumn, indent, text } = parseParagraph(raw);
+
+    if (twoColumn) {
+      return (
+        <div key={pi} className="contract-two-col">
+          {text.split("\n").map((line, li) => {
+            const [left, right] = line.split("|").map((s) => s.trim());
+            return (
+              <div className="contract-two-col-row" key={li}>
+                <span className="contract-two-col-cell">
+                  {renderInline(left, fieldByKey, values, onChange, `${pi}-${li}-l`, signatureUrl)}
+                </span>
+                <span className="contract-two-col-cell">
+                  {right != null ? renderInline(right, fieldByKey, values, onChange, `${pi}-${li}-r`, signatureUrl) : null}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      );
+    }
+
     const style: CSSProperties = {};
     if (indent > 0) {
       style.marginLeft = `${indent * INDENT_PX}px`;
@@ -47,34 +120,7 @@ function renderPage(
       .join(" ");
     return (
       <p key={pi} className={className || undefined} style={style}>
-        {splitRichText(text).map((seg, i) => {
-        if (seg.type === "bold") return <strong key={i}>{seg.value}</strong>;
-        if (seg.type === "italic") return <em key={i}>{seg.value}</em>;
-        if (seg.type === "text") return seg.value;
-
-        const field = fieldByKey.get(seg.key);
-        if (!field) return null;
-        const value = values[seg.key] ?? "";
-        if (!onChange) {
-          return (
-            <span className="contract-blank-filled" key={i}>
-              {value || "_____________"}
-            </span>
-          );
-        }
-        return (
-          <input
-            key={i}
-            type={field.type === "date" ? "date" : "text"}
-            className="contract-blank"
-            style={field.type === "text" ? { width: `${Math.max(field.label.length, value.length) + 2}ch` } : undefined}
-            value={value}
-            placeholder={field.label}
-            title={field.label}
-            onChange={(e) => onChange(seg.key, e.target.value)}
-          />
-        );
-        })}
+        {renderInline(text, fieldByKey, values, onChange, `${pi}`, signatureUrl)}
       </p>
     );
   });
@@ -133,21 +179,56 @@ export function PublicContractPage({ token }: Props) {
     if (!node) return;
     setDownloading(true);
     try {
-      // Loaded on demand: jsPDF drags in html2canvas (for a feature most
-      // visitors to this link will never click).
-      const { default: jsPDF } = await import("jspdf");
-      const doc = new jsPDF({ unit: "pt", format: "letter" });
-      const margin = 36;
-      const pageWidth = doc.internal.pageSize.getWidth() - margin * 2;
-      await doc.html(node, {
-        x: margin,
-        y: margin,
-        width: pageWidth,
-        windowWidth: node.scrollWidth,
-        autoPaging: "text",
-      });
+      // Loaded on demand: drags in html2canvas (for a feature most visitors
+      // to this link will never click). Rasterizing the actual rendered page
+      // (rather than jsPDF's own HTML/CSS interpreter) avoids it mangling the
+      // indentation and inline blanks -- it just captures pixels, so the PDF
+      // always matches exactly what's on screen.
+      const [{ default: jsPDF }, { default: html2canvas }] = await Promise.all([
+        import("jspdf"),
+        import("html2canvas"),
+      ]);
+      const canvas = await html2canvas(node, { scale: 2, backgroundColor: "#ffffff" });
+      // DOM-px -> canvas-px factor, robust against devicePixelRatio (don't assume it equals `scale`).
+      const scaleY = canvas.height / node.scrollHeight;
+
+      // Never cut a page mid-paragraph: collect each paragraph's bottom edge
+      // (in canvas px) as the only places a page break is allowed to land.
+      const breakpoints = Array.from(node.children)
+        .map((child) => Math.round(((child as HTMLElement).offsetTop + (child as HTMLElement).offsetHeight) * scaleY))
+        .filter((y) => y > 0 && y <= canvas.height);
+
+      const pdf = new jsPDF({ unit: "pt", format: "letter" });
+      const margin = 40;
+      const pageWidth = pdf.internal.pageSize.getWidth() - margin * 2;
+      const pageHeight = pdf.internal.pageSize.getHeight() - margin * 2;
+      const pxPerPt = canvas.width / pageWidth;
+      const maxSliceHeightPx = pageHeight * pxPerPt;
+
+      let cursor = 0;
+      let firstPage = true;
+      while (cursor < canvas.height) {
+        const limit = cursor + maxSliceHeightPx;
+        // Latest paragraph break that still fits on this page; if none fit
+        // (a single paragraph taller than a page), fall back to a raw cut.
+        const bestBreak = breakpoints.filter((y) => y > cursor && y <= limit).pop();
+        const sliceEnd = Math.min(bestBreak ?? limit, canvas.height);
+        const sliceHeight = sliceEnd - cursor;
+
+        const slice = document.createElement("canvas");
+        slice.width = canvas.width;
+        slice.height = sliceHeight;
+        slice.getContext("2d")?.drawImage(canvas, 0, cursor, canvas.width, sliceHeight, 0, 0, canvas.width, sliceHeight);
+
+        if (!firstPage) pdf.addPage();
+        firstPage = false;
+        pdf.addImage(slice.toDataURL("image/jpeg", 0.92), "JPEG", margin, margin, pageWidth, sliceHeight / pxPerPt);
+
+        cursor = sliceEnd;
+      }
+
       const slug = (template?.title ?? "contract").toLowerCase().replace(/[^a-z0-9]+/g, "-");
-      doc.save(`${slug}.pdf`);
+      pdf.save(`${slug}.pdf`);
     } catch (err) {
       console.error("PDF download failed:", err);
       toast.error("Couldn't create the PDF. Try printing instead.");
@@ -238,7 +319,7 @@ export function PublicContractPage({ token }: Props) {
         </p>
         {toolbar}
         <div className="contract-page" ref={pageRef}>
-          {renderPage(template?.body ?? "", template?.fields ?? [], finalValues)}
+          {renderPage(template?.body ?? "", template?.fields ?? [], finalValues, undefined, signature ?? contract?.signatureDataUrl)}
         </div>
       </div>
     );
@@ -248,7 +329,7 @@ export function PublicContractPage({ token }: Props) {
     <div className="contract-screen">
       {toolbar}
       <div className="contract-page" ref={pageRef}>
-        {renderPage(template?.body ?? "", template?.fields ?? [], values, setValue)}
+        {renderPage(template?.body ?? "", template?.fields ?? [], values, setValue, signature)}
       </div>
 
       <div className="contract-sign-panel">

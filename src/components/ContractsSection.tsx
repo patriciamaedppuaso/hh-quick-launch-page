@@ -372,7 +372,33 @@ export function ContractsSection({ canManage, currentUserName }: Props) {
                 {fillTemplate(templateBody, {})
                   .split("\n\n")
                   .map((raw, i) => {
-                    const { centered, indent, text } = parseParagraph(raw);
+                    const { centered, twoColumn, indent, text } = parseParagraph(raw);
+                    const renderInline = (t: string, kp: string) =>
+                      splitRichText(t).map((seg, j) => {
+                        const key = `${kp}-${j}`;
+                        if (seg.type === "bold") return <strong key={key}>{seg.value}</strong>;
+                        if (seg.type === "italic") return <em key={key}>{seg.value}</em>;
+                        return seg.type === "text" ? seg.value : "";
+                      });
+
+                    if (twoColumn) {
+                      return (
+                        <div key={i} className="contract-two-col">
+                          {text.split("\n").map((line, li) => {
+                            const [left, right] = line.split("|").map((s) => s.trim());
+                            return (
+                              <div className="contract-two-col-row" key={li}>
+                                <span className="contract-two-col-cell">{renderInline(left, `${i}-${li}-l`)}</span>
+                                <span className="contract-two-col-cell">
+                                  {right != null ? renderInline(right, `${i}-${li}-r`) : null}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      );
+                    }
+
                     const style: CSSProperties =
                       indent > 0
                         ? {
@@ -382,11 +408,7 @@ export function ContractsSection({ canManage, currentUserName }: Props) {
                         : {};
                     return (
                       <p key={i} className={centered ? "contract-center" : undefined} style={style}>
-                        {splitRichText(text).map((seg, j) => {
-                          if (seg.type === "bold") return <strong key={j}>{seg.value}</strong>;
-                          if (seg.type === "italic") return <em key={j}>{seg.value}</em>;
-                          return seg.type === "text" ? seg.value : "";
-                        })}
+                        {renderInline(text, `${i}`)}
                       </p>
                     );
                   })}

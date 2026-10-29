@@ -38,18 +38,25 @@ export function fillTemplate(body: string, values: Record<string, string>): stri
 
 export interface ParsedParagraph {
   centered: boolean;
+  twoColumn: boolean;
   indent: number;
   text: string;
 }
 
-/** Strips a paragraph's leading layout markers: ^^ centers it, and each leading tab is one
- * indent level -- both convention for matching a source document's layout (see migrations
- * 0048/0049). */
+/** Strips a paragraph's leading layout markers: ^^ centers it, ## makes it a two-column
+ * block (each \n-separated line split on " | " into left/right, for side-by-side signature
+ * blocks -- justified text-align collapses literal whitespace padding, so that doesn't work),
+ * and each leading tab is one indent level -- all conventions for matching a source
+ * document's layout (see migrations 0048/0049/0050). */
 export function parseParagraph(raw: string): ParsedParagraph {
   let text = raw;
   let centered = false;
+  let twoColumn = false;
   if (text.startsWith("^^")) {
     centered = true;
+    text = text.slice(2);
+  } else if (text.startsWith("##")) {
+    twoColumn = true;
     text = text.slice(2);
   }
   let indent = 0;
@@ -57,7 +64,7 @@ export function parseParagraph(raw: string): ParsedParagraph {
     indent++;
     text = text.slice(1);
   }
-  return { centered, indent, text };
+  return { centered, twoColumn, indent, text };
 }
 
 /** Whether a paragraph starts with a list marker (A., i., 1., etc.) worth a hanging indent. */
