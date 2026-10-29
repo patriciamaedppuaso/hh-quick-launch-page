@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
 import type { ContractField, ContractTemplate, ServiceContractRecord } from "../types";
 import {
@@ -11,6 +11,7 @@ import {
 } from "../lib/contracts";
 import { formatDate } from "../utils";
 import { SignaturePad } from "./SignaturePad";
+import { useToast } from "./ToastProvider";
 
 interface Props {
   token: string;
@@ -80,6 +81,8 @@ function renderPage(
 }
 
 export function PublicContractPage({ token }: Props) {
+  const toast = useToast();
+  const pageRef = useRef<HTMLDivElement>(null);
   const [loadState, setLoadState] = useState<LoadState>("loading");
   const [template, setTemplate] = useState<ContractTemplate | null>(null);
   const [contract, setContract] = useState<ServiceContractRecord | null>(null);
@@ -88,6 +91,7 @@ export function PublicContractPage({ token }: Props) {
   const [agreed, setAgreed] = useState(false);
   const [signature, setSignature] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [downloading, setDownloading] = useState(false);
   const [error, setError] = useState("");
   const [submitted, setSubmitted] = useState(false);
 
@@ -119,6 +123,49 @@ export function PublicContractPage({ token }: Props) {
   function setValue(key: string, v: string) {
     setValues((prev) => ({ ...prev, [key]: v }));
   }
+
+  function handlePrint() {
+    window.print();
+  }
+
+  async function handleDownload() {
+    const node = pageRef.current;
+    if (!node) return;
+    setDownloading(true);
+    try {
+      // Loaded on demand: jsPDF drags in html2canvas (for a feature most
+      // visitors to this link will never click).
+      const { default: jsPDF } = await import("jspdf");
+      const doc = new jsPDF({ unit: "pt", format: "letter" });
+      const margin = 36;
+      const pageWidth = doc.internal.pageSize.getWidth() - margin * 2;
+      await doc.html(node, {
+        x: margin,
+        y: margin,
+        width: pageWidth,
+        windowWidth: node.scrollWidth,
+        autoPaging: "text",
+      });
+      const slug = (template?.title ?? "contract").toLowerCase().replace(/[^a-z0-9]+/g, "-");
+      doc.save(`${slug}.pdf`);
+    } catch (err) {
+      console.error("PDF download failed:", err);
+      toast.error("Couldn't create the PDF. Try printing instead.");
+    } finally {
+      setDownloading(false);
+    }
+  }
+
+  const toolbar = (
+    <div className="contract-toolbar">
+      <button type="button" className="contract-toolbar-btn" onClick={handlePrint}>
+        Print
+      </button>
+      <button type="button" className="contract-toolbar-btn" onClick={handleDownload} disabled={downloading}>
+        {downloading ? "Preparing…" : "Download PDF"}
+      </button>
+    </div>
+  );
 
   async function handleSubmit() {
     const missing = (template?.fields ?? []).find((f) => !values[f.key]?.trim());
@@ -189,14 +236,20 @@ export function PublicContractPage({ token }: Props) {
             ? "Thanks -- this contract has been submitted and signed."
             : `This contract was already signed${contract?.signedAt ? ` on ${formatDate(contract.signedAt.slice(0, 10))}` : ""}.`}
         </p>
-        <div className="contract-page">{renderPage(template?.body ?? "", template?.fields ?? [], finalValues)}</div>
+        {toolbar}
+        <div className="contract-page" ref={pageRef}>
+          {renderPage(template?.body ?? "", template?.fields ?? [], finalValues)}
+        </div>
       </div>
     );
   }
 
   return (
     <div className="contract-screen">
-      <div className="contract-page">{renderPage(template?.body ?? "", template?.fields ?? [], values, setValue)}</div>
+      {toolbar}
+      <div className="contract-page" ref={pageRef}>
+        {renderPage(template?.body ?? "", template?.fields ?? [], values, setValue)}
+      </div>
 
       <div className="contract-sign-panel">
         <h2 className="contract-section-title">Signature</h2>

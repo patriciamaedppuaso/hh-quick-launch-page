@@ -192,6 +192,32 @@ body {
   color: #2f6f52;
 }
 
+.contract-toolbar {
+  width: 100%;
+  max-width: 720px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.contract-toolbar-btn {
+  border: 1px solid #d5d5d8;
+  background: #fff;
+  color: #333;
+  border-radius: 7px;
+  padding: 7px 14px;
+  font-family: "Public Sans", sans-serif;
+  font-weight: 600;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.contract-toolbar-btn:hover {
+  border-color: #aeb0b8;
+}
+.contract-toolbar-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
 .contract-page {
   width: 100%;
   max-width: 720px;
@@ -324,6 +350,25 @@ body {
   padding: 8px 12px;
   border-top: 1px solid var(--border);
   background: var(--surface-soft);
+}
+
+@media print {
+  .contract-toolbar,
+  .contract-sign-panel,
+  .contract-status {
+    display: none !important;
+  }
+  .contract-screen {
+    background: #fff;
+    padding: 0;
+    gap: 0;
+    min-height: 0;
+  }
+  .contract-page {
+    box-shadow: none;
+    max-width: none;
+    width: 100%;
+  }
 }
 
 .wrap {
