@@ -46,7 +46,8 @@ export type IconName =
   | "truck"
   | "lungs"
   | "receipt"
-  | "clipboard";
+  | "clipboard"
+  | "signature";
 
 export interface Tint {
   bg: string;
@@ -293,6 +294,38 @@ export interface PasswordResetRequest {
   status: PasswordResetRequestStatus;
   createdAt: string;
   resolvedAt?: string;
+}
+
+export type ContractFieldType = "text" | "date";
+
+export interface ContractField {
+  key: string;
+  label: string;
+  type: ContractFieldType;
+}
+
+export interface ContractTemplate {
+  id: string;
+  title: string;
+  body: string;
+  fields: ContractField[];
+  updatedAt?: string;
+}
+
+export type ServiceContractStatus = "pending" | "completed";
+
+export interface ServiceContractRecord {
+  id: string;
+  templateId: string;
+  shareToken: string;
+  internalLabel?: string;
+  status: ServiceContractStatus;
+  fieldValues: Record<string, string>;
+  agreed?: boolean;
+  signatureDataUrl?: string;
+  signedAt?: string;
+  createdAt: string;
+  createdBy?: string;
 }
 
 export interface ClockRecord {

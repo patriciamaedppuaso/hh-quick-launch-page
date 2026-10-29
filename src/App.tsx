@@ -583,6 +583,7 @@ export default function App() {
           <ItemsPage
             app={app}
             role={role}
+            currentUserName={currentUserName}
             onBack={closeItems}
             onUpdateItems={(items) => updateApp(app.id, { items })}
             onUpdateStatusOptions={(statusOptions) => updateApp(app.id, { statusOptions })}

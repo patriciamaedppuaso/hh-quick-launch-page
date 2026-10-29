@@ -9,14 +9,19 @@ import { FilePreviewModal } from "./FilePreviewModal";
 import { ManageStatusesForm } from "./ManageStatusesForm";
 import { AddMenuButton } from "./AddMenuButton";
 import { DetailModal } from "./DetailModal";
+import { ContractsSection } from "./ContractsSection";
 
 interface Props {
   app: ListApp;
   role: Role;
+  currentUserName: string;
   onBack: () => void;
   onUpdateItems: (items: ListItem[]) => void;
   onUpdateStatusOptions: (options: string[]) => void;
 }
+
+/** The one app this fillable-contracts tab is wired into -- see 0046_service_contracts.sql. */
+const CONTRACTS_APP_ID = "contracts-warranty-quotes";
 
 type KindFilter = "all" | "link" | "file" | "none";
 
@@ -35,7 +40,9 @@ function kindOf(item: ListItem): KindFilter {
   return "none";
 }
 
-export function ItemsPage({ app, role, onBack, onUpdateItems, onUpdateStatusOptions }: Props) {
+export function ItemsPage({ app, role, currentUserName, onBack, onUpdateItems, onUpdateStatusOptions }: Props) {
+  const hasContractsTab = app.id === CONTRACTS_APP_ID;
+  const [tab, setTab] = useState<"items" | "contracts">("items");
   const [query, setQuery] = useState("");
   const [kindFilter, setKindFilter] = useState<KindFilter>("all");
   const [openFolder, setOpenFolder] = useState<string | null>(null);
@@ -222,123 +229,144 @@ export function ItemsPage({ app, role, onBack, onUpdateItems, onUpdateStatusOpti
         </div>
       </div>
 
-      <div className="items-toolbar">
-        <div className="search-field">
-          <Icon name="search" />
-          <input
-            type="text"
-            placeholder={openFolder !== null ? `Search in ${openFolder}...` : "Search items..."}
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-          />
+      {hasContractsTab && openFolder === null && (
+        <div className="type-toggle" role="group" aria-label="View" style={{ marginBottom: 16 }}>
+          <button type="button" className={`type-btn${tab === "items" ? " active" : ""}`} onClick={() => setTab("items")}>
+            Files & Links
+          </button>
+          <button
+            type="button"
+            className={`type-btn${tab === "contracts" ? " active" : ""}`}
+            onClick={() => setTab("contracts")}
+          >
+            Fillable Contracts
+          </button>
         </div>
-        <div className="type-toggle" role="group" aria-label="Filter by type">
-          {FILTERS.map((f) => (
-            <button
-              key={f.value}
-              type="button"
-              className={`type-btn${kindFilter === f.value ? " active" : ""}`}
-              onClick={() => setKindFilter(f.value)}
-            >
-              {f.label}
-            </button>
-          ))}
-        </div>
-        {canManage && (
-          <AddMenuButton
-            itemLabel="Item"
-            onSelectItem={() => {
-              setAddKind("item");
-              setAdding(true);
-            }}
-            onSelectFolder={() => {
-              setAddKind("folder");
-              setAdding(true);
-            }}
-          />
-        )}
-      </div>
+      )}
 
-      {filtered.length === 0 && !(showFolders && folderOptions.length > 0) ? (
-        <p className="items-empty">
-          {query || kindFilter !== "all"
-            ? "No items match your search."
-            : openFolder !== null
-              ? "No items in this folder yet."
-              : "No items yet."}
-        </p>
+      {hasContractsTab && tab === "contracts" ? (
+        <ContractsSection canManage={canManage} currentUserName={currentUserName} />
       ) : (
-        <div className="items-list">
-          {showFolders && folderOptions.map(renderFolderRow)}
-          {filtered.map(renderRow)}
-        </div>
+        <>
+          <div className="items-toolbar">
+            <div className="search-field">
+              <Icon name="search" />
+              <input
+                type="text"
+                placeholder={openFolder !== null ? `Search in ${openFolder}...` : "Search items..."}
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+              />
+            </div>
+            <div className="type-toggle" role="group" aria-label="Filter by type">
+              {FILTERS.map((f) => (
+                <button
+                  key={f.value}
+                  type="button"
+                  className={`type-btn${kindFilter === f.value ? " active" : ""}`}
+                  onClick={() => setKindFilter(f.value)}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+            {canManage && (
+              <AddMenuButton
+                itemLabel="Item"
+                onSelectItem={() => {
+                  setAddKind("item");
+                  setAdding(true);
+                }}
+                onSelectFolder={() => {
+                  setAddKind("folder");
+                  setAdding(true);
+                }}
+              />
+            )}
+          </div>
+
+          {filtered.length === 0 && !(showFolders && folderOptions.length > 0) ? (
+            <p className="items-empty">
+              {query || kindFilter !== "all"
+                ? "No items match your search."
+                : openFolder !== null
+                  ? "No items in this folder yet."
+                  : "No items yet."}
+            </p>
+          ) : (
+            <div className="items-list">
+              {showFolders && folderOptions.map(renderFolderRow)}
+              {filtered.map(renderRow)}
+            </div>
+          )}
+
+          <Modal open={adding} onClose={() => setAdding(false)} title={addKind === "item" ? "Add item" : "Manage folders"}>
+            {addKind === "item" ? (
+              <ItemForm
+                folderOptions={hasFolders ? folderOptions : undefined}
+                defaultFolder={openFolder ?? undefined}
+                onSave={handleAddSave}
+                onCancel={() => setAdding(false)}
+              />
+            ) : (
+              <ManageStatusesForm
+                statuses={folderOptions}
+                usageCounts={folderUsageCounts}
+                minCount={0}
+                itemLabel="folder"
+                placeholder="e.g. Contracts"
+                onSave={(next) => {
+                  onUpdateStatusOptions(next);
+                  setAdding(false);
+                }}
+                onCancel={() => setAdding(false)}
+              />
+            )}
+          </Modal>
+
+          <Modal open={!!editingItem} onClose={() => setEditingItem(null)} title="Edit item">
+            {editingItem && (
+              <ItemForm
+                initial={editingItem}
+                folderOptions={hasFolders ? folderOptions : undefined}
+                onSave={handleEditSave}
+                onCancel={() => setEditingItem(null)}
+              />
+            )}
+          </Modal>
+
+          {previewItem && (
+            <FilePreviewModal
+              open={!!previewItem}
+              onClose={() => setPreviewItem(null)}
+              fileName={previewItem.fileName}
+              url={previewItem.url}
+            />
+          )}
+
+          <DetailModal
+            open={!!viewingItem}
+            onClose={() => setViewingItem(null)}
+            title={viewingItem?.name ?? "Item"}
+            fields={[
+              { label: "Folder", value: viewingItem?.folder },
+              { label: "Description", value: viewingItem?.description },
+              { label: "Type", value: viewingItem?.isFile ? "File" : viewingItem?.url ? "Link" : undefined },
+              { label: "Link", value: !viewingItem?.isFile ? viewingItem?.url : undefined },
+              { label: "File name", value: viewingItem?.isFile ? viewingItem?.fileName : undefined },
+              { label: "Expires on", value: viewingItem?.expiresOn ? formatDate(viewingItem.expiresOn) : undefined },
+            ]}
+            onEdit={
+              canManage && viewingItem
+                ? () => {
+                    setEditingItem(viewingItem);
+                    setViewingItem(null);
+                  }
+                : undefined
+            }
+          />
+        </>
       )}
-
-      <Modal open={adding} onClose={() => setAdding(false)} title={addKind === "item" ? "Add item" : "Manage folders"}>
-        {addKind === "item" ? (
-          <ItemForm
-            folderOptions={hasFolders ? folderOptions : undefined}
-            defaultFolder={openFolder ?? undefined}
-            onSave={handleAddSave}
-            onCancel={() => setAdding(false)}
-          />
-        ) : (
-          <ManageStatusesForm
-            statuses={folderOptions}
-            usageCounts={folderUsageCounts}
-            minCount={0}
-            itemLabel="folder"
-            placeholder="e.g. Contracts"
-            onSave={(next) => {
-              onUpdateStatusOptions(next);
-              setAdding(false);
-            }}
-            onCancel={() => setAdding(false)}
-          />
-        )}
-      </Modal>
-
-      <Modal open={!!editingItem} onClose={() => setEditingItem(null)} title="Edit item">
-        {editingItem && (
-          <ItemForm
-            initial={editingItem}
-            folderOptions={hasFolders ? folderOptions : undefined}
-            onSave={handleEditSave}
-            onCancel={() => setEditingItem(null)}
-          />
-        )}
-      </Modal>
-
-      {previewItem && (
-        <FilePreviewModal
-          open={!!previewItem}
-          onClose={() => setPreviewItem(null)}
-          fileName={previewItem.fileName}
-          url={previewItem.url}
-        />
-      )}
-
-      <DetailModal
-        open={!!viewingItem}
-        onClose={() => setViewingItem(null)}
-        title={viewingItem?.name ?? "Item"}
-        fields={[
-          { label: "Folder", value: viewingItem?.folder },
-          { label: "Description", value: viewingItem?.description },
-          { label: "Type", value: viewingItem?.isFile ? "File" : viewingItem?.url ? "Link" : undefined },
-          { label: "Link", value: !viewingItem?.isFile ? viewingItem?.url : undefined },
-          { label: "File name", value: viewingItem?.isFile ? viewingItem?.fileName : undefined },
-          { label: "Expires on", value: viewingItem?.expiresOn ? formatDate(viewingItem.expiresOn) : undefined },
-        ]}
-        onEdit={
-          canManage && viewingItem
-            ? () => {
-                setEditingItem(viewingItem);
-                setViewingItem(null);
-              }
-            : undefined
-        }
-      />
     </div>
   );
 }

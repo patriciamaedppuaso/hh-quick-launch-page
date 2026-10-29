@@ -217,6 +217,13 @@ export function generatePassword(length = 12): string {
   return Array.from(values, (v) => PASSWORD_CHARS[v % PASSWORD_CHARS.length]).join("");
 }
 
+/** A long, unguessable token for capability-link features (e.g. a shared contract URL). */
+export function newShareToken(): string {
+  const bytes = new Uint8Array(24);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+}
+
 export function brandLogoSources(url: string): string[] {
   try {
     const domain = new URL(normalizeUrl(url)).hostname;
