@@ -42,7 +42,12 @@ function renderInline(
 
     if (seg.key === "contractor_signature") {
       return contractorSignatureUrl ? (
-        <img key={key} src={contractorSignatureUrl} alt="Signature" className="contract-inline-signature" />
+        <img
+          key={key}
+          src={contractorSignatureUrl}
+          alt="Signature"
+          className="contract-inline-signature contract-inline-signature--contractor"
+        />
       ) : (
         <span className="contract-blank-filled" key={key}>
           _____________

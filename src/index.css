@@ -318,6 +318,10 @@ body {
   vertical-align: middle;
   margin: -14px 2px -18px 2px;
 }
+.contract-inline-signature--contractor {
+  height: 78px;
+  margin: -24px 2px -28px 2px;
+}
 
 .contract-body-preview {
   background: var(--surface-soft);
