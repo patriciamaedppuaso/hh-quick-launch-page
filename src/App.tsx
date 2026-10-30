@@ -412,6 +412,7 @@ export default function App() {
     visibleRoles?: Role[];
     showInNav: boolean;
     staffCanManage: boolean;
+    url?: string;
   }) {
     if (!editingApp) return;
     updateApp(editingApp.id, patch);

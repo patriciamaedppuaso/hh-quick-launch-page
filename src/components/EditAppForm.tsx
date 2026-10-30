@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { AppTile, Role } from "../types";
-import { SELECTABLE_ROLES, roleLabel } from "../utils";
+import { SELECTABLE_ROLES, normalizeUrl, roleLabel } from "../utils";
 
 interface Props {
   app: AppTile;
@@ -10,14 +10,17 @@ interface Props {
     visibleRoles?: Role[];
     showInNav: boolean;
     staffCanManage: boolean;
+    url?: string;
   }) => void;
   onDelete: () => void;
   onCancel: () => void;
 }
 
 export function EditAppForm({ app, onSave, onDelete, onCancel }: Props) {
+  const isEditableLink = app.type === "link" && !app.isFile;
   const [name, setName] = useState(app.name);
   const [description, setDescription] = useState(app.description ?? "");
+  const [url, setUrl] = useState(app.type === "link" ? (app.url ?? "") : "");
   const [visibleRoles, setVisibleRoles] = useState<Role[]>(app.visibleRoles ?? SELECTABLE_ROLES);
   const [showInNav, setShowInNav] = useState(app.showInNav ?? app.type === "list");
   const [staffCanManage, setStaffCanManage] = useState(app.staffCanManage ?? false);
@@ -34,6 +37,10 @@ export function EditAppForm({ app, onSave, onDelete, onCancel }: Props) {
       setError("Name is required.");
       return;
     }
+    if (isEditableLink && !url.trim()) {
+      setError("Link is required.");
+      return;
+    }
     setError("");
     onSave({
       name: trimmedName,
@@ -41,6 +48,7 @@ export function EditAppForm({ app, onSave, onDelete, onCancel }: Props) {
       visibleRoles: visibleRoles.length === SELECTABLE_ROLES.length ? undefined : visibleRoles,
       showInNav,
       staffCanManage,
+      ...(isEditableLink ? { url: normalizeUrl(url.trim()) } : {}),
     });
   }
 
@@ -52,6 +60,27 @@ export function EditAppForm({ app, onSave, onDelete, onCancel }: Props) {
         <label htmlFor="eaName">Name</label>
         <input id="eaName" type="text" value={name} onChange={(e) => setName(e.target.value)} />
       </div>
+      {isEditableLink && (
+        <div className="form-row">
+          <label htmlFor="eaUrl">Link</label>
+          <input
+            id="eaUrl"
+            type="text"
+            placeholder="https://example.com"
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+          />
+        </div>
+      )}
+      {app.type === "link" && app.isFile && (
+        <div className="form-row">
+          <label>Link</label>
+          <p className="form-hint">
+            This app opens an uploaded file ({app.fileName || "file"}), not a link. Delete and re-add it to change the file.
+          </p>
+        </div>
+      )}
+
       <div className="form-row">
         <label htmlFor="eaDesc">Description (optional)</label>
         <input
