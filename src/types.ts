@@ -82,7 +82,8 @@ export type BuiltinKind =
   | "invoices"
   | "purchaseOrders"
   | "vehicleInspections"
-  | "equipmentChecklist";
+  | "equipmentChecklist"
+  | "receipts";
 
 export interface ContactRecord {
   id: string;
@@ -231,6 +232,20 @@ export interface PurchaseOrderRecord {
   isFile?: boolean;
   fileName?: string;
   status: PurchaseOrderStatus;
+}
+
+export type ReceiptStatus = "unpaid" | "paid";
+
+export interface ReceiptRecord {
+  id: string;
+  /** Which folder this receipt sits in, when the app has folders enabled. Undefined = no folder. */
+  folder?: string;
+  name: string;
+  amount?: number;
+  url?: string;
+  isFile?: boolean;
+  fileName?: string;
+  status: ReceiptStatus;
 }
 
 export type TripType = "pre_trip" | "post_trip";
@@ -407,6 +422,7 @@ interface AppBase {
   purchaseOrders?: PurchaseOrderRecord[];
   vehicleInspections?: VehicleInspectionRecord[];
   equipmentChecklists?: EquipmentChecklistRecord[];
+  receipts?: ReceiptRecord[];
 }
 
 export interface LinkApp extends AppBase {

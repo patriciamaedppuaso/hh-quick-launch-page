@@ -14,6 +14,7 @@ import type {
   ListItem,
   PurchaseOrderRecord,
   ReadAnnouncements,
+  ReceiptRecord,
   ReceivablePayableRecord,
   RespiratoryEquipmentEntry,
   RespiratoryPatientRecord,
@@ -67,6 +68,7 @@ export async function fetchAllApps(): Promise<AppTile[]> {
     inspectionDefects,
     equipmentChecklists,
     checklistItems,
+    receipts,
   ] = await Promise.all([
     supabase.from("apps").select("*").order("sort_order"),
     supabase.from("list_items").select("*").order("sort_order"),
@@ -93,6 +95,7 @@ export async function fetchAllApps(): Promise<AppTile[]> {
     supabase.from("vehicle_inspection_defects").select("*"),
     supabase.from("equipment_checklists").select("*").order("date", { ascending: false }),
     supabase.from("equipment_checklist_items").select("*"),
+    supabase.from("receipts").select("*"),
   ]);
 
   for (const res of [
@@ -121,6 +124,7 @@ export async function fetchAllApps(): Promise<AppTile[]> {
     inspectionDefects,
     equipmentChecklists,
     checklistItems,
+    receipts,
   ]) {
     if (res.error) throw res.error;
   }
@@ -149,6 +153,7 @@ export async function fetchAllApps(): Promise<AppTile[]> {
   const inspectionDefectsByInspection = groupBy(inspectionDefects.data ?? [], (r) => r.inspection_id);
   const equipmentChecklistsByApp = groupBy(equipmentChecklists.data ?? [], (r) => r.app_id);
   const checklistItemsByChecklist = groupBy(checklistItems.data ?? [], (r) => r.checklist_id);
+  const receiptsByApp = groupBy(receipts.data ?? [], (r) => r.app_id);
 
   return (apps.data ?? []).map((row): AppTile => {
     const base = {
@@ -188,6 +193,7 @@ export async function fetchAllApps(): Promise<AppTile[]> {
       equipmentChecklists: (equipmentChecklistsByApp.get(row.id) ?? []).map((c) =>
         rowToEquipmentChecklist(c, checklistItemsByChecklist.get(c.id as string) ?? []),
       ),
+      receipts: (receiptsByApp.get(row.id) ?? []).map(rowToReceipt),
     };
 
     if (row.type === "link") {
@@ -369,6 +375,19 @@ function rowToPurchaseOrder(row: Record<string, unknown>): PurchaseOrderRecord {
     isFile: (row.is_file as boolean) ?? undefined,
     fileName: (row.file_name as string) ?? undefined,
     status: row.status as PurchaseOrderRecord["status"],
+  };
+}
+
+function rowToReceipt(row: Record<string, unknown>): ReceiptRecord {
+  return {
+    id: row.id as string,
+    folder: (row.folder as string) ?? undefined,
+    name: row.name as string,
+    amount: (row.amount as number) ?? undefined,
+    url: (row.url as string) ?? undefined,
+    isFile: (row.is_file as boolean) ?? undefined,
+    fileName: (row.file_name as string) ?? undefined,
+    status: row.status as ReceiptRecord["status"],
   };
 }
 
@@ -775,6 +794,27 @@ async function syncAppCollections(app: AppTile): Promise<void> {
           is_file: po.isFile ?? null,
           file_name: po.fileName ?? null,
           status: po.status,
+        })),
+      ),
+    );
+  }
+
+  if (app.receipts) {
+    work.push(
+      replaceRows(
+        "receipts",
+        "app_id",
+        app.id,
+        app.receipts.map((r) => ({
+          id: r.id,
+          app_id: app.id,
+          folder: r.folder ?? null,
+          name: r.name,
+          amount: r.amount ?? null,
+          url: r.url ?? null,
+          is_file: r.isFile ?? null,
+          file_name: r.fileName ?? null,
+          status: r.status,
         })),
       ),
     );

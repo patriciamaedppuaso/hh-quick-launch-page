@@ -34,6 +34,7 @@ import { RoutesPage } from "./components/RoutesPage";
 import { RespiratoryLogPage } from "./components/RespiratoryLogPage";
 import { InvoicesPage } from "./components/InvoicesPage";
 import { PurchaseOrdersPage } from "./components/PurchaseOrdersPage";
+import { ReceiptsPage } from "./components/ReceiptsPage";
 import { VehicleInspectionsPage } from "./components/VehicleInspectionsPage";
 import { EquipmentChecklistsPage } from "./components/EquipmentChecklistsPage";
 import { BlogPage } from "./components/BlogPage";
@@ -62,6 +63,7 @@ const FIELD_LABELS: Record<string, string> = {
   purchaseOrders: "Invoice",
   vehicleInspections: "Report",
   equipmentChecklists: "Log",
+  receipts: "Receipt",
   statusOptions: "List",
   name: "App",
   visible: "App",
@@ -553,6 +555,16 @@ export default function App() {
             role={role}
             onBack={closeItems}
             onUpdate={(purchaseOrders) => updateApp(app.id, { purchaseOrders })}
+            onUpdateStatusOptions={(statusOptions) => updateApp(app.id, { statusOptions })}
+          />
+        );
+      case "receipts":
+        return (
+          <ReceiptsPage
+            app={app}
+            role={role}
+            onBack={closeItems}
+            onUpdate={(receipts) => updateApp(app.id, { receipts })}
             onUpdateStatusOptions={(statusOptions) => updateApp(app.id, { statusOptions })}
           />
         );
