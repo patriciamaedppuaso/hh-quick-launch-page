@@ -65,6 +65,7 @@ export function TimeClockPage({ app, role, currentUserName, onBack, onUpdate }: 
   const [requestEmployeeName, setRequestEmployeeName] = useState(currentUserName);
   const [viewingName, setViewingName] = useState(currentUserName);
   const [, forceTick] = useState(0);
+  const [confirmAction, setConfirmAction] = useState<"start" | "end" | "startBreak" | "endBreak" | null>(null);
 
   const isAdmin = role === "admin";
   const tint = app.tint ?? FALLBACK_TINT;
@@ -171,6 +172,25 @@ export function TimeClockPage({ app, role, currentUserName, onBack, onUpdate }: 
     onUpdate({ timeEntries: updatedEntries });
   }
 
+  const CONFIRM_COPY: Record<
+    NonNullable<typeof confirmAction>,
+    { title: string; message: string; confirmLabel: string }
+  > = {
+    start: { title: "Start shift?", message: "This will clock you in now.", confirmLabel: "Start" },
+    end: { title: "End shift?", message: "This will clock you out now.", confirmLabel: "End" },
+    startBreak: { title: "Start break?", message: "This will pause your shift as a break.", confirmLabel: "Start break" },
+    endBreak: { title: "End break?", message: "This will resume your shift.", confirmLabel: "End break" },
+  };
+
+  function runConfirmedAction() {
+    const action = confirmAction;
+    setConfirmAction(null);
+    if (action === "start") handleStart();
+    else if (action === "end") handleEnd();
+    else if (action === "startBreak") handleStartBreak();
+    else if (action === "endBreak") handleEndBreak();
+  }
+
   function handleRequestEdit(clockIn: string | undefined, clockOut: string | undefined, note: string) {
     if (!editingEntry || !clockIn) return;
     const updatedEntries = entries.map((e) =>
@@ -267,13 +287,15 @@ export function TimeClockPage({ app, role, currentUserName, onBack, onUpdate }: 
             >
               <div className="clock-hero-top">
                 <span className="clock-hero-worktime">
-                  {myOpenEntry ? "Work time on" : "Ready to start your shift?"}
+                  {myOpenEntry ? (myOpenBreak ? "Break time on" : "Work time on") : "Ready to start your shift?"}
                   {myOpenEntry && (
                     <span className="clock-hero-type-pill">{myOpenBreak ? "Break" : "Shift"}</span>
                   )}
                 </span>
               </div>
-              <span className="clock-hero-timer">{myOpenEntry ? formatElapsed(myOpenEntry.clockIn) : "00:00:00"}</span>
+              <span className="clock-hero-timer">
+                {myOpenEntry ? formatElapsed(myOpenBreak ? myOpenBreak.start : myOpenEntry.clockIn) : "00:00:00"}
+              </span>
               <div className="clock-hero-footer">
                 <span>Total work hours for {todayLabel}</span>
                 <strong>{formatMsClock(todayWorkedMs)}</strong>
@@ -284,7 +306,7 @@ export function TimeClockPage({ app, role, currentUserName, onBack, onUpdate }: 
                 <button
                   type="button"
                   className="clock-hero-btn clock-hero-btn--break"
-                  onClick={myOpenBreak ? handleEndBreak : handleStartBreak}
+                  onClick={() => setConfirmAction(myOpenBreak ? "endBreak" : "startBreak")}
                 >
                   <Icon name="clock" />
                   {myOpenBreak ? "End break" : "Start break"}
@@ -293,7 +315,7 @@ export function TimeClockPage({ app, role, currentUserName, onBack, onUpdate }: 
               <button
                 type="button"
                 className={`clock-hero-btn clock-hero-btn--main${myOpenEntry ? " clock-hero-btn--end" : " clock-hero-btn--start"}`}
-                onClick={myOpenEntry ? handleEnd : handleStart}
+                onClick={() => setConfirmAction(myOpenEntry ? "end" : "start")}
               >
                 <Icon name="clock" />
                 {myOpenEntry ? "End" : "Start"}
@@ -529,6 +551,22 @@ export function TimeClockPage({ app, role, currentUserName, onBack, onUpdate }: 
 
       <Modal open={!!editing} onClose={() => setEditing(null)} title="Edit staff">
         {editing && <TimeClockForm initial={editing} onSave={handleEditSave} onCancel={() => setEditing(null)} />}
+      </Modal>
+
+      <Modal open={!!confirmAction} onClose={() => setConfirmAction(null)} title={confirmAction ? CONFIRM_COPY[confirmAction].title : ""}>
+        {confirmAction && (
+          <div className="form-card">
+            <p className="form-hint">{CONFIRM_COPY[confirmAction].message}</p>
+            <div className="form-buttons">
+              <button type="button" className="btn-secondary" onClick={() => setConfirmAction(null)}>
+                Cancel
+              </button>
+              <button type="button" className="btn-primary" onClick={runConfirmedAction}>
+                {CONFIRM_COPY[confirmAction].confirmLabel}
+              </button>
+            </div>
+          </div>
+        )}
       </Modal>
 
       <Modal open={!!editingEntry} onClose={() => setEditingEntry(null)} title="Request a time edit">
