@@ -144,6 +144,32 @@ export async function deleteContract(id: string): Promise<void> {
   if (error) throw error;
 }
 
+/** Lets staff pre-fill a contract's blanks before sharing the link, so the recipient only has to review and sign. */
+export async function updateContractFieldValues(id: string, fieldValues: Record<string, string>): Promise<void> {
+  const { error } = await supabase.from("service_contracts").update({ field_values: fieldValues }).eq("id", id);
+  if (error) throw error;
+}
+
+const CONTRACTOR_SIGNATURE_ID = "contractor";
+
+/** H&H's own signature, drawn once and reused on every contract's Contractor block (see {{contractor_signature}}). */
+export async function fetchContractorSignature(): Promise<string | null> {
+  const { data, error } = await supabase
+    .from("company_signatures")
+    .select("data_url")
+    .eq("id", CONTRACTOR_SIGNATURE_ID)
+    .maybeSingle();
+  if (error) throw error;
+  return (data?.data_url as string | undefined) ?? null;
+}
+
+export async function saveContractorSignature(dataUrl: string): Promise<void> {
+  const { error } = await supabase
+    .from("company_signatures")
+    .upsert({ id: CONTRACTOR_SIGNATURE_ID, data_url: dataUrl, updated_at: new Date().toISOString() });
+  if (error) throw error;
+}
+
 // ===== Public (unauthenticated, token-gated via RPC) =====
 
 export async function fetchContractByToken(token: string): Promise<ServiceContractRecord | null> {

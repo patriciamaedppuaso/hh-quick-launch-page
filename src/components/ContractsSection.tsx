@@ -5,17 +5,22 @@ import { Icon } from "../icons";
 import {
   createContract,
   deleteContract,
+  fetchContractorSignature,
   fetchContracts,
   fetchTemplates,
   fillTemplate,
   parseParagraph,
+  saveContractorSignature,
   splitRichText,
   startsWithListMarker,
   saveTemplate,
+  updateContractFieldValues,
 } from "../lib/contracts";
 import { formatDate, initialOf } from "../utils";
+import { renderContractPage } from "./ContractDocument";
 import { Modal } from "./Modal";
 import { DetailModal } from "./DetailModal";
+import { SignaturePad } from "./SignaturePad";
 import { useToast } from "./ToastProvider";
 
 interface Props {
@@ -44,6 +49,8 @@ export function ContractsSection({ canManage, currentUserName }: Props) {
   const [newLabel, setNewLabel] = useState("");
   const [justCreated, setJustCreated] = useState<ServiceContractRecord | null>(null);
   const [viewing, setViewing] = useState<ServiceContractRecord | null>(null);
+  const [fillingContract, setFillingContract] = useState<ServiceContractRecord | null>(null);
+  const [fillValues, setFillValues] = useState<Record<string, string>>({});
   const [managingTemplates, setManagingTemplates] = useState(false);
   const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null);
   const [templateTitle, setTemplateTitle] = useState("");
@@ -51,11 +58,19 @@ export function ContractsSection({ canManage, currentUserName }: Props) {
   const [templateFields, setTemplateFields] = useState<ContractField[]>([]);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [contractorSignature, setContractorSignature] = useState<string | null>(null);
+  const [savingContractorSignature, setSavingContractorSignature] = useState(false);
+  const [draftContractorSignature, setDraftContractorSignature] = useState<string | null>(null);
 
   async function reload() {
-    const [nextContracts, nextTemplates] = await Promise.all([fetchContracts(), fetchTemplates()]);
+    const [nextContracts, nextTemplates, contractorSig] = await Promise.all([
+      fetchContracts(),
+      fetchTemplates(),
+      fetchContractorSignature(),
+    ]);
     setContracts(nextContracts);
     setTemplates(nextTemplates);
+    setContractorSignature(contractorSig);
     if (!newTemplateId && nextTemplates.length > 0) setNewTemplateId(nextTemplates[0].id);
   }
 
@@ -82,9 +97,13 @@ export function ContractsSection({ canManage, currentUserName }: Props) {
       toast.error("Add a contract template first.");
       return;
     }
+    if (!newLabel.trim()) {
+      toast.error("Give this contract a title.");
+      return;
+    }
     setBusy(true);
     try {
-      const record = await createContract(newTemplateId, newLabel.trim() || undefined, currentUserName);
+      const record = await createContract(newTemplateId, newLabel.trim(), currentUserName);
       setContracts((prev) => [record, ...prev]);
       setCreating(false);
       setNewLabel("");
@@ -93,6 +112,41 @@ export function ContractsSection({ canManage, currentUserName }: Props) {
       toast.error(err instanceof Error ? err.message : "Couldn't create the contract.");
     } finally {
       setBusy(false);
+    }
+  }
+
+  function openFillValues(c: ServiceContractRecord) {
+    setFillingContract(c);
+    setFillValues({ ...c.fieldValues });
+  }
+
+  async function handleSaveFieldValues() {
+    if (!fillingContract) return;
+    setBusy(true);
+    try {
+      await updateContractFieldValues(fillingContract.id, fillValues);
+      setContracts((prev) => prev.map((c) => (c.id === fillingContract.id ? { ...c, fieldValues: fillValues } : c)));
+      setFillingContract(null);
+      toast.success("Details saved");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Couldn't save the details.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleSaveContractorSignature() {
+    if (!draftContractorSignature) return;
+    setSavingContractorSignature(true);
+    try {
+      await saveContractorSignature(draftContractorSignature);
+      setContractorSignature(draftContractorSignature);
+      setDraftContractorSignature(null);
+      toast.success("Signature saved");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Couldn't save the signature.");
+    } finally {
+      setSavingContractorSignature(false);
     }
   }
 
@@ -219,6 +273,17 @@ export function ContractsSection({ canManage, currentUserName }: Props) {
                   >
                     <Icon name="copy" />
                   </button>
+                  {c.status !== "completed" && (
+                    <button
+                      type="button"
+                      className="icon-btn-sm"
+                      aria-label="Fill in details"
+                      title="Fill in details"
+                      onClick={() => openFillValues(c)}
+                    >
+                      <Icon name="clipboard" />
+                    </button>
+                  )}
                   {confirmDeleteId === c.id ? (
                     <span className="confirm-delete">
                       <button type="button" className="btn-danger-sm" onClick={() => handleDelete(c.id)} disabled={busy}>
@@ -261,11 +326,11 @@ export function ContractsSection({ canManage, currentUserName }: Props) {
             </div>
           )}
           <div className="form-row">
-            <label htmlFor="ctLabel">Internal label (optional)</label>
+            <label htmlFor="ctLabel">Title</label>
             <input
               id="ctLabel"
               type="text"
-              placeholder="e.g. a reference note for this contract"
+              placeholder="e.g. the hospice or partner's name"
               value={newLabel}
               onChange={(e) => setNewLabel(e.target.value)}
             />
@@ -274,7 +339,7 @@ export function ContractsSection({ canManage, currentUserName }: Props) {
             <button type="button" className="btn-secondary" onClick={() => setCreating(false)}>
               Cancel
             </button>
-            <button type="button" className="btn-primary" onClick={handleCreate} disabled={busy}>
+            <button type="button" className="btn-primary" onClick={handleCreate} disabled={busy || !newLabel.trim()}>
               {busy ? "Creating…" : "Create"}
             </button>
           </div>
@@ -314,6 +379,53 @@ export function ContractsSection({ canManage, currentUserName }: Props) {
             </div>
           ))}
         </div>
+
+        <div className="form-card" style={{ marginTop: 20 }}>
+          <label>Contractor signature (Home &amp; Health Medical Supply)</label>
+          <p className="form-hint">Drawn once, reused automatically on every contract's Contractor signature line.</p>
+          {contractorSignature && (
+            <img
+              src={contractorSignature}
+              alt="Current contractor signature"
+              style={{ maxWidth: 240, background: "#fff", borderRadius: 8, padding: 8, marginBottom: 10 }}
+            />
+          )}
+          <SignaturePad onChange={setDraftContractorSignature} />
+          <div className="form-row">
+            <label htmlFor="ctSigUpload">Or upload an image instead</label>
+            <input
+              id="ctSigUpload"
+              type="file"
+              accept="image/*"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = () => setDraftContractorSignature(reader.result as string);
+                reader.readAsDataURL(file);
+                e.target.value = "";
+              }}
+            />
+          </div>
+          {draftContractorSignature && (
+            <img
+              src={draftContractorSignature}
+              alt="New signature preview"
+              style={{ maxWidth: 240, background: "#fff", borderRadius: 8, padding: 8, marginBottom: 10 }}
+            />
+          )}
+          <div className="form-buttons">
+            <button
+              type="button"
+              className="btn-primary"
+              onClick={handleSaveContractorSignature}
+              disabled={savingContractorSignature || !draftContractorSignature}
+            >
+              {savingContractorSignature ? "Saving…" : contractorSignature ? "Replace signature" : "Save signature"}
+            </button>
+          </div>
+        </div>
+
         <div className="form-buttons">
           <button type="button" className="btn-secondary" onClick={() => setManagingTemplates(false)}>
             Close
@@ -426,6 +538,35 @@ export function ContractsSection({ canManage, currentUserName }: Props) {
         </div>
       </Modal>
 
+      <Modal open={!!fillingContract} onClose={() => setFillingContract(null)} title="Fill in details" wide>
+        {fillingContract && (
+          <div className="form-card">
+            <p className="form-hint">
+              Pre-fill the blanks so the recipient only needs to review and sign when they open the link.
+            </p>
+            <div className="contract-page contract-page--embedded">
+              {renderContractPage(
+                templateById.get(fillingContract.templateId)?.body ?? "",
+                templateById.get(fillingContract.templateId)?.fields ?? [],
+                fillValues,
+                (key, value) => setFillValues((prev) => ({ ...prev, [key]: value })),
+                undefined,
+                false,
+                contractorSignature,
+              )}
+            </div>
+            <div className="form-buttons">
+              <button type="button" className="btn-secondary" onClick={() => setFillingContract(null)}>
+                Cancel
+              </button>
+              <button type="button" className="btn-primary" onClick={handleSaveFieldValues} disabled={busy}>
+                {busy ? "Saving…" : "Save"}
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
       <DetailModal
         open={!!viewing}
         onClose={() => setViewing(null)}
@@ -433,7 +574,7 @@ export function ContractsSection({ canManage, currentUserName }: Props) {
         fields={[
           { label: "Template", value: viewing ? templateById.get(viewing.templateId)?.title : undefined },
           { label: "Status", value: viewing?.status === "completed" ? "Completed" : "Pending" },
-          { label: "Internal label", value: viewing?.internalLabel },
+          { label: "Title", value: viewing?.internalLabel },
           ...(viewing
             ? (templateById.get(viewing.templateId)?.fields ?? []).map((f) => ({
                 label: f.label,
