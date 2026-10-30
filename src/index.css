@@ -2911,6 +2911,13 @@ body {
   margin-top: 4px;
 }
 
+.preset-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
 /* add app form */
 .form-card {
   display: flex;

@@ -10,6 +10,8 @@ interface Props {
   onCancel: () => void;
 }
 
+const PRESET_EQUIPMENT = ["02CONC5L", "02CONC10L", "PORT E SYSTEM", "NEBULIZER", "SUCTION"];
+
 export function RespiratoryPatientForm({ initial, folderOptions, defaultFolder, onSave, onCancel }: Props) {
   const [patientName, setPatientName] = useState(initial?.patientName ?? "");
   const [city, setCity] = useState(initial?.city ?? "");
@@ -24,6 +26,10 @@ export function RespiratoryPatientForm({ initial, folderOptions, defaultFolder, 
     if (!trimmed) return;
     setEquipment((prev) => [...prev, { id: newId("equip"), name: trimmed, status: "ongoing" }]);
     setNewEquipmentName("");
+  }
+
+  function addPresetEquipment(name: string) {
+    setEquipment((prev) => [...prev, { id: newId("equip"), name, status: "ongoing" }]);
   }
 
   function removeEquipment(id: string) {
@@ -118,6 +124,13 @@ export function RespiratoryPatientForm({ initial, folderOptions, defaultFolder, 
             ))}
           </div>
         )}
+        <div className="preset-chip-row">
+          {PRESET_EQUIPMENT.map((name) => (
+            <button type="button" key={name} className="btn-secondary-sm" onClick={() => addPresetEquipment(name)}>
+              + {name}
+            </button>
+          ))}
+        </div>
         <div className="url-field">
           <input
             type="text"
