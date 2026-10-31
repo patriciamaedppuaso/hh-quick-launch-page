@@ -2,6 +2,14 @@ import { useState } from "react";
 import type { AppTile, Role } from "../types";
 import { SELECTABLE_ROLES, normalizeUrl, roleLabel } from "../utils";
 
+function CheckMark() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" width="11" height="11">
+      <path d="M20 6 9 17l-5-5" />
+    </svg>
+  );
+}
+
 interface Props {
   app: AppTile;
   onSave: (patch: {
@@ -96,18 +104,23 @@ export function EditAppForm({ app, onSave, onDelete, onCancel }: Props) {
         <label>Who can see this</label>
         <div className="type-toggle" role="group" aria-label="Who can see this">
           <span className="type-btn active type-btn--locked" title="Admins always see every app">
+            <CheckMark />
             Admin
           </span>
-          {SELECTABLE_ROLES.map((role) => (
-            <button
-              key={role}
-              type="button"
-              className={`type-btn${visibleRoles.includes(role) ? " active" : ""}`}
-              onClick={() => toggleRole(role)}
-            >
-              {roleLabel(role)}
-            </button>
-          ))}
+          {SELECTABLE_ROLES.map((role) => {
+            const active = visibleRoles.includes(role);
+            return (
+              <button
+                key={role}
+                type="button"
+                className={`type-btn${active ? " active" : ""}`}
+                onClick={() => toggleRole(role)}
+              >
+                {active && <CheckMark />}
+                {roleLabel(role)}
+              </button>
+            );
+          })}
         </div>
       </div>
 

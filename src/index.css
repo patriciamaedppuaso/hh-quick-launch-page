@@ -3113,6 +3113,9 @@ body {
 }
 
 .type-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   border: none;
   background: transparent;
   color: var(--text-secondary);
