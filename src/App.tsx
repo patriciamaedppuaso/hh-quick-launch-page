@@ -113,6 +113,12 @@ export default function App() {
   useEffect(() => {
     appsRef.current = apps;
   }, [apps]);
+  // Each sync does a full delete-then-reinsert of the affected rows (not an
+  // atomic diff), so two overlapping syncs can finish out of order -- a
+  // slower, now-stale write landing last would silently overwrite a newer
+  // one. Chaining every call onto this queue guarantees they land in the
+  // order they were triggered.
+  const syncQueueRef = useRef<Promise<void>>(Promise.resolve());
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [theme, setTheme] = useState<Theme>(() => loadTheme());
@@ -246,14 +252,19 @@ export default function App() {
     appsRef.current = next;
     setApps(next);
     const message = typeof successMessage === "function" ? successMessage(prev, next) : successMessage;
-    syncApps(prev, next)
-      .then(() => {
-        if (message) toast.success(message);
-      })
-      .catch((err) => {
-        console.error("Supabase sync failed:", err);
-        toast.error("Couldn't save your changes. Please try again.");
-      });
+    // Queued behind any sync already in flight (see syncQueueRef above). The
+    // inner .then/.catch keeps the queue itself always resolved, so one
+    // failed sync doesn't block every sync after it.
+    syncQueueRef.current = syncQueueRef.current.then(() =>
+      syncApps(prev, next)
+        .then(() => {
+          if (message) toast.success(message);
+        })
+        .catch((err) => {
+          console.error("Supabase sync failed:", err);
+          toast.error("Couldn't save your changes. Please try again.");
+        }),
+    );
   }
 
   useEffect(() => {
