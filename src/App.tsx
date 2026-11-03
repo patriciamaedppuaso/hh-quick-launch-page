@@ -246,7 +246,7 @@ export default function App() {
   function setAppsAndSync(
     updater: AppTile[] | ((prev: AppTile[]) => AppTile[]),
     successMessage?: string | ((prev: AppTile[], next: AppTile[]) => string),
-  ) {
+  ): Promise<void> {
     const prev = appsRef.current;
     const next = typeof updater === "function" ? updater(prev) : updater;
     appsRef.current = next;
@@ -255,7 +255,7 @@ export default function App() {
     // Queued behind any sync already in flight (see syncQueueRef above). The
     // inner .then/.catch keeps the queue itself always resolved, so one
     // failed sync doesn't block every sync after it.
-    syncQueueRef.current = syncQueueRef.current.then(() =>
+    const settled = syncQueueRef.current.then(() =>
       syncApps(prev, next)
         .then(() => {
           if (message) toast.success(message);
@@ -265,6 +265,8 @@ export default function App() {
           toast.error("Couldn't save your changes. Please try again.");
         }),
     );
+    syncQueueRef.current = settled;
+    return settled;
   }
 
   useEffect(() => {
@@ -383,8 +385,8 @@ export default function App() {
     window.location.hash = "";
   }
 
-  function updateApp(appId: string, patch: Partial<AppTile>) {
-    setAppsAndSync(
+  function updateApp(appId: string, patch: Partial<AppTile>): Promise<void> {
+    return setAppsAndSync(
       (prev) => prev.map((a) => (a.id === appId ? ({ ...a, ...patch } as AppTile) : a)),
       (prev) => describeChange(prev.find((a) => a.id === appId), patch),
     );

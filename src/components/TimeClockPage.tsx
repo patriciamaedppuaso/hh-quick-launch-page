@@ -25,7 +25,11 @@ interface Props {
   role: Role;
   currentUserName: string;
   onBack: () => void;
-  onUpdate: (patch: { clockRecords?: ClockRecord[]; timeEntries?: TimeEntry[]; requests?: TimeOffRequest[] }) => void;
+  onUpdate: (patch: {
+    clockRecords?: ClockRecord[];
+    timeEntries?: TimeEntry[];
+    requests?: TimeOffRequest[];
+  }) => Promise<void> | void;
 }
 
 const REQUEST_TYPE_LABEL: Record<RequestType, string> = {
@@ -66,6 +70,7 @@ export function TimeClockPage({ app, role, currentUserName, onBack, onUpdate }: 
   const [viewingName, setViewingName] = useState(currentUserName);
   const [, forceTick] = useState(0);
   const [confirmAction, setConfirmAction] = useState<"start" | "end" | "startBreak" | "endBreak" | null>(null);
+  const [clockBusy, setClockBusy] = useState(false);
 
   const isAdmin = role === "admin";
   const tint = app.tint ?? FALLBACK_TINT;
@@ -131,7 +136,7 @@ export function TimeClockPage({ app, role, currentUserName, onBack, onUpdate }: 
       clockIn: nowIso(),
       breaks: [],
     };
-    onUpdate({
+    return onUpdate({
       timeEntries: [...entries, entry],
       clockRecords: updateMyClockStatus(true, entry.clockIn),
     });
@@ -145,7 +150,7 @@ export function TimeClockPage({ app, role, currentUserName, onBack, onUpdate }: 
       const breaks = e.breaks.map((b) => (b.end ? b : { ...b, end: closedOut }));
       return { ...e, clockOut: closedOut, breaks };
     });
-    onUpdate({
+    return onUpdate({
       timeEntries: updatedEntries,
       clockRecords: updateMyClockStatus(false, undefined),
     });
@@ -158,7 +163,7 @@ export function TimeClockPage({ app, role, currentUserName, onBack, onUpdate }: 
         ? { ...e, breaks: [...e.breaks, { id: newId("brk"), start: nowIso() }] }
         : e,
     );
-    onUpdate({ timeEntries: updatedEntries });
+    return onUpdate({ timeEntries: updatedEntries });
   }
 
   function handleEndBreak() {
@@ -169,7 +174,7 @@ export function TimeClockPage({ app, role, currentUserName, onBack, onUpdate }: 
         ? { ...e, breaks: e.breaks.map((b) => (b.id === myOpenBreak.id ? { ...b, end: closedAt } : b)) }
         : e,
     );
-    onUpdate({ timeEntries: updatedEntries });
+    return onUpdate({ timeEntries: updatedEntries });
   }
 
   const CONFIRM_COPY: Record<
@@ -182,13 +187,19 @@ export function TimeClockPage({ app, role, currentUserName, onBack, onUpdate }: 
     endBreak: { title: "End break?", message: "This will resume your shift.", confirmLabel: "End break" },
   };
 
-  function runConfirmedAction() {
+  async function runConfirmedAction() {
     const action = confirmAction;
     setConfirmAction(null);
-    if (action === "start") handleStart();
-    else if (action === "end") handleEnd();
-    else if (action === "startBreak") handleStartBreak();
-    else if (action === "endBreak") handleEndBreak();
+    if (!action) return;
+    setClockBusy(true);
+    try {
+      if (action === "start") await handleStart();
+      else if (action === "end") await handleEnd();
+      else if (action === "startBreak") await handleStartBreak();
+      else if (action === "endBreak") await handleEndBreak();
+    } finally {
+      setClockBusy(false);
+    }
   }
 
   function handleRequestEdit(clockIn: string | undefined, clockOut: string | undefined, note: string) {
@@ -307,18 +318,20 @@ export function TimeClockPage({ app, role, currentUserName, onBack, onUpdate }: 
                   type="button"
                   className="clock-hero-btn clock-hero-btn--break"
                   onClick={() => setConfirmAction(myOpenBreak ? "endBreak" : "startBreak")}
+                  disabled={clockBusy}
                 >
-                  <Icon name="clock" />
-                  {myOpenBreak ? "End break" : "Start break"}
+                  {clockBusy ? <span className="btn-spinner" aria-hidden="true" /> : <Icon name="clock" />}
+                  {clockBusy ? "Saving…" : myOpenBreak ? "End break" : "Start break"}
                 </button>
               )}
               <button
                 type="button"
                 className={`clock-hero-btn clock-hero-btn--main${myOpenEntry ? " clock-hero-btn--end" : " clock-hero-btn--start"}`}
                 onClick={() => setConfirmAction(myOpenEntry ? "end" : "start")}
+                disabled={clockBusy}
               >
-                <Icon name="clock" />
-                {myOpenEntry ? "End" : "Start"}
+                {clockBusy ? <span className="btn-spinner" aria-hidden="true" /> : <Icon name="clock" />}
+                {clockBusy ? "Saving…" : myOpenEntry ? "End" : "Start"}
               </button>
             </div>
           </div>

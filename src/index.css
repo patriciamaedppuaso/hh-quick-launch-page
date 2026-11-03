@@ -93,6 +93,16 @@ body {
     transform: rotate(360deg);
   }
 }
+.btn-spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-top-color: #fff;
+  animation: boot-spin 0.7s linear infinite;
+}
 .boot-error-title {
   font-size: 16px;
   font-weight: 700;
@@ -1453,7 +1463,7 @@ body {
   font-weight: 700;
   white-space: nowrap;
   cursor: pointer;
-  transition: transform 0.12s ease, box-shadow 0.12s ease;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, opacity 0.15s ease;
 }
 .clock-hero-btn svg {
   width: 15px;
@@ -1462,6 +1472,11 @@ body {
 }
 .clock-hero-btn:hover {
   transform: translateY(-1px);
+}
+.clock-hero-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  transform: none;
 }
 .clock-hero-btn--start {
   background: var(--success);
