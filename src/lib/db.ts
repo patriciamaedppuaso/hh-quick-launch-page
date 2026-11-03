@@ -542,6 +542,15 @@ async function replaceRows(table: string, parentColumn: string, parentId: string
   if (ins.error) throw ins.error;
 }
 
+/** Insert-or-update by primary key, without deleting anything first -- use this instead of
+ * replaceRows wherever rows are never removed, to avoid an unnecessary delete (and any
+ * ON DELETE CASCADE it could trigger on a related table) for a plain update. */
+async function upsertRows(table: string, rows: Record<string, unknown>[]) {
+  if (rows.length === 0) return;
+  const { error } = await supabase.from(table).upsert(rows);
+  if (error) throw error;
+}
+
 function appToRow(app: AppTile, sortOrder: number) {
   const isLink = app.type === "link";
   return {
@@ -1023,11 +1032,17 @@ async function syncRespiratoryPatients(appId: string, patients: RespiratoryPatie
   );
 }
 
+// Upsert-only, deliberately not replaceRows: time_entry_breaks.time_entry_id
+// has ON DELETE CASCADE from time_entries, so a delete-then-reinsert of
+// time_entries would momentarily cascade-delete EVERY employee's breaks
+// (this function rewrites the whole app's entries every time any one
+// person's clock action fires), and whatever reads mid-window -- a page
+// load, the realtime-triggered reload in App.tsx -- would see them as gone.
+// There's no UI path that removes a time entry or a break, so upserting the
+// current rows is complete: nothing here ever needs row deletion.
 async function syncTimeEntries(appId: string, entries: TimeEntry[]): Promise<void> {
-  await replaceRows(
+  await upsertRows(
     "time_entries",
-    "app_id",
-    appId,
     entries.map((e) => ({
       id: e.id,
       app_id: appId,
@@ -1043,10 +1058,8 @@ async function syncTimeEntries(appId: string, entries: TimeEntry[]): Promise<voi
   );
   await Promise.all(
     entries.map((e) =>
-      replaceRows(
+      upsertRows(
         "time_entry_breaks",
-        "time_entry_id",
-        e.id,
         e.breaks.map((b) => ({
           id: b.id,
           time_entry_id: e.id,
