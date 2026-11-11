@@ -1342,6 +1342,27 @@ body {
 .clock-requests-panel .items-section-title {
   margin-bottom: 14px;
 }
+.clock-stale-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--gold) 16%, var(--card-bg));
+  border: 1px solid color-mix(in srgb, var(--gold) 40%, var(--border));
+  color: color-mix(in srgb, var(--gold) 55%, var(--text));
+  font-size: 13px;
+  font-weight: 600;
+}
+.clock-stale-banner svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+.clock-stale-banner span {
+  flex: 1;
+}
 .clock-today-divider {
   width: 1px;
   background: var(--border);
@@ -1382,6 +1403,17 @@ body {
 .clock-hero-top {
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.clock-hero-since {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+.clock-hero--active .clock-hero-since {
+  color: rgba(255, 255, 255, 0.7);
 }
 .clock-hero-worktime {
   display: flex;

@@ -299,6 +299,17 @@ export function TimeClockPage({ app, role, currentUserName, onBack, onUpdate }: 
         <div className="items-section clock-today-panel">
           <div className="clock-hero-col">
             <h2 className="items-section-title">Today's clock</h2>
+            {myOpenEntry && myOpenEntry.date !== todayIso() && (
+              <div className="clock-stale-banner">
+                <Icon name="alert-circle" />
+                <span>
+                  You still have a shift open from {formatDate(myOpenEntry.date)} — looks like you forgot to clock out.
+                </span>
+                <button type="button" className="btn-secondary-sm" onClick={() => setEditingEntry(myOpenEntry)}>
+                  Fix it
+                </button>
+              </div>
+            )}
             <div
               className={`clock-hero${myOpenEntry ? " clock-hero--active" : ""}${myOpenBreak ? " clock-hero--break" : ""}`}
             >
@@ -309,6 +320,11 @@ export function TimeClockPage({ app, role, currentUserName, onBack, onUpdate }: 
                     <span className="clock-hero-type-pill">{myOpenBreak ? "Break" : "Shift"}</span>
                   )}
                 </span>
+                {myOpenEntry && (
+                  <span className="clock-hero-since">
+                    since {formatTimeOfDay(myOpenBreak ? myOpenBreak.start : myOpenEntry.clockIn)}
+                  </span>
+                )}
               </div>
               <span className="clock-hero-timer">
                 {myOpenEntry ? formatElapsed(myOpenBreak ? myOpenBreak.start : myOpenEntry.clockIn) : "00:00:00"}
