@@ -75,7 +75,13 @@ export function TimeClockPage({ app, role, currentUserName, onBack, onUpdate }: 
   const isAdmin = role === "admin";
   const tint = app.tint ?? FALLBACK_TINT;
 
-  const myOpenEntry = entries.find((e) => e.name === currentUserName && !e.clockOut);
+  // Picks the most recently started open entry, not just the first one found --
+  // if a stale entry from an earlier day is ever left stuck open (e.g. a dropped
+  // clock-out), this keeps the clock focused on today's entry instead of the
+  // old one, so break/end actions land on the right day.
+  const myOpenEntry = entries
+    .filter((e) => e.name === currentUserName && !e.clockOut)
+    .sort((a, b) => b.clockIn.localeCompare(a.clockIn))[0];
   const myOpenBreak = myOpenEntry?.breaks.find((b) => !b.end);
   const myTodayEntries = useMemo(
     () => entries.filter((e) => e.name === currentUserName && e.date === todayIso()),
