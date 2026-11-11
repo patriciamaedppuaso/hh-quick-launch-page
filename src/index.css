@@ -442,7 +442,7 @@ body {
   padding: 14px 20px 56px;
 }
 
-@media (min-width: 1000px) {
+@media (min-width: 1280px) {
   .app-main {
     position: fixed;
     top: 0;
@@ -490,7 +490,7 @@ body {
   pointer-events: auto;
 }
 
-@media (max-width: 999px) {
+@media (max-width: 1279px) {
   .main-scroll-track {
     display: none;
   }
@@ -966,7 +966,7 @@ body {
   color: var(--text);
 }
 
-@media (max-width: 999px) {
+@media (max-width: 1279px) {
   .mobile-topbar {
     display: flex;
   }
@@ -2018,7 +2018,7 @@ body {
   color: var(--text-secondary);
 }
 
-@media (max-width: 999px) {
+@media (max-width: 1279px) {
   .widgets-panel {
     position: static;
     height: auto;
