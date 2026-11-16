@@ -53,7 +53,7 @@ const FIELD_LABELS: Record<string, string> = {
   items: "Item",
   announcements: "Announcement",
   clockRecords: "Staff",
-  timeEntries: "Time entry",
+  punches: "Time punch",
   receivablesPayables: "Entry",
   blogPosts: "Post",
   accounts: "Account",
@@ -97,8 +97,7 @@ const SYNCED_TABLES = [
   "tasks",
   "task_assignees",
   "clock_records",
-  "time_entries",
-  "time_entry_breaks",
+  "time_punches",
   "time_off_requests",
 ];
 

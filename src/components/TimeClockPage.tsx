@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import type { AppTile, ClockRecord, RequestType, Role, TimeEntry, TimeOffRequest } from "../types";
+import type { AppTile, ClockRecord, Punch, RequestType, Role, TimeOffRequest } from "../types";
 import { Icon } from "../icons";
+import { insertOpenPunch, isOpenPunchConflict } from "../lib/db";
 import {
   formatDate,
   formatElapsed,
@@ -11,14 +12,15 @@ import {
   nowIso,
   todayIso,
   toZonedDate,
-  workedMs,
+  workedMsFromPunches,
 } from "../utils";
 import { Modal } from "./Modal";
 import { TimeClockForm } from "./TimeClockForm";
-import { TimeEntryEditForm } from "./TimeEntryEditForm";
+import { PunchEditForm } from "./PunchEditForm";
 import { TimesheetSection } from "./TimesheetSection";
 import { RequestForm } from "./RequestForm";
 import { TodayLog } from "./TodayLog";
+import { useToast } from "./ToastProvider";
 
 interface Props {
   app: AppTile;
@@ -27,7 +29,7 @@ interface Props {
   onBack: () => void;
   onUpdate: (patch: {
     clockRecords?: ClockRecord[];
-    timeEntries?: TimeEntry[];
+    punches?: Punch[];
     requests?: TimeOffRequest[];
   }) => Promise<void> | void;
 }
@@ -56,14 +58,15 @@ function describeRequest(r: TimeOffRequest): string {
 const FALLBACK_TINT = { bg: "#EDF7F6", fg: "#479CA4" };
 
 export function TimeClockPage({ app, role, currentUserName, onBack, onUpdate }: Props) {
+  const toast = useToast();
   const records = app.clockRecords ?? [];
-  const entries = app.timeEntries ?? [];
+  const punches = app.punches ?? [];
   const requests = app.requests ?? [];
   const [query, setQuery] = useState("");
   const [editing, setEditing] = useState<ClockRecord | null>(null);
   const [adding, setAdding] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
-  const [editingEntry, setEditingEntry] = useState<TimeEntry | null>(null);
+  const [editingPunch, setEditingPunch] = useState<Punch | null>(null);
   const [requestType, setRequestType] = useState<RequestType | null>(null);
   const [requestDate, setRequestDate] = useState<string | undefined>(undefined);
   const [requestEmployeeName, setRequestEmployeeName] = useState(currentUserName);
@@ -75,25 +78,25 @@ export function TimeClockPage({ app, role, currentUserName, onBack, onUpdate }: 
   const isAdmin = role === "admin";
   const tint = app.tint ?? FALLBACK_TINT;
 
-  // Picks the most recently started open entry, not just the first one found --
-  // if a stale entry from an earlier day is ever left stuck open (e.g. a dropped
-  // clock-out), this keeps the clock focused on today's entry instead of the
-  // old one, so break/end actions land on the right day.
-  const myOpenEntry = entries
-    .filter((e) => e.name === currentUserName && !e.clockOut)
-    .sort((a, b) => b.clockIn.localeCompare(a.clockIn))[0];
-  const myOpenBreak = myOpenEntry?.breaks.find((b) => !b.end);
-  const myTodayEntries = useMemo(
-    () => entries.filter((e) => e.name === currentUserName && e.date === todayIso()),
-    [entries, currentUserName],
+  // Picks the most recently started open punch, not just the first one found --
+  // if a stale punch from an earlier day is ever left stuck open (e.g. a dropped
+  // end action), this keeps the clock focused on today's punch instead of the
+  // old one.
+  const myOpenPunch = punches
+    .filter((p) => p.name === currentUserName && !p.end)
+    .sort((a, b) => b.start.localeCompare(a.start))[0];
+  const isBreakOpen = myOpenPunch?.type === "break";
+  const myTodayPunches = useMemo(
+    () => punches.filter((p) => p.name === currentUserName && p.date === todayIso()),
+    [punches, currentUserName],
   );
-  const todayWorkedMs = myTodayEntries.reduce((sum, e) => sum + workedMs(e), 0);
+  const todayWorkedMs = workedMsFromPunches(myTodayPunches);
   const todayLabel = toZonedDate(new Date()).toLocaleDateString(undefined, {
     weekday: "short",
     month: "short",
     day: "numeric",
   });
-  const pendingEntries = useMemo(() => entries.filter((e) => e.editRequest), [entries]);
+  const pendingPunches = useMemo(() => punches.filter((p) => p.editRequest), [punches]);
   const myRequests = useMemo(
     () =>
       requests
@@ -107,12 +110,12 @@ export function TimeClockPage({ app, role, currentUserName, onBack, onUpdate }: 
   );
 
   const otherRecords = records.filter((r) => r.name !== currentUserName);
-  const viewedEntries = useMemo(
+  const viewedPunches = useMemo(
     () =>
-      entries
-        .filter((e) => e.name === viewingName)
-        .sort((a, b) => (b.date + b.clockIn).localeCompare(a.date + a.clockIn)),
-    [entries, viewingName],
+      punches
+        .filter((p) => p.name === viewingName)
+        .sort((a, b) => (b.date + b.start).localeCompare(a.date + a.start)),
+    [punches, viewingName],
   );
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -121,10 +124,10 @@ export function TimeClockPage({ app, role, currentUserName, onBack, onUpdate }: 
   }, [otherRecords, query]);
 
   useEffect(() => {
-    if (!myOpenEntry) return;
+    if (!myOpenPunch) return;
     const id = setInterval(() => forceTick((t) => t + 1), 1000);
     return () => clearInterval(id);
-  }, [myOpenEntry]);
+  }, [myOpenPunch]);
 
   function updateMyClockStatus(clockedIn: boolean, since?: string) {
     const existing = records.find((r) => r.name === currentUserName);
@@ -134,53 +137,54 @@ export function TimeClockPage({ app, role, currentUserName, onBack, onUpdate }: 
     return [...records, { id: newId("clock"), name: currentUserName, clockedIn, since }];
   }
 
-  function handleStart() {
-    const entry: TimeEntry = {
-      id: newId("te"),
+  async function handleStart() {
+    const punch: Punch = {
+      id: newId("punch"),
       name: currentUserName,
       date: todayIso(),
-      clockIn: nowIso(),
-      breaks: [],
+      type: "shift",
+      start: nowIso(),
     };
+    await insertOpenPunch(app.id, punch);
     return onUpdate({
-      timeEntries: [...entries, entry],
-      clockRecords: updateMyClockStatus(true, entry.clockIn),
+      punches: [...punches, punch],
+      clockRecords: updateMyClockStatus(true, punch.start),
     });
   }
 
   function handleEnd() {
-    if (!myOpenEntry) return;
+    if (!myOpenPunch) return;
     const closedOut = nowIso();
-    const updatedEntries = entries.map((e) => {
-      if (e.id !== myOpenEntry.id) return e;
-      const breaks = e.breaks.map((b) => (b.end ? b : { ...b, end: closedOut }));
-      return { ...e, clockOut: closedOut, breaks };
-    });
+    const updatedPunches = punches.map((p) => (p.id === myOpenPunch.id ? { ...p, end: closedOut } : p));
     return onUpdate({
-      timeEntries: updatedEntries,
+      punches: updatedPunches,
       clockRecords: updateMyClockStatus(false, undefined),
     });
   }
 
-  function handleStartBreak() {
-    if (!myOpenEntry || myOpenBreak) return;
-    const updatedEntries = entries.map((e) =>
-      e.id === myOpenEntry.id
-        ? { ...e, breaks: [...e.breaks, { id: newId("brk"), start: nowIso() }] }
-        : e,
-    );
-    return onUpdate({ timeEntries: updatedEntries });
+  async function handleStartBreak() {
+    if (!myOpenPunch || myOpenPunch.type !== "shift") return;
+    const now = nowIso();
+    const punchesAfterClose = punches.map((p) => (p.id === myOpenPunch.id ? { ...p, end: now } : p));
+    // Close the current shift first, awaited, so the "one open punch" slot is
+    // empty before claiming it with a break -- never combined into one write.
+    await onUpdate({ punches: punchesAfterClose });
+    const breakPunch: Punch = {
+      id: newId("punch"),
+      name: currentUserName,
+      date: myOpenPunch.date,
+      type: "break",
+      start: now,
+    };
+    await insertOpenPunch(app.id, breakPunch);
+    return onUpdate({ punches: [...punchesAfterClose, breakPunch] });
   }
 
   function handleEndBreak() {
-    if (!myOpenEntry || !myOpenBreak) return;
+    if (!myOpenPunch || myOpenPunch.type !== "break") return;
     const closedAt = nowIso();
-    const updatedEntries = entries.map((e) =>
-      e.id === myOpenEntry.id
-        ? { ...e, breaks: e.breaks.map((b) => (b.id === myOpenBreak.id ? { ...b, end: closedAt } : b)) }
-        : e,
-    );
-    return onUpdate({ timeEntries: updatedEntries });
+    const updatedPunches = punches.map((p) => (p.id === myOpenPunch.id ? { ...p, end: closedAt } : p));
+    return onUpdate({ punches: updatedPunches });
   }
 
   const CONFIRM_COPY: Record<
@@ -189,8 +193,12 @@ export function TimeClockPage({ app, role, currentUserName, onBack, onUpdate }: 
   > = {
     start: { title: "Start shift?", message: "This will clock you in now.", confirmLabel: "Start" },
     end: { title: "End shift?", message: "This will clock you out now.", confirmLabel: "End" },
-    startBreak: { title: "Start break?", message: "This will pause your shift as a break.", confirmLabel: "Start break" },
-    endBreak: { title: "End break?", message: "This will resume your shift.", confirmLabel: "End break" },
+    startBreak: {
+      title: "Start break?",
+      message: "This will end your current shift and start a break.",
+      confirmLabel: "Start break",
+    },
+    endBreak: { title: "End break?", message: "This will end your break.", confirmLabel: "End break" },
   };
 
   async function runConfirmedAction() {
@@ -203,34 +211,39 @@ export function TimeClockPage({ app, role, currentUserName, onBack, onUpdate }: 
       else if (action === "end") await handleEnd();
       else if (action === "startBreak") await handleStartBreak();
       else if (action === "endBreak") await handleEndBreak();
+    } catch (err) {
+      if (isOpenPunchConflict(err)) {
+        toast.error("Already running elsewhere -- refreshing your status.");
+      } else {
+        console.error("Clock action failed:", err);
+        toast.error("Couldn't save that. Please try again.");
+      }
     } finally {
       setClockBusy(false);
     }
   }
 
-  function handleRequestEdit(clockIn: string | undefined, clockOut: string | undefined, note: string) {
-    if (!editingEntry || !clockIn) return;
-    const updatedEntries = entries.map((e) =>
-      e.id === editingEntry.id
-        ? { ...e, editRequest: { clockIn, clockOut, note: note || undefined, requestedAt: nowIso() } }
-        : e,
+  function handleRequestEdit(start: string | undefined, end: string | undefined, note: string) {
+    if (!editingPunch || !start) return;
+    const updatedPunches = punches.map((p) =>
+      p.id === editingPunch.id ? { ...p, editRequest: { start, end, note: note || undefined, requestedAt: nowIso() } } : p,
     );
-    onUpdate({ timeEntries: updatedEntries });
-    setEditingEntry(null);
+    onUpdate({ punches: updatedPunches });
+    setEditingPunch(null);
   }
 
-  function handleApproveEdit(entry: TimeEntry) {
-    if (!entry.editRequest) return;
-    const { clockIn, clockOut } = entry.editRequest;
-    const updatedEntries = entries.map((e) =>
-      e.id === entry.id ? { ...e, clockIn: clockIn ?? e.clockIn, clockOut, editRequest: undefined } : e,
+  function handleApproveEdit(punch: Punch) {
+    if (!punch.editRequest) return;
+    const { start, end } = punch.editRequest;
+    const updatedPunches = punches.map((p) =>
+      p.id === punch.id ? { ...p, start: start ?? p.start, end, editRequest: undefined } : p,
     );
-    onUpdate({ timeEntries: updatedEntries });
+    onUpdate({ punches: updatedPunches });
   }
 
-  function handleRejectEdit(entry: TimeEntry) {
-    const updatedEntries = entries.map((e) => (e.id === entry.id ? { ...e, editRequest: undefined } : e));
-    onUpdate({ timeEntries: updatedEntries });
+  function handleRejectEdit(punch: Punch) {
+    const updatedPunches = punches.map((p) => (p.id === punch.id ? { ...p, editRequest: undefined } : p));
+    onUpdate({ punches: updatedPunches });
   }
 
   function handleAddRequest(record: TimeOffRequest) {
@@ -299,62 +312,79 @@ export function TimeClockPage({ app, role, currentUserName, onBack, onUpdate }: 
         <div className="items-section clock-today-panel">
           <div className="clock-hero-col">
             <h2 className="items-section-title">Today's clock</h2>
-            {myOpenEntry && myOpenEntry.date !== todayIso() && (
+            {myOpenPunch && myOpenPunch.date !== todayIso() && (
               <div className="clock-stale-banner">
                 <Icon name="alert-circle" />
                 <span>
-                  You still have a shift open from {formatDate(myOpenEntry.date)} — looks like you forgot to clock out.
+                  You still have a {myOpenPunch.type} open from {formatDate(myOpenPunch.date)} — looks like you forgot
+                  to end it.
                 </span>
-                <button type="button" className="btn-secondary-sm" onClick={() => setEditingEntry(myOpenEntry)}>
+                <button type="button" className="btn-secondary-sm" onClick={() => setEditingPunch(myOpenPunch)}>
                   Fix it
                 </button>
               </div>
             )}
             <div
-              className={`clock-hero${myOpenEntry ? " clock-hero--active" : ""}${myOpenBreak ? " clock-hero--break" : ""}`}
+              className={`clock-hero${myOpenPunch ? " clock-hero--active" : ""}${isBreakOpen ? " clock-hero--break" : ""}`}
             >
               <div className="clock-hero-top">
                 <span className="clock-hero-worktime">
-                  {myOpenEntry ? (myOpenBreak ? "Break time on" : "Work time on") : "Ready to start your shift?"}
-                  {myOpenEntry && (
-                    <span className="clock-hero-type-pill">{myOpenBreak ? "Break" : "Shift"}</span>
-                  )}
+                  {myOpenPunch ? (isBreakOpen ? "Break time on" : "Work time on") : "Ready to start your shift?"}
+                  {myOpenPunch && <span className="clock-hero-type-pill">{isBreakOpen ? "Break" : "Shift"}</span>}
                 </span>
-                {myOpenEntry && (
-                  <span className="clock-hero-since">
-                    since {formatTimeOfDay(myOpenBreak ? myOpenBreak.start : myOpenEntry.clockIn)}
-                  </span>
-                )}
+                {myOpenPunch && <span className="clock-hero-since">since {formatTimeOfDay(myOpenPunch.start)}</span>}
               </div>
-              <span className="clock-hero-timer">
-                {myOpenEntry ? formatElapsed(myOpenBreak ? myOpenBreak.start : myOpenEntry.clockIn) : "00:00:00"}
-              </span>
+              <span className="clock-hero-timer">{myOpenPunch ? formatElapsed(myOpenPunch.start) : "00:00:00"}</span>
               <div className="clock-hero-footer">
                 <span>Total work hours for {todayLabel}</span>
                 <strong>{formatMsClock(todayWorkedMs)}</strong>
               </div>
             </div>
             <div className="clock-hero-buttons">
-              {myOpenEntry && (
+              {!myOpenPunch && (
                 <button
                   type="button"
-                  className="clock-hero-btn clock-hero-btn--break"
-                  onClick={() => setConfirmAction(myOpenBreak ? "endBreak" : "startBreak")}
+                  className="clock-hero-btn clock-hero-btn--main clock-hero-btn--start"
+                  onClick={() => setConfirmAction("start")}
                   disabled={clockBusy}
                 >
                   {clockBusy ? <span className="btn-spinner" aria-hidden="true" /> : <Icon name="clock" />}
-                  {clockBusy ? "Saving…" : myOpenBreak ? "End break" : "Start break"}
+                  {clockBusy ? "Saving…" : "Start"}
                 </button>
               )}
-              <button
-                type="button"
-                className={`clock-hero-btn clock-hero-btn--main${myOpenEntry ? " clock-hero-btn--end" : " clock-hero-btn--start"}`}
-                onClick={() => setConfirmAction(myOpenEntry ? "end" : "start")}
-                disabled={clockBusy}
-              >
-                {clockBusy ? <span className="btn-spinner" aria-hidden="true" /> : <Icon name="clock" />}
-                {clockBusy ? "Saving…" : myOpenEntry ? "End" : "Start"}
-              </button>
+              {myOpenPunch?.type === "shift" && (
+                <>
+                  <button
+                    type="button"
+                    className="clock-hero-btn clock-hero-btn--break"
+                    onClick={() => setConfirmAction("startBreak")}
+                    disabled={clockBusy}
+                  >
+                    {clockBusy ? <span className="btn-spinner" aria-hidden="true" /> : <Icon name="clock" />}
+                    {clockBusy ? "Saving…" : "Start break"}
+                  </button>
+                  <button
+                    type="button"
+                    className="clock-hero-btn clock-hero-btn--main clock-hero-btn--end"
+                    onClick={() => setConfirmAction("end")}
+                    disabled={clockBusy}
+                  >
+                    {clockBusy ? <span className="btn-spinner" aria-hidden="true" /> : <Icon name="clock" />}
+                    {clockBusy ? "Saving…" : "End"}
+                  </button>
+                </>
+              )}
+              {isBreakOpen && (
+                <button
+                  type="button"
+                  className="clock-hero-btn clock-hero-btn--main clock-hero-btn--end"
+                  onClick={() => setConfirmAction("endBreak")}
+                  disabled={clockBusy}
+                >
+                  {clockBusy ? <span className="btn-spinner" aria-hidden="true" /> : <Icon name="clock" />}
+                  {clockBusy ? "Saving…" : "End break"}
+                </button>
+              )}
             </div>
           </div>
 
@@ -362,7 +392,7 @@ export function TimeClockPage({ app, role, currentUserName, onBack, onUpdate }: 
 
           <div className="clock-daylog-col">
             <h2 className="items-section-title">My day log</h2>
-            <TodayLog entries={myTodayEntries} />
+            <TodayLog punches={myTodayPunches} />
           </div>
         </div>
 
@@ -435,35 +465,35 @@ export function TimeClockPage({ app, role, currentUserName, onBack, onUpdate }: 
       <TimesheetSection
         title={viewingName === currentUserName ? "My timesheet" : `${viewingName}'s timesheet`}
         personName={viewingName}
-        entries={viewedEntries}
-        onRequestEdit={setEditingEntry}
+        punches={viewedPunches}
+        onRequestEdit={setEditingPunch}
         onRequestForDay={openDayRequest}
       />
 
-      {isAdmin && pendingEntries.length > 0 && (
+      {isAdmin && pendingPunches.length > 0 && (
         <div className="items-section">
           <h2 className="items-section-title">Pending time edits</h2>
           <div className="items-list">
-            {pendingEntries.map((entry) => (
-              <div className="items-row" key={entry.id}>
+            {pendingPunches.map((punch) => (
+              <div className="items-row" key={punch.id}>
                 <div className="items-row-text">
                   <span className="items-row-name">
-                    {entry.name} · {formatDate(entry.date)}
+                    {punch.name} · {formatDate(punch.date)} · {punch.type === "shift" ? "Shift" : "Break"}
                   </span>
                   <span className="items-row-desc">
-                    Current: {formatTimeOfDay(entry.clockIn)} –{" "}
-                    {entry.clockOut ? formatTimeOfDay(entry.clockOut) : "In progress"}
+                    Current: {formatTimeOfDay(punch.start)} –{" "}
+                    {punch.end ? formatTimeOfDay(punch.end) : "In progress"}
                     {"  →  Requested: "}
-                    {formatTimeOfDay(entry.editRequest?.clockIn ?? entry.clockIn)} –{" "}
-                    {entry.editRequest?.clockOut ? formatTimeOfDay(entry.editRequest.clockOut) : "In progress"}
+                    {formatTimeOfDay(punch.editRequest?.start ?? punch.start)} –{" "}
+                    {punch.editRequest?.end ? formatTimeOfDay(punch.editRequest.end) : "In progress"}
                   </span>
-                  {entry.editRequest?.note && <span className="items-row-desc">"{entry.editRequest.note}"</span>}
+                  {punch.editRequest?.note && <span className="items-row-desc">"{punch.editRequest.note}"</span>}
                 </div>
                 <div className="items-row-manage items-row-manage--active">
-                  <button type="button" className="btn-secondary-sm" onClick={() => handleRejectEdit(entry)}>
+                  <button type="button" className="btn-secondary-sm" onClick={() => handleRejectEdit(punch)}>
                     Reject
                   </button>
-                  <button type="button" className="btn-primary-sm" onClick={() => handleApproveEdit(entry)}>
+                  <button type="button" className="btn-primary-sm" onClick={() => handleApproveEdit(punch)}>
                     Approve
                   </button>
                 </div>
@@ -604,13 +634,9 @@ export function TimeClockPage({ app, role, currentUserName, onBack, onUpdate }: 
         )}
       </Modal>
 
-      <Modal open={!!editingEntry} onClose={() => setEditingEntry(null)} title="Request a time edit">
-        {editingEntry && (
-          <TimeEntryEditForm
-            entry={editingEntry}
-            onSave={handleRequestEdit}
-            onCancel={() => setEditingEntry(null)}
-          />
+      <Modal open={!!editingPunch} onClose={() => setEditingPunch(null)} title="Request a time edit">
+        {editingPunch && (
+          <PunchEditForm punch={editingPunch} onSave={handleRequestEdit} onCancel={() => setEditingPunch(null)} />
         )}
       </Modal>
 

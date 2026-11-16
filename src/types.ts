@@ -350,19 +350,6 @@ export interface ClockRecord {
   since?: string;
 }
 
-export interface BreakEntry {
-  id: string;
-  start: string;
-  end?: string;
-}
-
-export interface TimeEditRequest {
-  clockIn?: string;
-  clockOut?: string;
-  note?: string;
-  requestedAt: string;
-}
-
 export type RequestType = "shift" | "break" | "absence";
 export type RequestStatus = "pending" | "approved" | "denied";
 
@@ -379,14 +366,25 @@ export interface TimeOffRequest {
   requestedAt: string;
 }
 
-export interface TimeEntry {
+export type PunchType = "shift" | "break";
+
+export interface PunchEditRequest {
+  start?: string;
+  end?: string;
+  note?: string;
+  requestedAt: string;
+}
+
+export interface Punch {
   id: string;
   name: string;
+  /** YYYY-MM-DD, the day it started. */
   date: string;
-  clockIn: string;
-  clockOut?: string;
-  breaks: BreakEntry[];
-  editRequest?: TimeEditRequest;
+  type: PunchType;
+  start: string;
+  /** Undefined = currently running. */
+  end?: string;
+  editRequest?: PunchEditRequest;
 }
 
 interface AppBase {
@@ -411,7 +409,7 @@ interface AppBase {
   announcements?: AnnouncementRecord[];
   tasks?: TaskRecord[];
   clockRecords?: ClockRecord[];
-  timeEntries?: TimeEntry[];
+  punches?: Punch[];
   requests?: TimeOffRequest[];
   receivablesPayables?: ReceivablePayableRecord[];
   blogPosts?: BlogPostRecord[];

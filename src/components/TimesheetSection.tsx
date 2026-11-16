@@ -1,16 +1,17 @@
 import { useMemo, useRef, useState } from "react";
-import type { TimeEntry } from "../types";
+import type { Punch } from "../types";
 import { Icon } from "../icons";
 import {
   addDays,
-  breakTotalMs,
+  breakMsFromPunches,
   formatHoursMinutes,
   formatTimeOfDay,
   initialOf,
+  punchMs,
   startOfWeek,
   toIsoDate,
   toZonedDate,
-  workedMs,
+  workedMsFromPunches,
 } from "../utils";
 import { useClickOutside } from "../hooks/useClickOutside";
 import { useToast } from "./ToastProvider";
@@ -18,44 +19,19 @@ import { useToast } from "./ToastProvider";
 interface Props {
   title: string;
   personName: string;
-  entries: TimeEntry[];
-  onRequestEdit: (entry: TimeEntry) => void;
+  punches: Punch[];
+  onRequestEdit: (punch: Punch) => void;
   onRequestForDay: (iso: string) => void;
 }
 
 const WEEKLY_OVERTIME_MS = 40 * 60 * 60 * 1000;
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-export interface Segment {
-  type: "shift" | "break";
-  start: string;
-  end?: string;
-}
-
-export function segmentsForEntry(entry: TimeEntry): Segment[] {
-  const segments: Segment[] = [];
-  const sortedBreaks = [...entry.breaks].sort((a, b) => a.start.localeCompare(b.start));
-  let cursor = entry.clockIn;
-  for (const brk of sortedBreaks) {
-    segments.push({ type: "shift", start: cursor, end: brk.start });
-    segments.push({ type: "break", start: brk.start, end: brk.end });
-    cursor = brk.end ?? brk.start;
-  }
-  segments.push({ type: "shift", start: cursor, end: entry.clockOut });
-  return segments;
-}
-
-export function segmentMs(seg: Segment): number {
-  const start = new Date(seg.start).getTime();
-  const end = seg.end ? new Date(seg.end).getTime() : Date.now();
-  return Math.max(0, end - start);
-}
-
 function csvCell(value: string): string {
   return `"${value.replace(/"/g, '""')}"`;
 }
 
-export function TimesheetSection({ title, personName, entries, onRequestEdit, onRequestForDay }: Props) {
+export function TimesheetSection({ title, personName, punches, onRequestEdit, onRequestForDay }: Props) {
   const toast = useToast();
   const fileSlug = personName.trim().toLowerCase().replace(/\s+/g, "-") || "employee";
   const [weekStart, setWeekStart] = useState(() => startOfWeek(toZonedDate(new Date())));
@@ -67,12 +43,12 @@ export function TimesheetSection({ title, personName, entries, onRequestEdit, on
     return Array.from({ length: 7 }, (_, i) => {
       const date = addDays(weekStart, i);
       const iso = toIsoDate(date);
-      const dayEntries = entries.filter((e) => e.date === iso).sort((a, b) => a.clockIn.localeCompare(b.clockIn));
-      const worked = dayEntries.reduce((sum, e) => sum + workedMs(e), 0);
-      const breaks = dayEntries.reduce((sum, e) => sum + breakTotalMs(e.breaks), 0);
-      return { date, iso, entries: dayEntries, worked, breaks };
+      const dayPunches = punches.filter((p) => p.date === iso).sort((a, b) => a.start.localeCompare(b.start));
+      const worked = workedMsFromPunches(dayPunches);
+      const breaks = breakMsFromPunches(dayPunches);
+      return { date, iso, punches: dayPunches, worked, breaks };
     });
-  }, [weekStart, entries]);
+  }, [weekStart, punches]);
 
   const weeklyWorked = days.reduce((sum, d) => sum + d.worked, 0);
   const weeklyBreaks = days.reduce((sum, d) => sum + d.breaks, 0);
@@ -85,20 +61,18 @@ export function TimesheetSection({ title, personName, entries, onRequestEdit, on
     const rows: string[][] = [];
     for (const day of days) {
       const dateLabel = day.date.toLocaleDateString();
-      if (day.entries.length === 0) {
+      if (day.punches.length === 0) {
         rows.push([dateLabel, "--", "--", "--", "--"]);
         continue;
       }
-      for (const entry of day.entries) {
-        for (const seg of segmentsForEntry(entry)) {
-          rows.push([
-            dateLabel,
-            seg.type === "shift" ? "Shift" : "Break",
-            formatTimeOfDay(seg.start),
-            seg.end ? formatTimeOfDay(seg.end) : "In progress",
-            formatHoursMinutes(segmentMs(seg)),
-          ]);
-        }
+      for (const p of day.punches) {
+        rows.push([
+          dateLabel,
+          p.type === "shift" ? "Shift" : "Break",
+          formatTimeOfDay(p.start),
+          p.end ? formatTimeOfDay(p.end) : "In progress",
+          formatHoursMinutes(punchMs(p)),
+        ]);
       }
     }
     return rows;
@@ -190,34 +164,35 @@ export function TimesheetSection({ title, personName, entries, onRequestEdit, on
       doc.text(s.label, x + badgeWidth / 2, badgeY + 20, { align: "center" });
     });
 
-    // table body: one row per Shift/Break segment, with Day and Daily total
-    // merged (rowSpan) across each day's segments
+    // table body: one row per punch, with Day and Daily total merged
+    // (rowSpan) across each day's punches
     const body: Cell[][] = [];
     for (const day of days) {
       const dayLabel = `${DAY_LABELS[day.date.getDay()]} ${day.date.toLocaleDateString(undefined, { month: "short", day: "numeric" })}`;
-      if (day.entries.length === 0) {
+      if (day.punches.length === 0) {
         body.push([dayLabel, "--", "--", "--", "--", "--"]);
         continue;
       }
-      const segs = day.entries.flatMap((entry) => segmentsForEntry(entry));
-      segs.forEach((seg, idx) => {
+      day.punches.forEach((p, idx) => {
         const row: Cell[] = [];
-        if (idx === 0) row.push({ content: dayLabel, rowSpan: segs.length, styles: { valign: "middle", fontStyle: "bold" } });
+        if (idx === 0) {
+          row.push({ content: dayLabel, rowSpan: day.punches.length, styles: { valign: "middle", fontStyle: "bold" } });
+        }
         row.push(
-          seg.type === "break"
+          p.type === "break"
             ? {
                 content: "Lunch break (unpaid)",
                 styles: { fillColor: [216, 27, 145], textColor: [255, 255, 255], fontStyle: "bold", halign: "center" },
               }
             : "Shift",
-          formatTimeOfDay(seg.start),
-          seg.end ? formatTimeOfDay(seg.end) : "In progress",
-          formatHoursMinutes(segmentMs(seg)),
+          formatTimeOfDay(p.start),
+          p.end ? formatTimeOfDay(p.end) : "In progress",
+          formatHoursMinutes(punchMs(p)),
         );
         if (idx === 0) {
           row.push({
             content: day.worked > 0 ? formatHoursMinutes(day.worked) : "--",
-            rowSpan: segs.length,
+            rowSpan: day.punches.length,
             styles: { valign: "middle", fontStyle: "bold" },
           });
         }
@@ -339,7 +314,7 @@ export function TimesheetSection({ title, personName, entries, onRequestEdit, on
               </span>
               <span className="timesheet-day-total">{day.worked > 0 ? formatHoursMinutes(day.worked) : "--"}</span>
             </div>
-            {day.entries.length === 0 ? (
+            {day.punches.length === 0 ? (
               <div className="timesheet-day-empty-row">
                 <p className="timesheet-day-empty">No activity</p>
                 <button
@@ -353,39 +328,39 @@ export function TimesheetSection({ title, personName, entries, onRequestEdit, on
                 </button>
               </div>
             ) : (
-              day.entries.map((entry) => (
-                <div className="timesheet-entry" key={entry.id}>
-                  <div className="timesheet-segments">
-                    {segmentsForEntry(entry).map((seg, i) => (
-                      <div className={`timesheet-segment timesheet-segment--${seg.type}`} key={i}>
-                        <span className="timesheet-segment-type">{seg.type === "shift" ? "Shift" : "Break"}</span>
+              <div className="timesheet-entry">
+                <div className="timesheet-segments">
+                  {day.punches.map((p) => (
+                    <div className="timesheet-segment-row" key={p.id}>
+                      <div className={`timesheet-segment timesheet-segment--${p.type}`}>
+                        <span className="timesheet-segment-type">{p.type === "shift" ? "Shift" : "Break"}</span>
                         <span className="timesheet-segment-time">
-                          {formatTimeOfDay(seg.start)} – {seg.end ? formatTimeOfDay(seg.end) : "In progress"}
+                          {formatTimeOfDay(p.start)} – {p.end ? formatTimeOfDay(p.end) : "In progress"}
                         </span>
-                        <span className="timesheet-segment-duration">{formatHoursMinutes(segmentMs(seg))}</span>
+                        <span className="timesheet-segment-duration">{formatHoursMinutes(punchMs(p))}</span>
                       </div>
-                    ))}
-                  </div>
-                  <div className="timesheet-entry-actions">
-                    {entry.editRequest && (
-                      <span
-                        className="status-pill"
-                        style={{ background: "var(--danger-soft)", color: "var(--danger)" }}
-                      >
-                        Pending approval
-                      </span>
-                    )}
-                    <button
-                      type="button"
-                      className="icon-btn-sm"
-                      aria-label={`Request edit for ${day.iso}`}
-                      onClick={() => onRequestEdit(entry)}
-                    >
-                      <Icon name="edit" />
-                    </button>
-                  </div>
+                      <div className="timesheet-entry-actions">
+                        {p.editRequest && (
+                          <span
+                            className="status-pill"
+                            style={{ background: "var(--danger-soft)", color: "var(--danger)" }}
+                          >
+                            Pending approval
+                          </span>
+                        )}
+                        <button
+                          type="button"
+                          className="icon-btn-sm"
+                          aria-label={`Request edit for ${p.type} on ${day.iso}`}
+                          onClick={() => onRequestEdit(p)}
+                        >
+                          <Icon name="edit" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))
+              </div>
             )}
           </div>
         ))}

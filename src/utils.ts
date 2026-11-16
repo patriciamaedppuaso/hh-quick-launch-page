@@ -1,4 +1,4 @@
-import type { AppTile, BreakEntry, OrderType, Role, TimeEntry } from "./types";
+import type { AppTile, OrderType, Punch, Role } from "./types";
 
 export const TEAM_MEMBERS: string[] = [];
 
@@ -450,18 +450,18 @@ export function fromDateTimeLocal(value: string): string | undefined {
   return zonedToUtcIso(Number(y), Number(mo), Number(d), Number(h), Number(mi));
 }
 
-export function breakTotalMs(breaks: BreakEntry[]): number {
-  return breaks.reduce((sum, b) => {
-    const start = new Date(b.start).getTime();
-    const end = b.end ? new Date(b.end).getTime() : Date.now();
-    return sum + Math.max(0, end - start);
-  }, 0);
+export function punchMs(punch: Punch): number {
+  const start = new Date(punch.start).getTime();
+  const end = punch.end ? new Date(punch.end).getTime() : Date.now();
+  return Math.max(0, end - start);
 }
 
-export function workedMs(entry: TimeEntry): number {
-  const start = new Date(entry.clockIn).getTime();
-  const end = entry.clockOut ? new Date(entry.clockOut).getTime() : Date.now();
-  return Math.max(0, end - start - breakTotalMs(entry.breaks));
+export function workedMsFromPunches(punches: Punch[]): number {
+  return punches.filter((p) => p.type === "shift").reduce((sum, p) => sum + punchMs(p), 0);
+}
+
+export function breakMsFromPunches(punches: Punch[]): number {
+  return punches.filter((p) => p.type === "break").reduce((sum, p) => sum + punchMs(p), 0);
 }
 
 export function formatHoursMinutes(ms: number): string {

@@ -5,13 +5,13 @@ import type {
   AnnouncementRecord,
   AppTile,
   BlogPostRecord,
-  BreakEntry,
   ClockRecord,
   ContactRecord,
   EquipmentChecklistRecord,
   InvoiceRecord,
   LeadRecord,
   ListItem,
+  Punch,
   PurchaseOrderRecord,
   ReadAnnouncements,
   ReceiptRecord,
@@ -21,7 +21,6 @@ import type {
   Role,
   RouteStopRecord,
   TaskRecord,
-  TimeEntry,
   TimeOffRequest,
   VehicleInspectionRecord,
 } from "../types";
@@ -53,8 +52,7 @@ export async function fetchAllApps(): Promise<AppTile[]> {
     tasks,
     assignees,
     clockRecords,
-    timeEntries,
-    breaks,
+    punches,
     timeOffRequests,
     receivablesPayables,
     blogPosts,
@@ -80,8 +78,7 @@ export async function fetchAllApps(): Promise<AppTile[]> {
     supabase.from("tasks").select("*"),
     supabase.from("task_assignees").select("*"),
     supabase.from("clock_records").select("*"),
-    supabase.from("time_entries").select("*"),
-    supabase.from("time_entry_breaks").select("*"),
+    supabase.from("time_punches").select("*"),
     supabase.from("time_off_requests").select("*").order("requested_at", { ascending: false }),
     supabase.from("receivables_payables").select("*"),
     supabase.from("hh_blog_posts").select("*").order("published_at", { ascending: false }),
@@ -109,8 +106,7 @@ export async function fetchAllApps(): Promise<AppTile[]> {
     tasks,
     assignees,
     clockRecords,
-    timeEntries,
-    breaks,
+    punches,
     timeOffRequests,
     receivablesPayables,
     blogPosts,
@@ -138,8 +134,7 @@ export async function fetchAllApps(): Promise<AppTile[]> {
   const tasksByApp = groupBy(tasks.data ?? [], (r) => r.app_id);
   const assigneesByTask = groupBy(assignees.data ?? [], (r) => r.task_id);
   const clockRecordsByApp = groupBy(clockRecords.data ?? [], (r) => r.app_id);
-  const timeEntriesByApp = groupBy(timeEntries.data ?? [], (r) => r.app_id);
-  const breaksByEntry = groupBy(breaks.data ?? [], (r) => r.time_entry_id);
+  const punchesByApp = groupBy(punches.data ?? [], (r) => r.app_id);
   const timeOffRequestsByApp = groupBy(timeOffRequests.data ?? [], (r) => r.app_id);
   const receivablesPayablesByApp = groupBy(receivablesPayables.data ?? [], (r) => r.app_id);
   const blogPostsByApp = groupBy(blogPosts.data ?? [], (r) => r.app_id);
@@ -176,7 +171,7 @@ export async function fetchAllApps(): Promise<AppTile[]> {
       ),
       tasks: (tasksByApp.get(row.id) ?? []).map((t) => rowToTask(t, assigneesByTask.get(t.id) ?? [])),
       clockRecords: (clockRecordsByApp.get(row.id) ?? []).map(rowToClockRecord),
-      timeEntries: (timeEntriesByApp.get(row.id) ?? []).map((e) => rowToTimeEntry(e, breaksByEntry.get(e.id) ?? [])),
+      punches: (punchesByApp.get(row.id) ?? []).map(rowToPunch),
       requests: (timeOffRequestsByApp.get(row.id) ?? []).map(rowToTimeOffRequest),
       receivablesPayables: (receivablesPayablesByApp.get(row.id) ?? []).map(rowToReceivablePayable),
       blogPosts: (blogPostsByApp.get(row.id) ?? []).map(rowToBlogPost),
@@ -499,34 +494,26 @@ function rowToClockRecord(row: Record<string, unknown>): ClockRecord {
   };
 }
 
-function rowToTimeEntry(row: Record<string, unknown>, breakRows: Record<string, unknown>[]): TimeEntry {
-  const editClockIn = row.edit_request_clock_in as string | null;
-  const editClockOut = row.edit_request_clock_out as string | null;
+function rowToPunch(row: Record<string, unknown>): Punch {
+  const editStart = row.edit_request_start as string | null;
+  const editEnd = row.edit_request_end as string | null;
   const editNote = row.edit_request_note as string | null;
   const editRequestedAt = row.edit_request_requested_at as string | null;
   return {
     id: row.id as string,
     name: row.name as string,
     date: row.date as string,
-    clockIn: row.clock_in as string,
-    clockOut: (row.clock_out as string) ?? undefined,
-    breaks: breakRows.map(rowToBreak),
+    type: row.type as Punch["type"],
+    start: row.start_at as string,
+    end: (row.end_at as string) ?? undefined,
     editRequest: editRequestedAt
       ? {
-          clockIn: editClockIn ?? undefined,
-          clockOut: editClockOut ?? undefined,
+          start: editStart ?? undefined,
+          end: editEnd ?? undefined,
           note: editNote ?? undefined,
           requestedAt: editRequestedAt,
         }
       : undefined,
-  };
-}
-
-function rowToBreak(row: Record<string, unknown>): BreakEntry {
-  return {
-    id: row.id as string,
-    start: row.start_at as string,
-    end: (row.end_at as string) ?? undefined,
   };
 }
 
@@ -654,8 +641,8 @@ async function syncAppCollections(app: AppTile): Promise<void> {
     );
   }
 
-  if (app.timeEntries) {
-    work.push(syncTimeEntries(app.id, app.timeEntries));
+  if (app.punches) {
+    work.push(syncPunches(app.id, app.punches));
   }
 
   if (app.requests) {
@@ -1032,43 +1019,49 @@ async function syncRespiratoryPatients(appId: string, patients: RespiratoryPatie
   );
 }
 
-// Upsert-only, deliberately not replaceRows: time_entry_breaks.time_entry_id
-// has ON DELETE CASCADE from time_entries, so a delete-then-reinsert of
-// time_entries would momentarily cascade-delete EVERY employee's breaks
-// (this function rewrites the whole app's entries every time any one
-// person's clock action fires), and whatever reads mid-window -- a page
-// load, the realtime-triggered reload in App.tsx -- would see them as gone.
-// There's no UI path that removes a time entry or a break, so upserting the
-// current rows is complete: nothing here ever needs row deletion.
-async function syncTimeEntries(appId: string, entries: TimeEntry[]): Promise<void> {
+function punchToRow(appId: string, p: Punch) {
+  return {
+    id: p.id,
+    app_id: appId,
+    name: p.name,
+    date: p.date,
+    type: p.type,
+    start_at: p.start,
+    end_at: p.end ?? null,
+    edit_request_start: p.editRequest?.start ?? null,
+    edit_request_end: p.editRequest?.end ?? null,
+    edit_request_note: p.editRequest?.note ?? null,
+    edit_request_requested_at: p.editRequest?.requestedAt ?? null,
+  };
+}
+
+// Upsert-only, deliberately not replaceRows: a delete-then-reinsert of every
+// punch on every clock action would momentarily make the whole app's punches
+// vanish to any concurrent reader (a page load, the realtime-triggered
+// reload in App.tsx). There's no UI path that removes a punch, so upserting
+// the current rows is complete.
+async function syncPunches(appId: string, punches: Punch[]): Promise<void> {
   await upsertRows(
-    "time_entries",
-    entries.map((e) => ({
-      id: e.id,
-      app_id: appId,
-      name: e.name,
-      date: e.date,
-      clock_in: e.clockIn,
-      clock_out: e.clockOut ?? null,
-      edit_request_clock_in: e.editRequest?.clockIn ?? null,
-      edit_request_clock_out: e.editRequest?.clockOut ?? null,
-      edit_request_note: e.editRequest?.note ?? null,
-      edit_request_requested_at: e.editRequest?.requestedAt ?? null,
-    })),
+    "time_punches",
+    punches.map((p) => punchToRow(appId, p)),
   );
-  await Promise.all(
-    entries.map((e) =>
-      upsertRows(
-        "time_entry_breaks",
-        e.breaks.map((b) => ({
-          id: b.id,
-          time_entry_id: e.id,
-          start_at: b.start,
-          end_at: b.end ?? null,
-        })),
-      ),
-    ),
-  );
+}
+
+/**
+ * Plain INSERT (never upsert) for the two actions that OPEN a punch (Start
+ * Shift, the open half of Start Break). Must be awaited and resolved before
+ * the optimistic local state update, so that a stale tab racing another
+ * open punch for the same person hits the database's partial unique index
+ * (time_punches_one_open_per_person) and fails loudly with a 23505 instead
+ * of silently succeeding.
+ */
+export async function insertOpenPunch(appId: string, punch: Punch): Promise<void> {
+  const { error } = await supabase.from("time_punches").insert(punchToRow(appId, punch));
+  if (error) throw error;
+}
+
+export function isOpenPunchConflict(err: unknown): boolean {
+  return !!err && typeof err === "object" && "code" in err && (err as { code?: string }).code === "23505";
 }
 
 /**
