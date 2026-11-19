@@ -57,10 +57,6 @@ function describeRequest(r: TimeOffRequest): string {
 
 const FALLBACK_TINT = { bg: "#EDF7F6", fg: "#479CA4" };
 
-// Bump this key whenever a new announcement needs to show again even to
-// people who already dismissed an earlier one.
-const REFRESH_NOTICE_KEY = "hh-timeclock-notice-2026-11-20-refresh";
-
 export function TimeClockPage({ app, role, currentUserName, onBack, onUpdate }: Props) {
   const toast = useToast();
   const records = app.clockRecords ?? [];
@@ -78,22 +74,6 @@ export function TimeClockPage({ app, role, currentUserName, onBack, onUpdate }: 
   const [, forceTick] = useState(0);
   const [confirmAction, setConfirmAction] = useState<"start" | "end" | "startBreak" | "endBreak" | null>(null);
   const [clockBusy, setClockBusy] = useState(false);
-  const [showRefreshNotice, setShowRefreshNotice] = useState(() => {
-    try {
-      return localStorage.getItem(REFRESH_NOTICE_KEY) !== "dismissed";
-    } catch {
-      return true;
-    }
-  });
-
-  function dismissRefreshNotice() {
-    setShowRefreshNotice(false);
-    try {
-      localStorage.setItem(REFRESH_NOTICE_KEY, "dismissed");
-    } catch {
-      // Private browsing / blocked storage -- fine, it just re-shows next visit.
-    }
-  }
 
   const isAdmin = role === "admin";
   const tint = app.tint ?? FALLBACK_TINT;
@@ -327,23 +307,6 @@ export function TimeClockPage({ app, role, currentUserName, onBack, onUpdate }: 
           {app.description && <p className="items-page-desc">{app.description}</p>}
         </div>
       </div>
-
-      {showRefreshNotice && (
-        <div className="clock-announcement-banner">
-          <Icon name="alert-circle" />
-          <span>
-            We fixed a bug where this page could get stuck running an old, out-of-date version after an update. If
-            your shift status ever looks wrong, please do one of these once: close this tab and open it again, press
-            Ctrl+Shift+R (Cmd+Shift+R on Mac) to hard-refresh, or just fully close and reopen your browser.
-          </span>
-          <button type="button" onClick={dismissRefreshNotice} aria-label="Dismiss">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-              <path d="M18 6 6 18" />
-              <path d="M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-      )}
 
       <div className="clock-top-row">
         <div className="items-section clock-today-panel">

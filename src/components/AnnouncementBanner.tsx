@@ -19,6 +19,7 @@ export function AnnouncementBanner({ announcement, unread, onOpen }: Props) {
           New announcement
         </span>
         <span className="announcement-banner-title">{announcement.title}</span>
+        <span className="announcement-banner-message">{announcement.message}</span>
       </span>
       <span className="announcement-banner-cta">
         <span>View</span>

@@ -1266,6 +1266,14 @@ body {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.announcement-banner-message {
+  font-size: 13px;
+  color: var(--text-secondary);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
 
 .announcement-banner-cta {
   display: flex;
@@ -1362,36 +1370,6 @@ body {
 }
 .clock-stale-banner span {
   flex: 1;
-}
-.clock-announcement-banner {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 14px;
-  padding: 10px 14px;
-  border-radius: 12px;
-  background: color-mix(in srgb, var(--teal) 14%, var(--card-bg));
-  border: 1px solid color-mix(in srgb, var(--teal) 35%, var(--border));
-  color: var(--teal-strong);
-  font-size: 13px;
-  font-weight: 600;
-}
-.clock-announcement-banner svg {
-  width: 18px;
-  height: 18px;
-  flex-shrink: 0;
-}
-.clock-announcement-banner span {
-  flex: 1;
-}
-.clock-announcement-banner button {
-  background: none;
-  border: none;
-  padding: 2px;
-  cursor: pointer;
-  color: inherit;
-  display: flex;
-  flex-shrink: 0;
 }
 .clock-today-divider {
   width: 1px;
