@@ -1363,6 +1363,36 @@ body {
 .clock-stale-banner span {
   flex: 1;
 }
+.clock-announcement-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--teal) 14%, var(--card-bg));
+  border: 1px solid color-mix(in srgb, var(--teal) 35%, var(--border));
+  color: var(--teal-strong);
+  font-size: 13px;
+  font-weight: 600;
+}
+.clock-announcement-banner svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+.clock-announcement-banner span {
+  flex: 1;
+}
+.clock-announcement-banner button {
+  background: none;
+  border: none;
+  padding: 2px;
+  cursor: pointer;
+  color: inherit;
+  display: flex;
+  flex-shrink: 0;
+}
 .clock-today-divider {
   width: 1px;
   background: var(--border);
