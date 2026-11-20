@@ -204,7 +204,7 @@ export interface RespiratoryPatientRecord {
 }
 
 export type OrderType = "Delivery" | "Pickup" | "Swapout" | "Sale" | "Service";
-export type InvoiceStatus = "printed" | "to_be_printed";
+export type InvoiceStatus = "printed" | "to_be_printed" | "done";
 
 export interface InvoiceRecord {
   id: string;

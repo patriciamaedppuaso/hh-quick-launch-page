@@ -109,6 +109,13 @@ export function InvoiceForm({ initial, folderOptions, defaultFolder, onSave, onC
           >
             Printed
           </button>
+          <button
+            type="button"
+            className={`type-btn${status === "done" ? " active" : ""}`}
+            onClick={() => setStatus("done")}
+          >
+            Done
+          </button>
         </div>
       </div>
       <div className="form-row">

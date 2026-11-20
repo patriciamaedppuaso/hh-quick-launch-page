@@ -794,6 +794,10 @@ body {
   background: color-mix(in srgb, var(--success) 18%, var(--surface-soft));
   color: color-mix(in srgb, var(--success) 70%, var(--text));
 }
+.equipment-pill--done {
+  background: color-mix(in srgb, var(--teal) 18%, var(--surface-soft));
+  color: var(--teal-strong);
+}
 
 .nav-candidate-list {
   display: flex;

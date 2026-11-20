@@ -20,6 +20,17 @@ const FALLBACK_TINT = { bg: "#FDF2E3", fg: "#C98A2E" };
 
 type StatusFilter = "all" | InvoiceRecord["status"];
 
+const STATUS_LABEL: Record<InvoiceRecord["status"], string> = {
+  to_be_printed: "To be printed",
+  printed: "Printed",
+  done: "Done",
+};
+const STATUS_PILL_VARIANT: Record<InvoiceRecord["status"], string> = {
+  to_be_printed: "ongoing",
+  printed: "returned",
+  done: "done",
+};
+
 export function InvoicesPage({ app, role, onBack, onUpdate, onUpdateStatusOptions }: Props) {
   const records = app.invoices ?? [];
   const folderOptions = useMemo(
@@ -132,8 +143,8 @@ export function InvoicesPage({ app, role, onBack, onUpdate, onUpdateStatusOption
           {inv.notes && <span className="items-row-desc">{inv.notes}</span>}
         </div>
         <span className="items-row-kind">{inv.orderType}</span>
-        <span className={`equipment-pill equipment-pill--${inv.status === "printed" ? "returned" : "ongoing"}`}>
-          {inv.status === "printed" ? "Printed" : "To be printed"}
+        <span className={`equipment-pill equipment-pill--${STATUS_PILL_VARIANT[inv.status]}`}>
+          {STATUS_LABEL[inv.status]}
         </span>
         {canManage && (
           <div
@@ -219,6 +230,7 @@ export function InvoicesPage({ app, role, onBack, onUpdate, onUpdateStatusOption
           <option value="all">All statuses</option>
           <option value="to_be_printed">To be printed</option>
           <option value="printed">Printed</option>
+          <option value="done">Done</option>
         </select>
         <select
           className="filter-select"
@@ -317,7 +329,7 @@ export function InvoicesPage({ app, role, onBack, onUpdate, onUpdateStatusOption
           { label: "Hospice", value: viewing?.hospice },
           { label: "Order type", value: viewing?.orderType },
           { label: "Date", value: viewing?.date ? formatDate(viewing.date) : undefined },
-          { label: "Status", value: viewing?.status === "printed" ? "Printed" : "To be printed" },
+          { label: "Status", value: viewing ? STATUS_LABEL[viewing.status] : undefined },
           { label: "Checked", value: viewing?.checked ? "Yes" : "No" },
           { label: "Notes", value: viewing?.notes },
         ]}
