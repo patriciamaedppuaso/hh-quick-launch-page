@@ -521,20 +521,48 @@ function rowToPunch(row: Record<string, unknown>): Punch {
 // write: diff two AppTile[] snapshots and push the changes
 // ===================================================================
 
-async function replaceRows(table: string, parentColumn: string, parentId: string, rows: Record<string, unknown>[]) {
-  const del = await supabase.from(table).delete().eq(parentColumn, parentId);
-  if (del.error) throw del.error;
-  if (rows.length === 0) return;
-  const ins = await supabase.from(table).insert(rows);
-  if (ins.error) throw ins.error;
-}
-
-/** Insert-or-update by primary key, without deleting anything first -- use this instead of
- * replaceRows wherever rows are never removed, to avoid an unnecessary delete (and any
+/** Insert-or-update by primary key, without deleting anything first -- use this for a
+ * collection that's never removed wholesale, to avoid an unnecessary delete (and any
  * ON DELETE CASCADE it could trigger on a related table) for a plain update. */
 async function upsertRows(table: string, rows: Record<string, unknown>[]) {
   if (rows.length === 0) return;
   const { error } = await supabase.from(table).upsert(rows);
+  if (error) throw error;
+}
+
+/** Diffs against the collection's own previous state and only deletes what's
+ * actually been removed, then upserts the rest -- never a blanket
+ * delete-everything-then-reinsert of a whole parent's collection the way
+ * replaceRows does. A stale or momentarily-incomplete local copy can then at
+ * worst fail to delete something real; it can no longer silently wipe rows
+ * it simply didn't know about (this is what replaceRows did to every
+ * driver's route_stops -- see 0054's write path for the incident this
+ * replaced it for, now generalized everywhere else replaceRows was used).
+ *
+ * keyColumn is "id" for a table with its own id column, or the row's own
+ * natural key column (e.g. "rep_name") for a child table whose primary key
+ * is a composite of (parentColumn, keyColumn) -- either way it must uniquely
+ * identify a row within this one parent's collection. */
+async function syncScoped<T>(
+  table: string,
+  parentColumn: string,
+  parentId: string,
+  keyColumn: string,
+  prevRows: T[] | undefined,
+  nextRows: T[],
+  getKey: (item: T) => string,
+  toRow: (item: T) => Record<string, unknown>,
+): Promise<void> {
+  const nextKeys = new Set(nextRows.map(getKey));
+  const removedKeys = (prevRows ?? []).map(getKey).filter((k) => !nextKeys.has(k));
+
+  if (removedKeys.length > 0) {
+    const { error } = await supabase.from(table).delete().eq(parentColumn, parentId).in(keyColumn, removedKeys);
+    if (error) throw error;
+  }
+  if (nextRows.length === 0) return;
+  const onConflict = keyColumn === "id" ? "id" : `${parentColumn},${keyColumn}`;
+  const { error } = await supabase.from(table).upsert(nextRows.map(toRow), { onConflict });
   if (error) throw error;
 }
 
@@ -566,16 +594,20 @@ function appToRow(app: AppTile, sortOrder: number) {
   };
 }
 
-async function syncAppCollections(app: AppTile): Promise<void> {
+async function syncAppCollections(app: AppTile, prevApp?: AppTile): Promise<void> {
   const work: Promise<void>[] = [];
 
   if (app.type === "list") {
     work.push(
-      replaceRows(
+      syncScoped(
         "list_items",
         "app_id",
         app.id,
-        app.items.map((it) => ({
+        "id",
+        prevApp?.type === "list" ? prevApp.items : undefined,
+        app.items,
+        (it) => it.id,
+        (it) => ({
           id: it.id,
           app_id: app.id,
           name: it.name,
@@ -586,18 +618,22 @@ async function syncAppCollections(app: AppTile): Promise<void> {
           expires_on: it.expiresOn ?? null,
           updated_at: it.updatedAt ?? null,
           folder: it.folder ?? null,
-        })),
+        }),
       ),
     );
   }
 
   if (app.contacts) {
     work.push(
-      replaceRows(
+      syncScoped(
         "contacts",
         "app_id",
         app.id,
-        app.contacts.map((c) => ({
+        "id",
+        prevApp?.contacts,
+        app.contacts,
+        (c) => c.id,
+        (c) => ({
           id: c.id,
           app_id: app.id,
           name: c.name,
@@ -607,36 +643,40 @@ async function syncAppCollections(app: AppTile): Promise<void> {
           email: c.email ?? null,
           notes: c.notes ?? null,
           avatar: c.avatar ?? null,
-        })),
+        }),
       ),
     );
   }
 
   if (app.leads) {
-    work.push(syncLeads(app.id, app.leads));
+    work.push(syncLeads(app.id, prevApp?.leads, app.leads));
   }
 
   if (app.announcements) {
-    work.push(syncAnnouncements(app.id, app.announcements));
+    work.push(syncAnnouncements(app.id, prevApp?.announcements, app.announcements));
   }
 
   if (app.tasks) {
-    work.push(syncTasks(app.id, app.tasks));
+    work.push(syncTasks(app.id, prevApp?.tasks, app.tasks));
   }
 
   if (app.clockRecords) {
     work.push(
-      replaceRows(
+      syncScoped(
         "clock_records",
         "app_id",
         app.id,
-        app.clockRecords.map((c) => ({
+        "id",
+        prevApp?.clockRecords,
+        app.clockRecords,
+        (c) => c.id,
+        (c) => ({
           id: c.id,
           app_id: app.id,
           name: c.name,
           clocked_in: c.clockedIn,
           since: c.since ?? null,
-        })),
+        }),
       ),
     );
   }
@@ -647,11 +687,15 @@ async function syncAppCollections(app: AppTile): Promise<void> {
 
   if (app.requests) {
     work.push(
-      replaceRows(
+      syncScoped(
         "time_off_requests",
         "app_id",
         app.id,
-        app.requests.map((r) => ({
+        "id",
+        prevApp?.requests,
+        app.requests,
+        (r) => r.id,
+        (r) => ({
           id: r.id,
           app_id: app.id,
           employee_name: r.employeeName,
@@ -663,18 +707,22 @@ async function syncAppCollections(app: AppTile): Promise<void> {
           note: r.note ?? null,
           status: r.status,
           requested_at: r.requestedAt,
-        })),
+        }),
       ),
     );
   }
 
   if (app.receivablesPayables) {
     work.push(
-      replaceRows(
+      syncScoped(
         "receivables_payables",
         "app_id",
         app.id,
-        app.receivablesPayables.map((r) => ({
+        "id",
+        prevApp?.receivablesPayables,
+        app.receivablesPayables,
+        (r) => r.id,
+        (r) => ({
           id: r.id,
           app_id: app.id,
           kind: r.kind,
@@ -684,18 +732,22 @@ async function syncAppCollections(app: AppTile): Promise<void> {
           due_date: r.dueDate ?? null,
           notes: r.notes ?? null,
           created_at: r.createdAt ?? null,
-        })),
+        }),
       ),
     );
   }
 
   if (app.accounts) {
     work.push(
-      replaceRows(
+      syncScoped(
         "account_credentials",
         "app_id",
         app.id,
-        app.accounts.map((a) => ({
+        "id",
+        prevApp?.accounts,
+        app.accounts,
+        (a) => a.id,
+        (a) => ({
           id: a.id,
           app_id: app.id,
           name: a.name,
@@ -706,51 +758,30 @@ async function syncAppCollections(app: AppTile): Promise<void> {
           url: a.url ?? null,
           notes: a.notes ?? null,
           updated_at: a.updatedAt ?? null,
-        })),
+        }),
       ),
     );
   }
 
   if (app.routeStops) {
-    work.push(
-      replaceRows(
-        "route_stops",
-        "app_id",
-        app.id,
-        app.routeStops.map((s, i) => ({
-          id: s.id,
-          app_id: app.id,
-          driver: s.driver,
-          date: s.date,
-          start_time: s.startTime ?? null,
-          end_time: s.endTime ?? null,
-          mileage: s.mileage ?? null,
-          customer_name: s.customerName,
-          street: s.street ?? null,
-          city: s.city ?? null,
-          driver_eta: s.driverEta ?? null,
-          schedule_eta: s.scheduleEta ?? null,
-          service_performed: s.servicePerformed ?? null,
-          note: s.note ?? null,
-          flagged: s.flagged ?? false,
-          finished: s.finished ?? false,
-          sort_order: i,
-        })),
-      ),
-    );
+    work.push(syncRouteStops(app.id, prevApp?.routeStops, app.routeStops));
   }
 
   if (app.respiratoryPatients) {
-    work.push(syncRespiratoryPatients(app.id, app.respiratoryPatients));
+    work.push(syncRespiratoryPatients(app.id, prevApp?.respiratoryPatients, app.respiratoryPatients));
   }
 
   if (app.invoices) {
     work.push(
-      replaceRows(
+      syncScoped(
         "printed_invoices",
         "app_id",
         app.id,
-        app.invoices.map((inv) => ({
+        "id",
+        prevApp?.invoices,
+        app.invoices,
+        (inv) => inv.id,
+        (inv) => ({
           id: inv.id,
           app_id: app.id,
           folder: inv.folder ?? null,
@@ -762,26 +793,30 @@ async function syncAppCollections(app: AppTile): Promise<void> {
           status: inv.status,
           date: inv.date,
           checked: inv.checked ?? false,
-        })),
+        }),
       ),
     );
   }
 
   if (app.vehicleInspections) {
-    work.push(syncVehicleInspections(app.id, app.vehicleInspections));
+    work.push(syncVehicleInspections(app.id, prevApp?.vehicleInspections, app.vehicleInspections));
   }
 
   if (app.equipmentChecklists) {
-    work.push(syncEquipmentChecklists(app.id, app.equipmentChecklists));
+    work.push(syncEquipmentChecklists(app.id, prevApp?.equipmentChecklists, app.equipmentChecklists));
   }
 
   if (app.purchaseOrders) {
     work.push(
-      replaceRows(
+      syncScoped(
         "purchase_order_invoices",
         "app_id",
         app.id,
-        app.purchaseOrders.map((po) => ({
+        "id",
+        prevApp?.purchaseOrders,
+        app.purchaseOrders,
+        (po) => po.id,
+        (po) => ({
           id: po.id,
           app_id: app.id,
           folder: po.folder ?? null,
@@ -790,18 +825,22 @@ async function syncAppCollections(app: AppTile): Promise<void> {
           is_file: po.isFile ?? null,
           file_name: po.fileName ?? null,
           status: po.status,
-        })),
+        }),
       ),
     );
   }
 
   if (app.receipts) {
     work.push(
-      replaceRows(
+      syncScoped(
         "receipts",
         "app_id",
         app.id,
-        app.receipts.map((r) => ({
+        "id",
+        prevApp?.receipts,
+        app.receipts,
+        (r) => r.id,
+        (r) => ({
           id: r.id,
           app_id: app.id,
           folder: r.folder ?? null,
@@ -811,18 +850,22 @@ async function syncAppCollections(app: AppTile): Promise<void> {
           is_file: r.isFile ?? null,
           file_name: r.fileName ?? null,
           status: r.status,
-        })),
+        }),
       ),
     );
   }
 
   if (app.blogPosts) {
     work.push(
-      replaceRows(
+      syncScoped(
         "hh_blog_posts",
         "app_id",
         app.id,
-        app.blogPosts.map((p) => ({
+        "id",
+        prevApp?.blogPosts,
+        app.blogPosts,
+        (p) => p.id,
+        (p) => ({
           id: p.id,
           app_id: app.id,
           slug: p.slug,
@@ -834,7 +877,7 @@ async function syncAppCollections(app: AppTile): Promise<void> {
           is_active: p.isActive,
           published_at: p.publishedAt ?? null,
           created_at: p.createdAt ?? null,
-        })),
+        }),
       ),
     );
   }
@@ -842,44 +885,61 @@ async function syncAppCollections(app: AppTile): Promise<void> {
   await Promise.all(work);
 }
 
-async function syncAnnouncements(appId: string, announcements: AnnouncementRecord[]): Promise<void> {
-  await replaceRows(
+async function syncAnnouncements(
+  appId: string,
+  prevAnnouncements: AnnouncementRecord[] | undefined,
+  announcements: AnnouncementRecord[],
+): Promise<void> {
+  await syncScoped(
     "announcements",
     "app_id",
     appId,
-    announcements.map((a) => ({
+    "id",
+    prevAnnouncements,
+    announcements,
+    (a) => a.id,
+    (a) => ({
       id: a.id,
       app_id: appId,
       title: a.title,
       message: a.message,
       date: a.date,
       author: a.author ?? null,
-    })),
+    }),
   );
+  const prevById = new Map((prevAnnouncements ?? []).map((a) => [a.id, a]));
   await Promise.all(
     announcements.map((a) =>
-      replaceRows(
+      syncScoped(
         "announcement_attachments",
         "announcement_id",
         a.id,
-        (a.attachments ?? []).map((att) => ({
+        "id",
+        prevById.get(a.id)?.attachments,
+        a.attachments ?? [],
+        (att) => att.id,
+        (att) => ({
           id: att.id,
           announcement_id: a.id,
           name: att.name,
           url: att.url,
           is_image: att.isImage,
-        })),
+        }),
       ),
     ),
   );
 }
 
-async function syncLeads(appId: string, leads: LeadRecord[]): Promise<void> {
-  await replaceRows(
+async function syncLeads(appId: string, prevLeads: LeadRecord[] | undefined, leads: LeadRecord[]): Promise<void> {
+  await syncScoped(
     "leads",
     "app_id",
     appId,
-    leads.map((l) => ({
+    "id",
+    prevLeads,
+    leads,
+    (l) => l.id,
+    (l) => ({
       id: l.id,
       app_id: appId,
       name: l.name,
@@ -889,26 +949,35 @@ async function syncLeads(appId: string, leads: LeadRecord[]): Promise<void> {
       follow_up: l.followUp ?? null,
       notes: l.notes ?? null,
       created_at: l.createdAt ?? null,
-    })),
+    }),
   );
+  const prevById = new Map((prevLeads ?? []).map((l) => [l.id, l]));
   await Promise.all(
     leads.map((l) =>
-      replaceRows(
+      syncScoped(
         "lead_reps",
         "lead_id",
         l.id,
-        (l.reps ?? []).map((name) => ({ lead_id: l.id, rep_name: name })),
+        "rep_name",
+        prevById.get(l.id)?.reps,
+        l.reps ?? [],
+        (name) => name,
+        (name) => ({ lead_id: l.id, rep_name: name }),
       ),
     ),
   );
 }
 
-async function syncTasks(appId: string, tasks: TaskRecord[]): Promise<void> {
-  await replaceRows(
+async function syncTasks(appId: string, prevTasks: TaskRecord[] | undefined, tasks: TaskRecord[]): Promise<void> {
+  await syncScoped(
     "tasks",
     "app_id",
     appId,
-    tasks.map((t) => ({
+    "id",
+    prevTasks,
+    tasks,
+    (t) => t.id,
+    (t) => ({
       id: t.id,
       app_id: appId,
       title: t.title,
@@ -917,26 +986,39 @@ async function syncTasks(appId: string, tasks: TaskRecord[]): Promise<void> {
       priority: t.priority ?? null,
       notes: t.notes ?? null,
       created_at: t.createdAt ?? null,
-    })),
+    }),
   );
+  const prevById = new Map((prevTasks ?? []).map((t) => [t.id, t]));
   await Promise.all(
     tasks.map((t) =>
-      replaceRows(
+      syncScoped(
         "task_assignees",
         "task_id",
         t.id,
-        (t.assignees ?? []).map((name) => ({ task_id: t.id, assignee_name: name })),
+        "assignee_name",
+        prevById.get(t.id)?.assignees,
+        t.assignees ?? [],
+        (name) => name,
+        (name) => ({ task_id: t.id, assignee_name: name }),
       ),
     ),
   );
 }
 
-async function syncVehicleInspections(appId: string, inspections: VehicleInspectionRecord[]): Promise<void> {
-  await replaceRows(
+async function syncVehicleInspections(
+  appId: string,
+  prevInspections: VehicleInspectionRecord[] | undefined,
+  inspections: VehicleInspectionRecord[],
+): Promise<void> {
+  await syncScoped(
     "vehicle_inspections",
     "app_id",
     appId,
-    inspections.map((v) => ({
+    "id",
+    prevInspections,
+    inspections,
+    (v) => v.id,
+    (v) => ({
       id: v.id,
       app_id: appId,
       driver_name: v.driverName,
@@ -949,55 +1031,127 @@ async function syncVehicleInspections(appId: string, inspections: VehicleInspect
       remarks: v.remarks ?? null,
       condition_acceptable: v.conditionAcceptable,
       certified: v.certified,
-    })),
+    }),
   );
+  const prevById = new Map((prevInspections ?? []).map((v) => [v.id, v]));
   await Promise.all(
     inspections.map((v) =>
-      replaceRows(
+      syncScoped(
         "vehicle_inspection_defects",
         "inspection_id",
         v.id,
-        v.defectiveItems.map((item) => ({ inspection_id: v.id, item_name: item })),
+        "item_name",
+        prevById.get(v.id)?.defectiveItems,
+        v.defectiveItems,
+        (item) => item,
+        (item) => ({ inspection_id: v.id, item_name: item }),
       ),
     ),
   );
 }
 
-async function syncEquipmentChecklists(appId: string, checklists: EquipmentChecklistRecord[]): Promise<void> {
-  await replaceRows(
+async function syncEquipmentChecklists(
+  appId: string,
+  prevChecklists: EquipmentChecklistRecord[] | undefined,
+  checklists: EquipmentChecklistRecord[],
+): Promise<void> {
+  await syncScoped(
     "equipment_checklists",
     "app_id",
     appId,
-    checklists.map((c) => ({
+    "id",
+    prevChecklists,
+    checklists,
+    (c) => c.id,
+    (c) => ({
       id: c.id,
       app_id: appId,
       employee_name: c.employeeName,
       date: c.date,
       certified: c.certified,
-    })),
+    }),
   );
+  const prevById = new Map((prevChecklists ?? []).map((c) => [c.id, c]));
   await Promise.all(
     checklists.map((c) =>
-      replaceRows(
+      syncScoped(
         "equipment_checklist_items",
         "checklist_id",
         c.id,
-        c.confirmedItems.map((item) => ({
+        "item_name",
+        prevById.get(c.id)?.confirmedItems,
+        c.confirmedItems,
+        (item) => item.name,
+        (item) => ({
           checklist_id: c.id,
           item_name: item.name,
           quantity: item.quantity,
-        })),
+        }),
       ),
     ),
   );
 }
 
-async function syncRespiratoryPatients(appId: string, patients: RespiratoryPatientRecord[]): Promise<void> {
-  await replaceRows(
+// Unlike replaceRows, never deletes everything-then-reinserts -- that pattern
+// is exactly what silently wiped every driver's route stops before: a stale
+// tab's locally-held copy only needs to be briefly incomplete at save time
+// for the blanket delete to remove real rows that the equally-blanket
+// reinsert then fails to restore. Instead, diff against what this same app
+// looked like *before* this save (prevStops) to find only the stop(s)
+// actually removed, delete just those, and upsert everything else --
+// so a stale/incomplete local copy can at worst fail to delete something,
+// never wipe rows it never knew about to begin with.
+async function syncRouteStops(
+  appId: string,
+  prevStops: RouteStopRecord[] | undefined,
+  nextStops: RouteStopRecord[],
+): Promise<void> {
+  const nextIds = new Set(nextStops.map((s) => s.id));
+  const removedIds = (prevStops ?? []).map((s) => s.id).filter((id) => !nextIds.has(id));
+
+  if (removedIds.length > 0) {
+    const { error } = await supabase.from("route_stops").delete().in("id", removedIds);
+    if (error) throw error;
+  }
+
+  await upsertRows(
+    "route_stops",
+    nextStops.map((s, i) => ({
+      id: s.id,
+      app_id: appId,
+      driver: s.driver,
+      date: s.date,
+      start_time: s.startTime ?? null,
+      end_time: s.endTime ?? null,
+      mileage: s.mileage ?? null,
+      customer_name: s.customerName,
+      street: s.street ?? null,
+      city: s.city ?? null,
+      driver_eta: s.driverEta ?? null,
+      schedule_eta: s.scheduleEta ?? null,
+      service_performed: s.servicePerformed ?? null,
+      note: s.note ?? null,
+      flagged: s.flagged ?? false,
+      finished: s.finished ?? false,
+      sort_order: i,
+    })),
+  );
+}
+
+async function syncRespiratoryPatients(
+  appId: string,
+  prevPatients: RespiratoryPatientRecord[] | undefined,
+  patients: RespiratoryPatientRecord[],
+): Promise<void> {
+  await syncScoped(
     "respiratory_patients",
     "app_id",
     appId,
-    patients.map((p) => ({
+    "id",
+    prevPatients,
+    patients,
+    (p) => p.id,
+    (p) => ({
       id: p.id,
       app_id: appId,
       folder: p.folder ?? null,
@@ -1005,15 +1159,20 @@ async function syncRespiratoryPatients(appId: string, patients: RespiratoryPatie
       city: p.city ?? null,
       due_date: p.dueDate ?? null,
       log_date: p.logDate ?? null,
-    })),
+    }),
   );
+  const prevById = new Map((prevPatients ?? []).map((p) => [p.id, p]));
   await Promise.all(
     patients.map((p) =>
-      replaceRows(
+      syncScoped(
         "respiratory_equipment",
         "patient_id",
         p.id,
-        p.equipment.map((e) => ({ id: e.id, patient_id: p.id, name: e.name, status: e.status })),
+        "id",
+        prevById.get(p.id)?.equipment,
+        p.equipment,
+        (e) => e.id,
+        (e) => ({ id: e.id, patient_id: p.id, name: e.name, status: e.status }),
       ),
     ),
   );
@@ -1095,7 +1254,7 @@ export async function syncApps(prevApps: AppTile[], nextApps: AppTile[]): Promis
     if (error) throw error;
   }
 
-  await Promise.all(touched.map((a) => syncAppCollections(a)));
+  await Promise.all(touched.map((a) => syncAppCollections(a, prevById.get(a.id))));
 
   const existingRows = rows.filter((r) => prevById.has(r.id as string));
   if (existingRows.length > 0) {
