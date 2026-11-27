@@ -552,6 +552,7 @@ async function syncScoped<T>(
   nextRows: T[],
   getKey: (item: T) => string,
   toRow: (item: T) => Record<string, unknown>,
+  options?: { onlyChanged?: boolean },
 ): Promise<void> {
   const nextKeys = new Set(nextRows.map(getKey));
   const removedKeys = (prevRows ?? []).map(getKey).filter((k) => !nextKeys.has(k));
@@ -560,10 +561,21 @@ async function syncScoped<T>(
     const { error } = await supabase.from(table).delete().eq(parentColumn, parentId).in(keyColumn, removedKeys);
     if (error) throw error;
   }
-  if (nextRows.length === 0) return;
+  const rowsToWrite = options?.onlyChanged ? changedItems(prevRows, nextRows, getKey) : nextRows;
+  if (rowsToWrite.length === 0) return;
   const onConflict = keyColumn === "id" ? "id" : `${parentColumn},${keyColumn}`;
-  const { error } = await supabase.from(table).upsert(nextRows.map(toRow), { onConflict });
+  const { error } = await supabase.from(table).upsert(rowsToWrite.map(toRow), { onConflict });
   if (error) throw error;
+}
+
+/** Items in `next` that are new or were replaced (by reference) since `prev`.
+ * Every state update in this app is immutable (`{ ...p, end }`), so an
+ * untouched item keeps its exact object identity. Writing back only these
+ * means a tab whose copy of *other* rows is stale can't overwrite them. */
+function changedItems<T>(prev: T[] | undefined, next: T[], getKey: (item: T) => string): T[] {
+  if (!prev) return next;
+  const prevByKey = new Map(prev.map((item) => [getKey(item), item]));
+  return next.filter((item) => prevByKey.get(getKey(item)) !== item);
 }
 
 function appToRow(app: AppTile, sortOrder: number) {
@@ -677,12 +689,13 @@ async function syncAppCollections(app: AppTile, prevApp?: AppTile): Promise<void
           clocked_in: c.clockedIn,
           since: c.since ?? null,
         }),
+        { onlyChanged: true },
       ),
     );
   }
 
   if (app.punches) {
-    work.push(syncPunches(app.id, app.punches));
+    work.push(syncPunches(app.id, prevApp?.punches, app.punches));
   }
 
   if (app.requests) {
@@ -1194,15 +1207,16 @@ function punchToRow(appId: string, p: Punch) {
   };
 }
 
-// Upsert-only, deliberately not replaceRows: a delete-then-reinsert of every
-// punch on every clock action would momentarily make the whole app's punches
-// vanish to any concurrent reader (a page load, the realtime-triggered
-// reload in App.tsx). There's no UI path that removes a punch, so upserting
-// the current rows is complete.
-async function syncPunches(appId: string, punches: Punch[]): Promise<void> {
+// Upsert-only (there's no UI path that removes a punch), and ONLY the punches
+// this change actually touched. Upserting the tab's whole punch list used to
+// let any tab that hadn't yet reloaded someone else's clock-out write that
+// punch back with end_at = null -- re-opening it. That is how several people
+// clocking out within moments of each other (Nov 25, 2026) left everyone's
+// shift running until they ended it again on their next shift.
+async function syncPunches(appId: string, prevPunches: Punch[] | undefined, punches: Punch[]): Promise<void> {
   await upsertRows(
     "time_punches",
-    punches.map((p) => punchToRow(appId, p)),
+    changedItems(prevPunches, punches, (p) => p.id).map((p) => punchToRow(appId, p)),
   );
 }
 
